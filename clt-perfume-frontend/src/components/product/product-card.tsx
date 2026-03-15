@@ -1,0 +1,104 @@
+"use client"
+
+import { Button } from "@/components/ui/button"
+import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Heart } from "lucide-react"
+import Link from "next/link"
+import { Product } from "@/lib/products"
+import { useCart } from "@/contexts/cart-context"
+import { useWishlist } from "@/contexts/wishlist-context"
+import { toast } from "sonner"
+
+export function ProductCard({ product }: { product: Product }) {
+  const { addToCart } = useCart()
+  const { toggleWishlist, isInWishlist } = useWishlist()
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    addToCart(product, 1)
+    toast.success(`${product.name} added to bag`, {
+      description: "You can view your bag or continue shopping.",
+      action: {
+        label: "View Bag",
+        onClick: () => window.location.href = '/cart'
+      },
+    })
+  }
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault()
+    toggleWishlist(product)
+    
+    if (isInWishlist(product.id)) {
+      toast(`${product.name} removed from wishlist`)
+    } else {
+      toast.success(`${product.name} added to wishlist`)
+    }
+  }
+
+  return (
+    <Link href={`/product/${product.slug}`} className="block group">
+      <Card className="border-none shadow-none bg-transparent rounded-none overflow-visible h-full">
+        <CardContent className="p-0 relative aspect-[4/5] bg-neutral-50 overflow-hidden mb-4 rounded-sm">
+          {/* Primary Image */}
+          <div className="absolute inset-0 transition-opacity duration-500 z-10 group-hover:opacity-0">
+            <Image
+              src={product.images[0]}
+              alt={product.name}
+              fill
+              className="object-cover"
+            />
+          </div>
+          
+          {/* Secondary Image (Hover) */}
+          <div className="absolute inset-0 transition-opacity duration-500 z-0">
+             <Image
+              src={product.images[1] || product.images[0]}
+              alt={`${product.name} alternate view`}
+              fill
+              className="object-cover"
+            />
+          </div>
+          
+          {product.isNew && (
+            <Badge className="absolute top-4 left-4 z-20 bg-white text-black hover:bg-neutral-100 uppercase text-[10px] tracking-widest px-2 py-1 rounded-none shadow-sm border border-neutral-100">
+              New Arrival
+            </Badge>
+          )}
+
+          <div className="absolute top-4 right-4 z-20 transition-opacity duration-300">
+             <Button 
+                onClick={handleWishlist}
+                size="icon" 
+                variant="ghost" 
+                className={`h-8 w-8 rounded-full shadow-sm hover:scale-110 transition-transform ${isInWishlist(product.id) ? 'bg-white text-red-500 opacity-100 hover:text-red-600 hover:bg-white' : 'bg-white/90 text-neutral-800 hover:bg-white opacity-0 group-hover:opacity-100'}`}
+             >
+               <Heart className={`h-4 w-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+             </Button>
+          </div>
+
+          <div className="absolute inset-x-0 bottom-0 z-20 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out bg-gradient-to-t from-black/60 to-transparent">
+             <Button 
+                onClick={handleAddToCart}
+                className="w-full bg-white text-black hover:bg-neutral-100 backdrop-blur-sm shadow-lg rounded-none h-11 text-xs uppercase tracking-widest font-medium group-hover:delay-75 transition-all"
+             >
+               Add to Bag — AED {product.price}
+             </Button>
+          </div>
+        </CardContent>
+        
+        <CardFooter className="p-0 flex flex-col items-start gap-1">
+          <div className="flex justify-between w-full items-start">
+             <div>
+                <h3 className="font-serif text-lg text-neutral-900 leading-none group-hover:text-neutral-600 transition-colors">{product.name}</h3>
+                <p className="text-xs text-neutral-500 mt-1 uppercase tracking-wider">{product.scent}</p>
+             </div>
+             <span className="font-medium text-sm text-neutral-900 hidden md:block">AED {product.price}</span>
+          </div>
+        </CardFooter>
+      </Card>
+    </Link>
+  )
+}
