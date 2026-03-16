@@ -3,18 +3,34 @@
 import { useEffect, useMemo, useState } from "react"
 import { AdminCustomer, getAdminCustomers } from "@/lib/admin-api"
 
+function fullName(customer: AdminCustomer) {
+  const name = [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim()
+  return name || "Unnamed Customer"
+}
+
+function formatUtcDate(dateString: string | null) {
+  if (!dateString) return "—"
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return "—"
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
+  const day = String(date.getUTCDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function spendingTier(totalSpent: number) {
+  if (totalSpent >= 2500) return "VIP"
+  if (totalSpent >= 1000) return "High"
+  if (totalSpent >= 300) return "Medium"
+  return "New"
+}
+
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<AdminCustomer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const metrics = useMemo(() => {
-    return {
-      total: customers.length,
-      withOrders: customers.filter((customer) => customer.orderCount > 0).length,
-      totalSpent: customers.reduce((sum, customer) => sum + Number(customer.totalSpent || 0), 0),
-    }
-  }, [customers])
+  const [query, setQuery] = useState("")
+  const [roleFilter, setRoleFilter] = useState("all")
 
   async function loadCustomers() {
     try {
@@ -22,7 +38,7 @@ export default function CustomersPage() {
       setError(null)
       setCustomers(await getAdminCustomers())
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load customers")
+      setError(loadError instanceof Error ? loadError.message : "Unable to load customers.")
     } finally {
       setLoading(false)
     }
@@ -32,73 +48,358 @@ export default function CustomersPage() {
     loadCustomers()
   }, [])
 
+  const filteredCustomers = useMemo(() => {
+    const text = query.trim().toLowerCase()
+    return customers.filter((customer) => {
+      const haystack = [
+        fullName(customer),
+        customer.email || "",
+        customer.phone || "",
+        customer.role || "",
+      ]
+        .join(" ")
+        .toLowerCase()
+
+      const matchesSearch = !text || haystack.includes(text)
+      const matchesRole = roleFilter === "all" || customer.role === roleFilter
+      return matchesSearch && matchesRole
+    })
+  }, [customers, query, roleFilter])
+
+  const stats = useMemo(() => {
+    const totalCustomers = customers.length
+    const withOrders = customers.filter((customer) => customer.orderCount > 0).length
+    const totalSpent = customers.reduce((sum, customer) => sum + Number(customer.totalSpent || 0), 0)
+    const averageSpend = withOrders > 0 ? totalSpent / withOrders : 0
+    const vipCustomers = customers.filter((customer) => Number(customer.totalSpent || 0) >= 2500).length
+
+    return {
+      totalCustomers,
+      withOrders,
+      totalSpent,
+      averageSpend,
+      vipCustomers,
+    }
+  }, [customers])
+
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0, fontSize: 28 }}>Customers</h1>
-        <button onClick={loadCustomers} style={{ border: "1px solid #d1d5db", background: "#fff", borderRadius: 10, padding: "8px 12px", cursor: "pointer" }}>
+    <div className="customers-page">
+      <header className="customers-header">
+        <div>
+          <h1>Customers</h1>
+          <p>Monitor customer profiles, spending behavior, and order engagement.</p>
+        </div>
+        <button className="ghost-btn" onClick={loadCustomers} type="button">
           Refresh
         </button>
       </header>
 
-      {error && (
-        <div style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", borderRadius: 12, padding: 12 }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="error-box">{error}</div>}
 
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
-        <article style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fff" }}>
-          <p style={{ margin: 0, color: "#6b7280", fontSize: 12 }}>Total Customers</p>
-          <p style={{ margin: "6px 0 0", fontSize: 24, fontWeight: 600 }}>{metrics.total}</p>
+      <section className="stats-grid">
+        <article className="stat-card">
+          <p>Total Customers</p>
+          <h3>{stats.totalCustomers}</h3>
         </article>
-        <article style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fff" }}>
-          <p style={{ margin: 0, color: "#6b7280", fontSize: 12 }}>With Orders</p>
-          <p style={{ margin: "6px 0 0", fontSize: 24, fontWeight: 600 }}>{metrics.withOrders}</p>
+        <article className="stat-card">
+          <p>Customers With Orders</p>
+          <h3>{stats.withOrders}</h3>
         </article>
-        <article style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fff" }}>
-          <p style={{ margin: 0, color: "#6b7280", fontSize: 12 }}>Total Spent</p>
-          <p style={{ margin: "6px 0 0", fontSize: 24, fontWeight: 600 }}>AED {metrics.totalSpent.toLocaleString()}</p>
+        <article className="stat-card">
+          <p>Total Customer Spend</p>
+          <h3>AED {Math.round(stats.totalSpent).toLocaleString()}</h3>
+        </article>
+        <article className="stat-card">
+          <p>Avg Spend (buyers)</p>
+          <h3>AED {Math.round(stats.averageSpend).toLocaleString()}</h3>
         </article>
       </section>
 
-      <section style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fff", overflowX: "auto" }}>
+      <section className="panel controls">
+        <input
+          className="search"
+          placeholder="Search by name, email, phone, role"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <select
+          className="role-filter"
+          value={roleFilter}
+          onChange={(event) => setRoleFilter(event.target.value)}
+        >
+          <option value="all">All roles</option>
+          <option value="customer">customer</option>
+          <option value="admin">admin</option>
+        </select>
+      </section>
+
+      <section className="panel table-panel">
+        <div className="table-topline">
+          <span>{filteredCustomers.length} shown</span>
+          <span>{stats.vipCustomers} VIP customers</span>
+        </div>
+
         {loading ? (
-          <p style={{ margin: 0, color: "#6b7280" }}>Loading customers...</p>
+          <div className="empty">Loading customers...</div>
+        ) : filteredCustomers.length === 0 ? (
+          <div className="empty">No customers match your filters.</div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid #e5e7eb", textAlign: "left", fontSize: 12, color: "#6b7280" }}>
-                <th style={{ padding: "8px 4px" }}>Customer</th>
-                <th style={{ padding: "8px 4px" }}>Role</th>
-                <th style={{ padding: "8px 4px" }}>Phone</th>
-                <th style={{ padding: "8px 4px" }}>Orders</th>
-                <th style={{ padding: "8px 4px" }}>Total Spent</th>
-                <th style={{ padding: "8px 4px" }}>Last Order</th>
-                <th style={{ padding: "8px 4px" }}>Joined</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((customer) => (
-                <tr key={customer.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                  <td style={{ padding: "10px 4px" }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {[customer.firstName, customer.lastName].filter(Boolean).join(" ") || "Unnamed Customer"}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>{customer.email || "No email"}</div>
-                  </td>
-                  <td style={{ padding: "10px 4px" }}>{customer.role}</td>
-                  <td style={{ padding: "10px 4px" }}>{customer.phone || "-"}</td>
-                  <td style={{ padding: "10px 4px" }}>{customer.orderCount}</td>
-                  <td style={{ padding: "10px 4px" }}>AED {Number(customer.totalSpent || 0).toLocaleString()}</td>
-                  <td style={{ padding: "10px 4px" }}>{customer.lastOrderAt ? new Date(customer.lastOrderAt).toLocaleDateString() : "-"}</td>
-                  <td style={{ padding: "10px 4px" }}>{new Date(customer.createdAt).toLocaleDateString()}</td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Role</th>
+                  <th>Phone</th>
+                  <th>Orders</th>
+                  <th>Total Spent</th>
+                  <th>Tier</th>
+                  <th>Last Order</th>
+                  <th>Joined</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredCustomers.map((customer) => {
+                  const name = fullName(customer)
+                  const spent = Number(customer.totalSpent || 0)
+                  const tier = spendingTier(spent)
+                  return (
+                    <tr key={customer.id}>
+                      <td>
+                        <div className="customer-id-block">
+                          <div className="avatar">{name[0]?.toUpperCase() || "C"}</div>
+                          <div>
+                            <div className="name">{name}</div>
+                            <div className="sub">{customer.email || "No email"}</div>
+                            <div className="sub id">{customer.id}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`role ${customer.role === "admin" ? "admin" : "customer"}`}>
+                          {customer.role}
+                        </span>
+                      </td>
+                      <td className="sub">{customer.phone || "—"}</td>
+                      <td className="name">{customer.orderCount}</td>
+                      <td className="name">AED {spent.toLocaleString()}</td>
+                      <td>
+                        <span className={`tier ${tier.toLowerCase()}`}>{tier}</span>
+                      </td>
+                      <td className="sub">{formatUtcDate(customer.lastOrderAt)}</td>
+                      <td className="sub">{formatUtcDate(customer.createdAt)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
+
+      <style jsx>{`
+        .customers-page {
+          display: grid;
+          gap: 14px;
+        }
+        .customers-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 16px;
+        }
+        .customers-header h1 {
+          margin: 0;
+          font-size: 28px;
+          letter-spacing: -0.02em;
+        }
+        .customers-header p {
+          margin: 6px 0 0;
+          color: #6b7280;
+          font-size: 14px;
+        }
+        .error-box {
+          border: 1px solid #fecaca;
+          background: #fef2f2;
+          color: #b91c1c;
+          border-radius: 12px;
+          padding: 12px;
+          font-size: 14px;
+        }
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .stat-card {
+          border: 1px solid #e5e7eb;
+          background: #fff;
+          border-radius: 12px;
+          padding: 12px;
+        }
+        .stat-card p {
+          margin: 0;
+          color: #6b7280;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        .stat-card h3 {
+          margin: 8px 0 0;
+          font-size: 22px;
+          letter-spacing: -0.02em;
+        }
+        .panel {
+          border: 1px solid #e5e7eb;
+          border-radius: 14px;
+          background: #fff;
+        }
+        .controls {
+          display: grid;
+          grid-template-columns: 1fr 200px;
+          gap: 10px;
+          padding: 12px;
+        }
+        .search,
+        .role-filter {
+          width: 100%;
+          border: 1px solid #d1d5db;
+          border-radius: 10px;
+          padding: 8px 10px;
+          font-size: 14px;
+          background: #fff;
+        }
+        .table-panel {
+          padding: 12px;
+        }
+        .table-topline {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 10px;
+          color: #6b7280;
+          font-size: 12px;
+        }
+        .table-wrap {
+          overflow-x: auto;
+        }
+        table {
+          width: 100%;
+          min-width: 1120px;
+          border-collapse: collapse;
+        }
+        th {
+          text-align: left;
+          padding: 10px 8px;
+          border-bottom: 1px solid #e5e7eb;
+          font-size: 11px;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        td {
+          padding: 12px 8px;
+          border-bottom: 1px solid #f3f4f6;
+          font-size: 14px;
+          vertical-align: top;
+        }
+        .customer-id-block {
+          display: grid;
+          grid-template-columns: 32px 1fr;
+          gap: 10px;
+        }
+        .avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #111;
+          color: #fff;
+          display: grid;
+          place-items: center;
+          font-size: 13px;
+          font-weight: 700;
+        }
+        .name {
+          font-weight: 600;
+        }
+        .sub {
+          color: #6b7280;
+          font-size: 12px;
+          margin-top: 2px;
+          word-break: break-word;
+        }
+        .sub.id {
+          max-width: 320px;
+        }
+        .role,
+        .tier {
+          display: inline-block;
+          border-radius: 999px;
+          padding: 4px 8px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .role.customer {
+          background: #f3f4f6;
+          color: #111827;
+        }
+        .role.admin {
+          background: #eef2ff;
+          color: #4338ca;
+        }
+        .tier.new {
+          background: #f3f4f6;
+          color: #374151;
+        }
+        .tier.medium {
+          background: #ecfeff;
+          color: #155e75;
+        }
+        .tier.high {
+          background: #fff7ed;
+          color: #9a3412;
+        }
+        .tier.vip {
+          background: #fef3c7;
+          color: #92400e;
+        }
+        .empty {
+          border: 1px dashed #e5e7eb;
+          border-radius: 12px;
+          text-align: center;
+          padding: 32px;
+          color: #6b7280;
+          font-size: 14px;
+        }
+        .ghost-btn {
+          border: 1px solid #d1d5db;
+          background: #fff;
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-size: 13px;
+          cursor: pointer;
+        }
+        @media (max-width: 980px) {
+          .stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .controls {
+            grid-template-columns: 1fr;
+          }
+        }
+        @media (max-width: 720px) {
+          .customers-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .stats-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   )
 }

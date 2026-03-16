@@ -45,7 +45,7 @@ export function ProductCard({ product }: { product: Product }) {
           {/* Primary Image */}
           <div className="absolute inset-0 transition-opacity duration-500 z-10 group-hover:opacity-0">
             <Image
-              src={product.images[0]}
+              src={product.images?.[0] || "/placeholder-perfume.png"}
               alt={product.name}
               fill
               className="object-cover"
@@ -55,18 +55,32 @@ export function ProductCard({ product }: { product: Product }) {
           {/* Secondary Image (Hover) */}
           <div className="absolute inset-0 transition-opacity duration-500 z-0">
              <Image
-              src={product.images[1] || product.images[0]}
+              src={product.images?.[1] || product.images?.[0] || "/placeholder-perfume.png"}
               alt={`${product.name} alternate view`}
               fill
               className="object-cover"
             />
           </div>
           
-          {product.isNew && (
+          {(product.isNew || product.is_new) && (
             <Badge className="absolute top-4 left-4 z-20 bg-white text-black hover:bg-neutral-100 uppercase text-[10px] tracking-widest px-2 py-1 rounded-none shadow-sm border border-neutral-100">
               New Arrival
             </Badge>
           )}
+
+          {(product.isBestSeller || product.is_best_seller) && !(product.isNew || product.is_new) && (
+            <Badge className="absolute top-4 left-4 z-20 bg-amber-500 text-white hover:bg-amber-600 uppercase text-[10px] tracking-widest px-2 py-1 rounded-none shadow-sm border-none">
+              Best Seller
+            </Badge>
+          )}
+
+          {(product.isExclusive || product.is_exclusive) && (
+            <Badge className="absolute top-4 left-4 z-20 bg-black text-white hover:bg-neutral-900 uppercase text-[10px] tracking-widest px-2 py-1 rounded-none shadow-sm border-none">
+              Exclusive
+            </Badge>
+          )}
+
+
 
           <div className="absolute top-4 right-4 z-20 transition-opacity duration-300">
              <Button 

@@ -9,14 +9,19 @@ import {
   Users,
   Settings,
   LogOut,
+  LayoutGrid,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 const menuItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/dashboard/products", icon: Package },
+  { label: "Collections", href: "/dashboard/categories", icon: LayoutGrid },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingBag },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
+  { label: "Newsletter", href: "/dashboard/newsletter", icon: LayoutDashboard },
+  { label: "Messages", href: "/dashboard/messages", icon: LayoutDashboard },
+  { label: "Coupons", href: "/dashboard/coupons", icon: LayoutDashboard },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 

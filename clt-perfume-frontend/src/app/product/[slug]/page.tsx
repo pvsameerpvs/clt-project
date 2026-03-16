@@ -1,18 +1,21 @@
-
 import { notFound } from "next/navigation"
-import { products } from "@/lib/products"
+import { getProductBySlug, getProducts } from "@/lib/api"
 import { ProductDisplay } from "@/components/product-display"
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const product = products.find((p) => p.slug === slug)
+  
+  // Fetch the main product
+  const product = await getProductBySlug(slug)
   
   if (!product) {
     notFound()
   }
 
-  const relatedProducts = products
-    .filter((p) => p.id !== product.id)
+  // Fetch related products (for now just all products excluding current)
+  const allProducts = await getProducts()
+  const relatedProducts = (allProducts || [])
+    .filter((p: any) => p.id !== product.id)
     .slice(0, 5)
 
   return <ProductDisplay product={product} relatedProducts={relatedProducts} />

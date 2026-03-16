@@ -1,15 +1,28 @@
 "use client"
-import { useState } from "react"
-import { products } from "@/lib/products"
+
+import { useState, useEffect } from "react"
 import { ProductCard } from "@/components/product/product-card"
+import { getSiteSettings, getProducts } from "@/lib/api"
 
 export function PocketFriendly() {
   const [selectedPrice, setSelectedPrice] = useState<number | null>(null)
+  const [pricePoints, setPricePoints] = useState<number[]>([49, 99, 149, 199, 299])
+  const [allProducts, setAllProducts] = useState<any[]>([])
 
-  const pricePoints = [49, 99, 149, 199]
+  useEffect(() => {
+    async function load() {
+      const settings = await getSiteSettings()
+      if (settings?.pocket_friendly_configs) {
+        setPricePoints(settings.pocket_friendly_configs)
+      }
+      const productsData = await getProducts()
+      setAllProducts(productsData || [])
+    }
+    load()
+  }, [])
 
   const filteredProducts = selectedPrice 
-    ? products.filter(p => p.price <= selectedPrice)
+    ? allProducts.filter(p => Number(p.price) <= selectedPrice)
     : []
 
   return (
@@ -18,14 +31,15 @@ export function PocketFriendly() {
         <div className="w-full bg-black p-8 md:p-12 lg:px-16 flex flex-col lg:flex-row items-center justify-between gap-8 h-auto lg:h-[220px]">
           {/* Left Text */}
           <div className="flex flex-col text-center lg:text-left shrink-0 pl-1 md:pl-10">
-            <h2 className="text-[2.75rem] md:text-6xl font-black tracking-wider text-white leading-none mb-1">POCKET</h2>
-            <p className="text-white text-sm md:text-[15px] tracking-widest uppercase font-semibold mt-1 mb-4 opacity-90">Friendly Purchase</p>
-            <div className="w-24 h-[2px] bg-white mx-auto lg:mx-0 opacity-40"></div>
+            <h2 className="text-[2.75rem] md:text-6xl font-black tracking-[0.2em] text-white leading-none mb-1">POCKET</h2>
+            <p className="text-amber-500 text-sm md:text-[15px] tracking-[0.3em] uppercase font-bold mt-1 mb-4">Affordable Luxury</p>
+            <div className="w-24 h-[2px] bg-amber-500 mx-auto lg:mx-0"></div>
           </div>
+
 
           {/* Cards */}
           <div className="flex flex-wrap justify-center lg:justify-end gap-4 md:gap-6 pb-4 lg:pb-0 w-full lg:w-auto items-center">
-            {pricePoints.map((price) => (
+            {pricePoints.map((price: number) => (
               <button
                 key={price}
                 onClick={() => setSelectedPrice(selectedPrice === price ? null : price)}
@@ -53,7 +67,7 @@ export function PocketFriendly() {
             
             {filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {filteredProducts.map(product => (
+                {filteredProducts.map((product: any) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>

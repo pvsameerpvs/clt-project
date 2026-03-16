@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Product } from "@/lib/products"
+import { Product, getCategoryLabel } from "@/lib/products"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { 
@@ -26,25 +26,27 @@ export function ProductInfo({ product }: { product: Product }) {
   const { addToCart } = useCart()
 
   const engravingPrice = engraving ? 25 : 0
+  const categoryLabel = getCategoryLabel(product.category)
 
   return (
     <div className="flex flex-col h-full">
       <div className="mb-6">
         <Badge variant="secondary" className="mb-3 uppercase tracking-widest text-[10px] bg-neutral-100 text-neutral-600 rounded-sm px-2">
-          {product.category}
+          {categoryLabel}
         </Badge>
         <h1 className="text-4xl md:text-5xl font-serif font-medium text-neutral-900 mb-2">{product.name}</h1>
         
         <div className="flex items-center gap-4 mb-4">
           <div className="flex items-center gap-1 text-black">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className={`h-4 w-4 ${i < Math.floor(product.rating) ? 'fill-black' : 'text-neutral-300 fill-transparent'}`} />
+              <Star key={i} className={`h-4 w-4 ${i < Math.floor(product.rating || 0) ? 'fill-black' : 'text-neutral-300 fill-transparent'}`} />
             ))}
-            <span className="text-sm font-medium ml-2">{product.rating}</span>
+            <span className="text-sm font-medium ml-2">{product.rating || 0}</span>
           </div>
           <span className="text-sm text-neutral-400">|</span>
-          <span className="text-sm text-neutral-500">{product.reviews.length} Reviews</span>
+          <span className="text-sm text-neutral-500">{product.review_count || product.reviews?.length || 0} Reviews</span>
         </div>
+
 
         <div className="flex items-baseline gap-3 mb-6">
           <div className="text-3xl font-light text-neutral-900">AED {product.price + engravingPrice}</div>
@@ -57,15 +59,41 @@ export function ProductInfo({ product }: { product: Product }) {
           <p>{product.description}</p>
         </div>
 
-        {/* Tags/Notes */}
+        {/* Fragrance Notes Section */}
+        {(product.top_notes || product.notes?.top) && (
+          <div className="mb-8 p-6 bg-neutral-50 rounded-2xl border border-neutral-100">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-6">Fragrance Notes</h3>
+            <div className="space-y-6">
+              {[
+                { label: "Top Notes", notes: product.top_notes || product.notes?.top },
+                { label: "Heart Notes", notes: product.heart_notes || product.notes?.heart },
+                { label: "Base Notes", notes: product.base_notes || product.notes?.base }
+              ].map((section, idx) => section.notes && (
+                <div key={idx} className="flex gap-4">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 w-24 shrink-0 mt-1">{section.label}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {section.notes.map(note => (
+                      <span key={note} className="text-sm font-light text-neutral-600 after:content-[','] last:after:content-['']">{note}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tags */}
         <div className="flex flex-wrap gap-2 mb-8">
-          {product.tags.map(tag => (
+          {(product.tags || []).map(tag => (
               <span key={tag} className="px-3 py-1 bg-neutral-50 border border-neutral-200 text-xs uppercase tracking-wide text-neutral-600 rounded-full">
                 {tag}
               </span>
           ))}
         </div>
+
         {/* Personal Engraving Section */}
+
+
         <div className="mb-8 p-6 border border-neutral-100 bg-neutral-50 rounded-2xl">
           <div className="flex items-center gap-2 mb-4 text-neutral-900">
             <Edit3 className="h-4 w-4" />

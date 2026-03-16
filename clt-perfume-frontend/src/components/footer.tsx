@@ -1,7 +1,25 @@
+"use client"
+
 import { Facebook, Instagram, Twitter, Youtube, Linkedin } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { getSiteSettings } from "@/lib/api"
 
 export function Footer() {
+  const [info, setInfo] = useState<any>(null)
+
+  useEffect(() => {
+    async function load() {
+      const settings = await getSiteSettings()
+      if (settings?.global_store_info) {
+        setInfo(settings.global_store_info)
+      }
+    }
+    load()
+  }, [])
+
+  const socialLinks = info?.social_links || {}
+
   return (
     <footer className="bg-black text-white border-t border-neutral-900">
       <div className="container mx-auto px-4 md:px-6 py-16 md:py-24">
@@ -9,33 +27,45 @@ export function Footer() {
           
           {/* Brand Info */}
           <div className="space-y-6 col-span-1 lg:col-span-2">
-            <h3 className="text-2xl font-bold font-serif tracking-widest text-white mb-4">CLE PERFUMES.</h3>
+            <h3 className="text-2xl font-bold font-serif tracking-widest text-white mb-4">
+              {info?.slogan || "CLE PERFUMES."}
+            </h3>
             <p className="max-w-md font-light leading-relaxed">
-              Elevating the everyday with scents that define your presence. Discover the true essence of luxury with our original collections, crafted meticulously for the discerning individual.
+              {info?.description || "Elevating the everyday with scents that define your presence. Discover the true essence of luxury with our original collections, crafted meticulously for the discerning individual."}
             </p>
             
             {/* Social Media */}
             <div className="flex gap-4 pt-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                <Instagram className="h-4 w-4" />
-                <span className="sr-only">Instagram</span>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                <Facebook className="h-4 w-4" />
-                <span className="sr-only">Facebook</span>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                <Twitter className="h-4 w-4" />
-                <span className="sr-only">Twitter</span>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                <Youtube className="h-4 w-4" />
-                <span className="sr-only">YouTube</span>
-              </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                <Linkedin className="h-4 w-4" />
-                <span className="sr-only">LinkedIn</span>
-              </a>
+              {socialLinks.instagram && (
+                <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
+                  <Instagram className="h-4 w-4" />
+                  <span className="sr-only">Instagram</span>
+                </a>
+              )}
+              {socialLinks.facebook && (
+                <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
+                  <Facebook className="h-4 w-4" />
+                  <span className="sr-only">Facebook</span>
+                </a>
+              )}
+              {socialLinks.twitter && (
+                <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
+                  <Twitter className="h-4 w-4" />
+                  <span className="sr-only">Twitter</span>
+                </a>
+              )}
+              {socialLinks.youtube && (
+                <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
+                  <Youtube className="h-4 w-4" />
+                  <span className="sr-only">YouTube</span>
+                </a>
+              )}
+              {socialLinks.linkedin && (
+                <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
+                  <Linkedin className="h-4 w-4" />
+                  <span className="sr-only">LinkedIn</span>
+                </a>
+              )}
             </div>
           </div>
           
@@ -64,7 +94,7 @@ export function Footer() {
           {/* Apps */}
           <div className="space-y-6">
             <h4 className="font-semibold text-white uppercase tracking-widest text-xs">Download Our App</h4>
-            <p className="text-xs font-light leading-relaxed mb-4">Shop anytime, anywhere with the CLE app. Available on iOS and Android.</p>
+            <p className="text-xs font-light leading-relaxed mb-4">Shop anytime, anywhere with the {info?.name || "CLE"} app. Available on iOS and Android.</p>
             <div className="flex flex-col gap-3">
               <a href="#" className="inline-block hover:scale-105 transition-transform origin-left">
                 <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 w-[160px] shadow-sm">
@@ -90,7 +120,7 @@ export function Footer() {
         
         {/* Bottom Bar */}
         <div className="border-t border-neutral-900 mt-16 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <p>&copy; {new Date().getFullYear()} CLE Perfumes. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {info?.name || "CLE Perfumes"}. All rights reserved.</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-white transition-colors">Terms of Service</a>

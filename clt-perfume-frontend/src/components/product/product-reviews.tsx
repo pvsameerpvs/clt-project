@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Star } from "lucide-react"
 
 export function ProductReviews({ product }: { product: Product }) {
+  const reviews = product.reviews || []
+
   return (
     <div className="border-t border-neutral-200 pt-16 mb-20">
       <div className="flex flex-col md:flex-row gap-12">
@@ -13,11 +15,12 @@ export function ProductReviews({ product }: { product: Product }) {
             <div className="flex flex-col">
               <div className="flex text-black mb-1">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`h-4 w-4 ${i < Math.floor(product.rating) ? 'fill-black' : 'text-neutral-200 fill-transparent'}`} />
+                  <Star key={i} className={`h-4 w-4 ${i < Math.floor(product.rating || 0) ? 'fill-black' : 'text-neutral-200 fill-transparent'}`} />
                 ))}
               </div>
-              <span className="text-sm text-neutral-500">{product.reviews.length} Reviews</span>
+              <span className="text-sm text-neutral-500">{product.review_count || reviews.length || 0} Reviews</span>
             </div>
+
           </div>
           <Button variant="outline" className="w-full rounded-full border-neutral-300">
             Write a Review
@@ -25,8 +28,8 @@ export function ProductReviews({ product }: { product: Product }) {
         </div>
         
         <div className="md:w-2/3 space-y-8">
-          {product.reviews.length > 0 ? (
-            product.reviews.map(review => (
+          {reviews.length > 0 ? (
+            reviews.map(review => (
               <div key={review.id} className="pb-8 border-b border-neutral-100 last:border-0">
                 <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-3">

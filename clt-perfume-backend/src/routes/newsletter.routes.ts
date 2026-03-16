@@ -14,7 +14,7 @@ newsletterRoutes.post('/subscribe', async (req: Request, res: Response) => {
     }
 
     const { error } = await supabaseAdmin
-      .from('newsletter_subscribers')
+      .from('newsletter_subs')
       .upsert({ email }, { onConflict: 'email' })
 
     if (error) {

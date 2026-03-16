@@ -9,16 +9,25 @@ export interface Review {
   images?: string[]
 }
 
+export type ProductCategory =
+  | string
+  | { name?: string | null }
+  | Array<{ name?: string | null }>
+  | null
+
 export interface Product {
   id: string
   slug: string
   name: string
-  category: string
+  category: ProductCategory
   price: number
   description: string
   images: string[]
   scent: string
-  notes: {
+  top_notes?: string[]
+  heart_notes?: string[]
+  base_notes?: string[]
+  notes?: {
     top: string[]
     heart: string[]
     base: string[]
@@ -26,9 +35,36 @@ export interface Product {
   tags: string[]
   rating: number
   reviewCount: number
-  reviews: Review[]
+  review_count?: number
+  reviews?: Review[]
   isNew?: boolean
+  isBestSeller?: boolean
+  isExclusive?: boolean
+  is_new?: boolean
+  is_best_seller?: boolean
+  is_exclusive?: boolean
 }
+
+export function getCategoryLabel(category: ProductCategory): string {
+  if (typeof category === "string") {
+    const value = category.trim()
+    return value || "Uncategorized"
+  }
+
+  if (Array.isArray(category)) {
+    const firstNamed = category.find((item) => item?.name && item.name.trim().length > 0)
+    return firstNamed?.name?.trim() || "Uncategorized"
+  }
+
+  if (category && typeof category === "object" && typeof category.name === "string") {
+    const value = category.name.trim()
+    return value || "Uncategorized"
+  }
+
+  return "Uncategorized"
+}
+
+
 
 export const products: Product[] = [
   {
@@ -57,7 +93,8 @@ export const products: Product[] = [
         content: "Absolutely refreshing! It feels like a morning walk in a garden."
       }
     ],
-    isNew: true
+    isNew: true,
+    isBestSeller: true
   },
   {
     id: "2",
@@ -97,7 +134,8 @@ export const products: Product[] = [
     rating: 4.9,
     reviewCount: 200,
     reviews: [],
-    isNew: false
+    isNew: false,
+    isBestSeller: true
   },
   {
     id: "4",
@@ -117,7 +155,8 @@ export const products: Product[] = [
     rating: 4.6,
     reviewCount: 156,
     reviews: [],
-    isNew: false
+    isNew: false,
+    isExclusive: true
   },
   {
     id: "5",
@@ -137,7 +176,8 @@ export const products: Product[] = [
     rating: 4.9,
     reviewCount: 310,
     reviews: [],
-    isNew: false
+    isNew: false,
+    isBestSeller: true
   },
   {
     id: "6",
@@ -158,5 +198,44 @@ export const products: Product[] = [
     reviewCount: 95,
     reviews: [],
     isNew: true
+  },
+  {
+    id: "7",
+    slug: "essence-mini",
+    name: "Essence Mini",
+    category: "Pocket Series",
+    price: 39,
+    description: "The perfect companion for your travels. A pocket-friendly essence that keeps you fresh on the go.",
+    images: ["/perfume/midnight-perfume1.png", "/perfume/midnight-perfume2.png"],
+    scent: "Fresh & Zingy",
+    notes: {
+      top: ["Lemon", "Grapefruit"],
+      heart: ["Sea Salt", "Sage"],
+      base: ["Ambrette", "Seaweed"]
+    },
+    tags: ["Mini", "Fresh", "Budget", "Travel"],
+    rating: 4.4,
+    reviewCount: 45,
+    reviews: [],
+    isNew: true
+  },
+  {
+    id: "8",
+    slug: "velvet-touch",
+    name: "Velvet Touch",
+    category: "Daily Wear",
+    price: 85,
+    description: "A smooth, velvety fragrance for everyday confidence. Subtle yet memorable.",
+    images: ["/perfume/elan-perfume1.png", "/perfume/elan-perfume2.png"],
+    scent: "Floral & Musky",
+    notes: {
+      top: ["Aldehydes", "Neroli"],
+      heart: ["Jasmine", "Rose"],
+      base: ["Sandalwood", "Vanilla"]
+    },
+    tags: ["Daily", "Soft", "Musk", "Workwear"],
+    rating: 4.6,
+    reviewCount: 88,
+    reviews: []
   }
 ]

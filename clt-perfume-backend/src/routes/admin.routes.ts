@@ -90,7 +90,13 @@ adminRoutes.get('/products', async (req: Request, res: Response) => {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    res.json(data)
+
+    const mapped = (data || []).map((p: any) => {
+      const { stock_quantity, ...rest } = p
+      return { ...rest, stock: stock_quantity }
+    })
+
+    res.json(mapped)
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
@@ -99,14 +105,22 @@ adminRoutes.get('/products', async (req: Request, res: Response) => {
 // POST /api/admin/products — Create product
 adminRoutes.post('/products', async (req: Request, res: Response) => {
   try {
+    const payload = { ...req.body }
+    // Map dashboard 'stock' to DB 'stock_quantity'
+    if (payload.stock !== undefined) {
+      payload.stock_quantity = payload.stock
+      delete payload.stock
+    }
+
     const { data, error } = await supabaseAdmin
       .from('products')
-      .insert(req.body)
+      .insert(payload)
       .select()
       .single()
 
     if (error) throw error
-    res.json(data)
+    const { stock_quantity, ...rest } = data
+    res.json({ ...rest, stock: stock_quantity })
   } catch (error: any) {
     res.status(400).json({ error: error.message })
   }
@@ -115,15 +129,23 @@ adminRoutes.post('/products', async (req: Request, res: Response) => {
 // PUT /api/admin/products/:id — Update product
 adminRoutes.put('/products/:id', async (req: Request, res: Response) => {
   try {
+    const payload = { ...req.body }
+    // Map dashboard 'stock' to DB 'stock_quantity'
+    if (payload.stock !== undefined) {
+      payload.stock_quantity = payload.stock
+      delete payload.stock
+    }
+
     const { data, error } = await supabaseAdmin
       .from('products')
-      .update(req.body)
+      .update(payload)
       .eq('id', req.params.id)
       .select()
       .single()
 
     if (error) throw error
-    res.json(data)
+    const { stock_quantity, ...rest } = data
+    res.json({ ...rest, stock: stock_quantity })
   } catch (error: any) {
     res.status(400).json({ error: error.message })
   }
@@ -144,6 +166,71 @@ adminRoutes.delete('/products/:id', async (req: Request, res: Response) => {
   }
 })
 
+// === CATEGORIES CRUD ===
+
+// GET /api/admin/categories — List all categories
+adminRoutes.get('/categories', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('categories')
+      .select('*')
+      .order('name', { ascending: true })
+
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// POST /api/admin/categories — Create category
+adminRoutes.post('/categories', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('categories')
+      .insert(req.body)
+      .select()
+      .single()
+
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// PUT /api/admin/categories/:id — Update category
+adminRoutes.put('/categories/:id', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('categories')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// DELETE /api/admin/categories/:id — Delete category
+adminRoutes.delete('/categories/:id', async (req: Request, res: Response) => {
+  try {
+    const { error } = await supabaseAdmin
+      .from('categories')
+      .delete()
+      .eq('id', req.params.id)
+
+    if (error) throw error
+    res.json({ success: true })
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
 // GET /api/admin/orders/:id — Get details for a specific order
 adminRoutes.get('/orders/:id', async (req: Request, res: Response) => {
   try {
@@ -154,7 +241,8 @@ adminRoutes.get('/orders/:id', async (req: Request, res: Response) => {
       .single()
 
     if (error) throw error
-    res.json(data)
+    const { stock_quantity, ...rest } = data
+    res.json({ ...rest, stock: stock_quantity })
   } catch (error: any) {
     res.status(404).json({ error: 'Order not found' })
   }
@@ -309,5 +397,68 @@ adminRoutes.get('/customers', async (req: Request, res: Response) => {
     res.json(data)
   } catch (error: any) {
     res.status(500).json({ error: error.message })
+  }
+})
+
+// === NEWSLETTER ===
+adminRoutes.get('/newsletter', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin.from('newsletter_subs').select('*').order('created_at', { ascending: false })
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// === CONTACT MESSAGES ===
+adminRoutes.get('/messages', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin.from('contact_messages').select('*').order('created_at', { ascending: false })
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+adminRoutes.put('/messages/:id/read', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin.from('contact_messages').update({ is_read: true }).eq('id', req.params.id).select().single()
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// === PROMO CODES ===
+adminRoutes.get('/promo-codes', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin.from('promo_codes').select('*').order('created_at', { ascending: false })
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+adminRoutes.post('/promo-codes', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin.from('promo_codes').insert(req.body).select().single()
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+adminRoutes.delete('/promo-codes/:id', async (req: Request, res: Response) => {
+  try {
+    const { error } = await supabaseAdmin.from('promo_codes').delete().eq('id', req.params.id)
+    if (error) throw error
+    res.json({ success: true })
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
   }
 })

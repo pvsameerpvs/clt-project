@@ -1,69 +1,138 @@
 "use client"
 
-import { useState } from "react"
-
-const DEFAULT_API_BASE_URL = "http://localhost:4000"
+import { useEffect, useState } from "react"
+import { getSiteSettings, updateSiteSettings, SiteSettings, NavSection } from "@/lib/admin-api"
+import { HeroSettings } from "@/components/settings/hero-settings"
+import { NavSettings } from "@/components/settings/nav-settings"
+import { BrandStorySettings } from "@/components/settings/brand-story-settings"
+import { CollectionsSettings } from "@/components/settings/collections-settings"
+import { PocketFriendlySettings } from "@/components/settings/pocket-friendly-settings"
+import { GlobalStoreSettings } from "@/components/settings/global-store-settings"
 
 export default function SettingsPage() {
-  const [checking, setChecking] = useState(false)
-  const [statusText, setStatusText] = useState<string | null>(null)
-  const [statusType, setStatusType] = useState<"ok" | "error" | null>(null)
+  const [settings, setSettings] = useState<SiteSettings | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_BASE_URL
+  useEffect(() => {
+    async function load() {
+      try {
+        setSettings(await getSiteSettings())
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load settings")
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
 
-  async function runHealthCheck() {
+  async function handleSave() {
+    if (!settings) return
     try {
-      setChecking(true)
-      setStatusText(null)
-      setStatusType(null)
-
-      const response = await fetch(`${apiBaseUrl}/api/health`)
-      if (!response.ok) throw new Error("Health check failed")
-
-      const data = (await response.json()) as { status?: string; timestamp?: string }
-      setStatusType("ok")
-      setStatusText(`Backend status: ${data.status || "ok"} at ${data.timestamp || "unknown"}`)
-    } catch (error) {
-      setStatusType("error")
-      setStatusText(error instanceof Error ? error.message : "Unable to reach backend")
+      setSaving(true)
+      setError(null)
+      setSuccess(false)
+      await updateSiteSettings(settings)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save settings")
     } finally {
-      setChecking(false)
+      setSaving(false)
     }
   }
 
+  const updateNav = (type: 'mens' | 'womens', field: keyof NavSection, value: any) => {
+    if (!settings) return
+    setSettings({
+      ...settings,
+      navigation: {
+        ...settings.navigation,
+        [type]: { ...settings.navigation[type], [field]: value }
+      }
+    })
+  }
+
+  if (loading) return <div className="p-8 text-neutral-400 font-medium">Synchronizing settings with database...</div>
+
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <h1 style={{ margin: 0, fontSize: 28 }}>Settings</h1>
-
-      <section style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fff", display: "grid", gap: 8 }}>
-        <h3 style={{ margin: 0 }}>API Configuration</h3>
-        <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>NEXT_PUBLIC_API_URL</p>
-        <code style={{ display: "block", fontSize: 13, background: "#f9fafb", border: "1px solid #f3f4f6", borderRadius: 10, padding: 10 }}>
-          {apiBaseUrl}
-        </code>
-      </section>
-
-      <section style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fff", display: "grid", gap: 10, maxWidth: 520 }}>
-        <h3 style={{ margin: 0 }}>Backend Health</h3>
-        <button onClick={runHealthCheck} disabled={checking} style={{ width: "fit-content", border: "none", background: "#111", color: "#fff", borderRadius: 10, padding: "8px 12px", cursor: "pointer" }}>
-          {checking ? "Checking..." : "Run Health Check"}
+    <div className="grid gap-6 p-6 max-w-6xl mx-auto pb-24">
+      <header className="flex justify-between items-center bg-white p-6 rounded-2xl border border-neutral-200 sticky top-0 z-10 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-bold">Store Content Manager</h1>
+          <p className="text-sm text-neutral-500">Control images, text, and navigation live on your website.</p>
+        </div>
+        <button 
+          onClick={handleSave} 
+          disabled={saving}
+          className="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-neutral-800 disabled:opacity-50 transition-all shadow-lg"
+        >
+          {saving ? "Saving..." : "Apply All Changes"}
         </button>
-        {statusText && (
-          <p
-            style={{
-              margin: 0,
-              border: statusType === "ok" ? "1px solid #bbf7d0" : "1px solid #fecaca",
-              background: statusType === "ok" ? "#f0fdf4" : "#fef2f2",
-              color: statusType === "ok" ? "#166534" : "#b91c1c",
-              borderRadius: 10,
-              padding: "10px 12px",
-              fontSize: 13,
-            }}
-          >
-            {statusText}
-          </p>
+      </header>
+
+      {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 font-medium">{error}</div>}
+      {success && <div className="bg-green-50 text-green-600 p-4 rounded-xl border border-green-200 font-medium">✨ Website updated successfully!</div>}
+
+      <div className="grid gap-12">
+        {/* Ticker Settings */}
+        <section className="bg-white p-8 rounded-2xl border border-neutral-200 shadow-sm">
+          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">📢 Top Scrolling Announcement</h2>
+          <textarea 
+            className="w-full border border-neutral-300 rounded-xl p-4 h-24 text-sm focus:ring-2 focus:ring-black outline-none transition-all"
+            value={settings?.ticker_text || ""}
+            onChange={(e) => setSettings(s => s ? ({ ...s, ticker_text: e.target.value }) : null)}
+            placeholder="Enter the text that scrolls at the top..."
+          />
+        </section>
+
+        {settings && (
+          <>
+            <HeroSettings 
+              slides={settings.hero_slides} 
+              onChange={(slides) => setSettings({ ...settings, hero_slides: slides })} 
+            />
+
+            <PocketFriendlySettings 
+              configs={settings.pocket_friendly_configs}
+              onChange={(configs) => setSettings({ ...settings, pocket_friendly_configs: configs })}
+            />
+
+            <NavSettings 
+              navigation={settings.navigation} 
+              onUpdate={updateNav} 
+            />
+
+            <GlobalStoreSettings 
+              info={settings.global_store_info || {
+                name: "CLE PERFUMES",
+                slogan: "CLE PERFUMES.",
+                description: "",
+                email: "",
+                phone: "",
+                address: "",
+                social_links: { instagram: "", facebook: "", twitter: "", youtube: "", linkedin: "" }
+              }}
+              onChange={(info) => setSettings({ ...settings, global_store_info: info })}
+            />
+
+            <BrandStorySettings 
+              story={settings.brand_story} 
+              onChange={(story) => setSettings({ ...settings, brand_story: story })} 
+            />
+
+            <CollectionsSettings 
+              collections={settings.collections} 
+              offers={settings.offers}
+              onCollectionsChange={(cols) => setSettings({ ...settings, collections: cols })}
+              onOffersChange={(offers) => setSettings({ ...settings, offers: offers })}
+            />
+          </>
         )}
-      </section>
+      </div>
     </div>
   )
 }

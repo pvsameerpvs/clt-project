@@ -12,38 +12,26 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel"
 
-const SLIDES = [
-  {
-    image: "/prfume-bannar-1.jpg",
-    alt: "Luxury perfume bottle in dark setting",
-    tagline: "An impression that lingers",
-    headline: "Let Your Scent <br/> Speak First",
-  },
-
-  {
-    image: "/prfume-bannar-2.jpg",
-    alt: "Luxury perfume bottle in dark setting",
-    tagline: "An impression that lingers",
-    headline: "Let Your Scent <br/> Speak First",
-  },
-  {
-    image: "/prfume-bannar-3.jpg",
-    alt: "Elegant perfume aesthetic",
-    tagline: "SOPHISTICATION REDEFINED",
-    headline: "Essence of <br/> Pure Luxury",
-  },
-  {
-    image: "/prfume-bannar-4.png",
-    alt: "Modern fragrance collection",
-    tagline: "TIMELESS ELEGANCE",
-    headline: "Ramadan Signature  <br/> Offers",
-  },
-]
+import { getSiteSettings } from "@/lib/api"
 
 export function Hero() {
+  const [slides, setSlides] = React.useState<any[]>([])
   const plugin = React.useRef(
     Autoplay({ delay: 5000, stopOnInteraction: false })
   )
+
+  React.useEffect(() => {
+    async function load() {
+      const settings = await getSiteSettings()
+      if (settings?.hero_slides) {
+        setSlides(settings.hero_slides)
+      }
+    }
+    load()
+  }, [])
+
+  if (slides.length === 0) return <div className="h-[70vh] bg-neutral-900 rounded-[2rem] mx-4 animate-pulse mb-16" />
+
 
   return (
     <section className="w-full px-4 md:px-6 pb-16">
@@ -56,15 +44,16 @@ export function Hero() {
           }}
         >
           <CarouselContent className="h-full ml-0">
-            {SLIDES.map((slide, index) => (
+            {slides.map((slide: any, index: number) => (
               <CarouselItem key={index} className="relative h-full w-full pl-0">
                 
                 {/* Background Image - Fits Exactly Like Before */}
                 <div className="absolute inset-0 h-full w-full">
                   <Image
                     src={slide.image}
-                    alt={slide.alt}
+                    alt={slide.tagline}
                     fill
+
                     className="object-cover object-bottom"
                     priority={index === 0}
                     sizes="100vw"

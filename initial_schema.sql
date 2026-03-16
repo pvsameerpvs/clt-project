@@ -46,11 +46,22 @@ CREATE TABLE IF NOT EXISTS public.products (
   price DECIMAL(10,2) NOT NULL,
   stock_quantity INTEGER DEFAULT 0,
   images TEXT[] DEFAULT '{}',
+  scent TEXT,
+  top_notes TEXT[] DEFAULT '{}',
+  heart_notes TEXT[] DEFAULT '{}',
+  base_notes TEXT[] DEFAULT '{}',
+  tags TEXT[] DEFAULT '{}',
+  rating DECIMAL(3,2) DEFAULT 0,
+  review_count INTEGER DEFAULT 0,
+  is_new BOOLEAN DEFAULT FALSE,
+  is_best_seller BOOLEAN DEFAULT FALSE,
+  is_exclusive BOOLEAN DEFAULT FALSE,
   is_featured BOOLEAN DEFAULT FALSE,
   is_active BOOLEAN DEFAULT TRUE,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
 
 -- 4. NEWSLETTER
 CREATE TABLE IF NOT EXISTS public.newsletter_subs (

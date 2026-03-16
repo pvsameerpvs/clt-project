@@ -27,16 +27,100 @@ export interface AdminDashboardData {
   recentOrders: RecentOrder[]
 }
 
+
+
+export interface Category {
+  id: string
+  name: string
+  slug: string
+  description?: string
+  image_url?: string
+  created_at?: string
+}
+
 export interface AdminProduct {
   id: string
   slug: string
   name: string
+  description?: string
   price: number
   stock: number
+  images?: string[]
+  scent?: string
+  top_notes?: string[]
+  heart_notes?: string[]
+  base_notes?: string[]
+  tags?: string[]
+  rating?: number
+  review_count?: number
   is_active?: boolean
+  is_new?: boolean
+  is_best_seller?: boolean
+  is_exclusive?: boolean
   created_at?: string
+  category_id?: string | null
   category?: { name?: string | null } | Array<{ name?: string | null }> | null
 }
+
+
+export interface SiteSettings {
+  id?: string
+  hero_slides: Array<{
+    image: string
+    tagline: string
+    headline: string
+  }>
+  ticker_text: string
+  pocket_friendly_configs: number[]
+  collections: Array<{
+    href: string
+    image: string
+    subtitle: string
+    title: string
+    action: string
+  }>
+  brand_story: {
+    title: string
+    description: string
+    image: string
+    features: Array<{ title: string, text: string }>
+  }
+  offers: Array<{
+    title: string
+    description: string
+    action: string
+    href: string
+  }>
+  navigation: {
+    mens: NavSection
+    womens: NavSection
+  }
+  global_store_info?: {
+    name: string
+    slogan: string
+    description: string
+    email: string
+    phone: string
+    address: string
+    social_links: {
+      instagram: string
+      facebook: string
+      twitter: string
+      youtube: string
+      linkedin: string
+    }
+  }
+}
+
+export interface NavSection {
+  categories: string[]
+  notes: Array<{ name: string, image: string }>
+  banners: Array<{ title: string, image: string }>
+}
+
+
+
+
 
 export interface AdminOrder {
   id: string
@@ -185,4 +269,100 @@ export function updateAdminOrderStatus(orderId: string, status: AdminOrderStatus
 
 export function getAdminCustomers() {
   return adminFetch<AdminCustomer[]>("/api/admin/customers")
+}
+
+export function getSiteSettings() {
+  return adminFetch<SiteSettings>("/api/settings")
+}
+
+export function updateSiteSettings(payload: Partial<SiteSettings>) {
+  return adminFetch<SiteSettings>("/api/settings", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+// === CATEGORIES ===
+
+export function getAdminCategories() {
+  return adminFetch<Category[]>("/api/admin/categories")
+}
+
+export function createAdminCategory(payload: Partial<Category>) {
+  return adminFetch<Category>("/api/admin/categories", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateAdminCategory(categoryId: string, payload: Partial<Category>) {
+  return adminFetch<Category>(`/api/admin/categories/${categoryId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteAdminCategory(categoryId: string) {
+  return adminFetch<{ success: boolean }>(`/api/admin/categories/${categoryId}`, {
+    method: "DELETE",
+  })
+}
+
+// === NEW PRO CONTROLS ===
+
+export interface Subscriber {
+  id: string
+  email: string
+  created_at: string
+}
+
+export interface ContactMessage {
+  id: string
+  name: string
+  email: string
+  subject: string
+  message: string
+  is_read: boolean
+  created_at: string
+}
+
+export interface PromoCode {
+  id: string
+  code: string
+  discount_type: 'percentage' | 'fixed'
+  discount_value: number
+  active: boolean
+  expires_at?: string
+  created_at: string
+}
+
+export function getAdminSubscribers() {
+  return adminFetch<Subscriber[]>("/api/admin/newsletter")
+}
+
+export function getAdminMessages() {
+  return adminFetch<ContactMessage[]>("/api/admin/messages")
+}
+
+export function markMessageAsRead(messageId: string) {
+  return adminFetch<ContactMessage>(`/api/admin/messages/${messageId}/read`, {
+    method: "PUT"
+  })
+}
+
+export function getAdminPromoCodes() {
+  return adminFetch<PromoCode[]>("/api/admin/promo-codes")
+}
+
+export function createAdminPromoCode(payload: Partial<PromoCode>) {
+  return adminFetch<PromoCode>("/api/admin/promo-codes", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  })
+}
+
+export function deleteAdminPromoCode(promoId: string) {
+  return adminFetch<{ success: boolean }>(`/api/admin/promo-codes/${promoId}`, {
+    method: "DELETE"
+  })
 }

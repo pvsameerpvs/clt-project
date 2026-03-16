@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Plus, Minus, X } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
-import { Product } from "@/lib/products"
+import { Product, getCategoryLabel } from "@/lib/products"
 
 interface CartLineItem {
   product: Product
@@ -13,6 +13,7 @@ interface CartLineItem {
 
 export function CartItem({ item }: { item: CartLineItem }) {
   const { updateQuantity, removeFromCart } = useCart()
+  const categoryLabel = getCategoryLabel(item.product.category)
 
   return (
     <div className="flex gap-6 py-6 border-b border-neutral-100 last:border-0 relative">
@@ -33,7 +34,7 @@ export function CartItem({ item }: { item: CartLineItem }) {
                 {item.product.name}
               </Link>
             </h3>
-            <p className="text-xs uppercase tracking-widest text-neutral-500 mt-1">{item.product.category}</p>
+            <p className="text-xs uppercase tracking-widest text-neutral-500 mt-1">{categoryLabel}</p>
           </div>
           <button 
             onClick={() => removeFromCart(item.product.id)}

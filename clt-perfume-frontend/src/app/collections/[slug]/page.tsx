@@ -1,53 +1,78 @@
 import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { products } from "@/lib/products"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import { ProductCard } from "@/components/product/product-card"
-
-// Hardcoded collection data since it's not in products.ts
-const COLLECTIONS = {
-  "mens": {
-    title: "Best Men's Collection",
-    subtitle: "For Him",
-    description: "Discover our most sought-after men's fragrances. Bold, sophisticated, and unmistakably masculine.",
-    image: "/curated-perfume-men.png",
-    filteredProductIds: ["4", "5", "1"] // Midnight Smock, Noir de Soir, Breath
-  },
-  "womens": {
-    title: "Best Women's Collection",
-    subtitle: "For Her",
-    description: "An elegant selection of our finest women's perfumes. Delicate, romantic, and beautifully complex.",
-    image: "/curated-pefume-banner.png",
-    filteredProductIds: ["2", "3", "6"] // Elan, First Dance, Tears of Love
-  },
-  "deals": {
-    title: "Best Deals & Sets",
-    subtitle: "Exclusive Offers",
-    description: "Curated gift sets and limited-time offers on our signature scents. Perfect for gifting or treating yourself.",
-    image: "/best-deals-sets-2.png",
-    filteredProductIds: ["1", "2", "6"] // Using the 'isNew' items for now
-  }
-}
+import { getCategoryBySlug, getProducts } from "@/lib/api"
 
 export default async function CollectionPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   
-  if (!(slug in COLLECTIONS)) {
+  // Special case for 'all' products collection
+  if (slug === 'all') {
+    const products = await getProducts()
+    const allCategory = {
+      name: "The Collection",
+      description: "Explore our entire range of signature fragrances, crafted for every mood and occasion.",
+      image_url: "/prfume-bannar-1.jpg"
+    }
+    
+    return (
+      <div className="min-h-screen bg-white">
+        {/* Banner Section */}
+        <div className="relative h-[40vh] min-h-[300px] w-full bg-neutral-900">
+           <div className="absolute inset-0 opacity-40">
+             {/* Use fallback if no image */}
+             <div className="w-full h-full bg-gradient-to-b from-neutral-800 to-black" />
+           </div>
+           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+              <span className="text-white/60 uppercase tracking-[0.3em] text-[10px] mb-4">Discover</span>
+              <h1 className="text-white text-5xl md:text-7xl font-serif mb-4">{allCategory.name}</h1>
+              <p className="text-white/80 max-w-xl font-light text-sm md:text-base leading-relaxed">
+                {allCategory.description}
+              </p>
+           </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-20">
+          <div className="flex items-center justify-between mb-12 border-b border-neutral-100 pb-6">
+            <h2 className="text-xl font-serif">All Fragrances ({products.length})</h2>
+          </div>
+
+          {products.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {products.map((product: any) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-32 border-2 border-dashed border-neutral-100 rounded-3xl">
+              <p className="text-neutral-400 font-light italic">No products found in this collection.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Fetch real category from DB
+  const category = await getCategoryBySlug(slug)
+  
+  if (!category) {
     notFound()
   }
 
-  const collection = COLLECTIONS[slug as keyof typeof COLLECTIONS]
-  const collectionProducts = products.filter(p => collection.filteredProductIds.includes(p.id))
+  // Fetch real products for this category
+  const products = await getProducts({ category: slug })
 
   return (
     <div className="min-h-screen bg-white pb-20">
-      {/* Collection Hero */}
+      {/* Dynamic Collection Hero */}
       <div className="relative h-[40vh] min-h-[400px] w-full flex items-center justify-center mb-16">
         <Image 
-          src={collection.image}
-          alt={collection.title}
+          src={category.image_url || "/curated-pefume-banner.png"}
+          alt={category.name}
           fill
           className="object-cover"
           priority
@@ -55,14 +80,16 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
         <div className="absolute inset-0 bg-black/60" />
         <div className="relative z-10 text-center px-4 max-w-3xl mx-auto">
           <Badge variant="outline" className="mb-4 text-white border-white/30 tracking-widest uppercase bg-transparent hover:bg-transparent">
-            {collection.subtitle}
+            Collection
           </Badge>
           <h1 className="text-4xl md:text-6xl font-serif text-white mb-6 leading-tight">
-            {collection.title}
+            {category.name}
           </h1>
-          <p className="text-white/80 font-light text-lg">
-            {collection.description}
-          </p>
+          {category.description && (
+            <p className="text-white/80 font-light text-lg">
+              {category.description}
+            </p>
+          )}
         </div>
       </div>
 
@@ -82,12 +109,12 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {collectionProducts.map((product) => (
+          {products.map((product: any) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
 
-        {collectionProducts.length === 0 && (
+        {products.length === 0 && (
           <div className="text-center py-20 text-neutral-500">
             No products found in this collection.
           </div>

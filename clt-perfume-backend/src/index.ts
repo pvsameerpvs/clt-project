@@ -11,6 +11,9 @@ import { orderRoutes } from './routes/orders.routes'
 import { webhookRoutes } from './routes/webhooks.routes'
 import { newsletterRoutes } from './routes/newsletter.routes'
 import { adminRoutes } from './routes/admin.routes'
+import { settingsRoutes } from './routes/settings.routes'
+import { productRoutes } from './routes/product.routes'
+
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -55,6 +58,10 @@ app.use('/api/payments', paymentRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/newsletter', newsletterRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/settings', settingsRoutes)
+app.use('/api/products', productRoutes)
+
+
 
 // Health check
 app.get('/api/health', (req, res) => {
