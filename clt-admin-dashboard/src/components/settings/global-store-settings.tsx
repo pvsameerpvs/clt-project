@@ -1,7 +1,5 @@
 "use client"
 
-import { SingleImageUpload } from "../single-image-upload"
-
 interface GlobalStoreInfo {
   name: string
   slogan: string
@@ -30,10 +28,11 @@ export function GlobalStoreSettings({ info, onChange }: GlobalStoreSettingsProps
   }
 
   return (
-    <section className="bg-white p-8 rounded-2xl border border-neutral-200 shadow-sm">
-      <h2 className="text-xl font-bold mb-6">🏢 Global Store Identity</h2>
+    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-7">
+      <h2 className="text-2xl font-serif text-neutral-900">Global Store Identity</h2>
+      <p className="mt-1 mb-6 text-sm text-neutral-500">Manage footer branding, contact details, and social links.</p>
       
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid gap-8 md:grid-cols-2">
         <div className="space-y-6">
           <div className="grid gap-2">
             <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Store Name</label>

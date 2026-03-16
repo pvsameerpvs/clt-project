@@ -17,6 +17,15 @@ function isRevenueOrder(status: string) {
   return status !== 'cancelled' && status !== 'refunded'
 }
 
+function isMissingParentIdColumn(error: { message?: string } | null | undefined) {
+  return Boolean(error?.message?.includes("'parent_id'"))
+}
+
+function stripParentId<T extends Record<string, unknown>>(payload: T): Omit<T, 'parent_id'> {
+  const { parent_id, ...rest } = payload
+  return rest
+}
+
 // All admin routes require auth + admin role
 adminRoutes.use(authMiddleware, adminMiddleware)
 
@@ -186,11 +195,23 @@ adminRoutes.get('/categories', async (req: Request, res: Response) => {
 // POST /api/admin/categories — Create category
 adminRoutes.post('/categories', async (req: Request, res: Response) => {
   try {
-    const { data, error } = await supabaseAdmin
+    const payload = req.body || {}
+
+    let { data, error } = await supabaseAdmin
       .from('categories')
-      .insert(req.body)
+      .insert(payload)
       .select()
       .single()
+
+    if (error && isMissingParentIdColumn(error)) {
+      const retry = await supabaseAdmin
+        .from('categories')
+        .insert(stripParentId(payload))
+        .select()
+        .single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) throw error
     res.json(data)
@@ -202,12 +223,25 @@ adminRoutes.post('/categories', async (req: Request, res: Response) => {
 // PUT /api/admin/categories/:id — Update category
 adminRoutes.put('/categories/:id', async (req: Request, res: Response) => {
   try {
-    const { data, error } = await supabaseAdmin
+    const payload = req.body || {}
+
+    let { data, error } = await supabaseAdmin
       .from('categories')
-      .update(req.body)
+      .update(payload)
       .eq('id', req.params.id)
       .select()
       .single()
+
+    if (error && isMissingParentIdColumn(error)) {
+      const retry = await supabaseAdmin
+        .from('categories')
+        .update(stripParentId(payload))
+        .eq('id', req.params.id)
+        .select()
+        .single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) throw error
     res.json(data)

@@ -5,13 +5,31 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import { ProductCard } from "@/components/product/product-card"
 import { getCategoryBySlug, getProducts } from "@/lib/api"
+import { Product, getCategorySlug } from "@/lib/products"
 
-export default async function CollectionPage({ params }: { params: Promise<{ slug: string }> }) {
+function normalizeToken(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+}
+
+export default async function CollectionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ sub?: string }>
+}) {
   const { slug } = await params
+  const { sub } = await searchParams
+  const selectedSubcategory = typeof sub === "string" ? sub.trim() : ""
   
   // Special case for 'all' products collection
   if (slug === 'all') {
-    const products = await getProducts()
+    const products = (await getProducts()) as Product[]
     const allCategory = {
       name: "The Collection",
       description: "Explore our entire range of signature fragrances, crafted for every mood and occasion.",
@@ -42,7 +60,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
 
           {products.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {products.map((product: any) => (
+              {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
@@ -64,7 +82,14 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
   }
 
   // Fetch real products for this category
-  const products = await getProducts({ category: slug })
+  const products = (await getProducts({ category: slug })) as Product[]
+  const normalizedSubcategory = normalizeToken(selectedSubcategory)
+  const visibleProducts = normalizedSubcategory
+    ? products.filter((product) => {
+        const productCategorySlug = getCategorySlug(product.category)
+        return productCategorySlug ? normalizeToken(productCategorySlug) === normalizedSubcategory : false
+      })
+    : products
 
   return (
     <div className="min-h-screen bg-white pb-20">
@@ -108,15 +133,26 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
         </div>
 
         {/* Products Grid */}
+        {selectedSubcategory && (
+          <div className="mb-6 flex items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm">
+            <p className="text-neutral-700">
+              Filtering by subcategory: <span className="font-semibold">{selectedSubcategory}</span>
+            </p>
+            <Link href={`/collections/${slug}`} className="text-xs font-semibold uppercase tracking-wider text-neutral-500 hover:text-black">
+              Clear Filter
+            </Link>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {products.map((product: any) => (
+          {visibleProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
 
-        {products.length === 0 && (
+        {visibleProducts.length === 0 && (
           <div className="text-center py-20 text-neutral-500">
-            No products found in this collection.
+            No products found in this collection{selectedSubcategory ? ` for "${selectedSubcategory}".` : "."}
           </div>
         )}
       </div>

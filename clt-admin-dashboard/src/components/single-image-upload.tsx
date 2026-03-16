@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useRef } from "react"
+import Image from "next/image"
+import { useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Loader2, Upload, X, ImageIcon } from "lucide-react"
+import { ImageIcon, Loader2, X } from "lucide-react"
 
 interface SingleImageUploadProps {
   onUpload: (url: string) => void
@@ -26,15 +27,12 @@ export function SingleImageUpload({ onUpload, onRemove, value, label }: SingleIm
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
       const filePath = `site/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from("product-images")
-        .upload(filePath, file)
-
+      const { error: uploadError } = await supabase.storage.from("product-images").upload(filePath, file)
       if (uploadError) throw uploadError
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("product-images")
-        .getPublicUrl(filePath)
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(filePath)
 
       onUpload(publicUrl)
     } catch (error) {
@@ -46,31 +44,39 @@ export function SingleImageUpload({ onUpload, onRemove, value, label }: SingleIm
   }
 
   return (
-    <div className="single-upload">
-      {label && <label className="upload-label">{label}</label>}
-      
-      <div className="upload-box">
+    <div className="w-full space-y-1.5">
+      {label && (
+        <label className="text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-500">
+          {label}
+        </label>
+      )}
+
+      <div className="relative min-h-[110px] overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
         {value ? (
-          <div className="preview-container">
-            <img src={value} alt="Preview" className="preview-img" />
-            <button type="button" className="remove-overlay" onClick={onRemove}>
-              <X size={20} />
-              <span>Remove</span>
+          <div className="group relative h-[130px] w-full">
+            <Image src={value} alt="Preview" fill className="object-cover" />
+            <button
+              type="button"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100"
+              onClick={onRemove}
+            >
+              <X size={18} />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">Remove</span>
             </button>
           </div>
         ) : (
           <button
             type="button"
-            className="placeholder-btn"
+            className="flex h-[110px] w-full flex-col items-center justify-center gap-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
             {uploading ? (
-              <Loader2 className="animate-spin" size={20} />
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <>
                 <ImageIcon size={20} />
-                <span>Upload Image</span>
+                <span className="text-xs font-medium">Upload Image</span>
               </>
             )}
           </button>
@@ -82,95 +88,8 @@ export function SingleImageUpload({ onUpload, onRemove, value, label }: SingleIm
         ref={fileInputRef}
         onChange={handleUpload}
         accept="image/*"
-        style={{ display: "none" }}
+        className="hidden"
       />
-
-      <style jsx>{`
-        .single-upload {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          width: 100%;
-        }
-        .upload-label {
-          font-size: 11px;
-          font-weight: 700;
-          color: #6b7280;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        .upload-box {
-          position: relative;
-          width: 100%;
-          min-height: 100px;
-          border-radius: 12px;
-          border: 1px solid #e5e7eb;
-          background: #f9fafb;
-          overflow: hidden;
-        }
-        .preview-container {
-          position: relative;
-          width: 100%;
-          height: 120px;
-        }
-        .preview-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-        .remove-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(0,0,0,0.4);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          color: white;
-          opacity: 0;
-          transition: opacity 0.2s;
-          border: none;
-          cursor: pointer;
-        }
-        .preview-container:hover .remove-overlay {
-          opacity: 1;
-        }
-        .remove-overlay span {
-          font-size: 10px;
-          font-weight: 600;
-          text-transform: uppercase;
-        }
-        .placeholder-btn {
-          width: 100%;
-          height: 100px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          color: #9ca3af;
-          transition: all 0.2s;
-        }
-        .placeholder-btn:hover {
-          color: #4b5563;
-          background: #f3f4f6;
-        }
-        .placeholder-btn span {
-          font-size: 12px;
-          font-weight: 500;
-        }
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   )
 }

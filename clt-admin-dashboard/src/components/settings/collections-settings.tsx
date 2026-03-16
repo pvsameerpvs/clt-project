@@ -18,9 +18,10 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
   }
 
   return (
-    <div className="grid md:grid-cols-2 gap-8">
-      <section className="bg-white p-8 rounded-2xl border border-neutral-200 shadow-sm">
-        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">🛍️ Curated Selections</h2>
+    <div className="grid gap-8 md:grid-cols-2">
+      <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-7">
+        <h2 className="text-2xl font-serif text-neutral-900">Curated Selections</h2>
+        <p className="mt-1 mb-6 text-sm text-neutral-500">Main collection cards shown below the hero section.</p>
         <div className="space-y-6">
           {collections.map((col, idx) => (
             <div key={idx} className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 space-y-3">
@@ -36,8 +37,9 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
         </div>
       </section>
 
-      <section className="bg-white p-8 rounded-2xl border border-neutral-200 shadow-sm">
-        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">🎟️ Promo Offer Cards</h2>
+      <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-7">
+        <h2 className="text-2xl font-serif text-neutral-900">Promo Offer Cards</h2>
+        <p className="mt-1 mb-6 text-sm text-neutral-500">Offer cards above pocket-friendly section.</p>
         <div className="space-y-6">
           {offers.map((offer, idx) => (
             <div key={idx} className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 space-y-3">

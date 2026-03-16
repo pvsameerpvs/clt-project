@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Menu, Zap } from "lucide-react"
@@ -9,10 +9,24 @@ import { NavbarActions } from "./navbar/navbar-actions"
 import { NavbarSearch } from "./navbar/navbar-search"
 import { MegaMenu } from "./navbar/mega-menu"
 import { MobileMenu } from "./navbar/mobile-menu"
+import { getCategories, ProductCategory } from "@/lib/api"
 
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [topCategories, setTopCategories] = useState<ProductCategory[]>([])
+
+  useEffect(() => {
+    async function load() {
+      const categories = await getCategories()
+      setTopCategories(
+        categories
+          .filter((category) => !category.parent_id)
+          .sort((a, b) => a.name.localeCompare(b.name))
+      )
+    }
+    load()
+  }, [])
 
   return (
     <header className="w-full bg-white z-50 relative">
@@ -61,25 +75,12 @@ export function Navbar() {
               </Link>
             </li>
 
-            {/* MEN MEGA MENU */}
-            <li className="group hover:text-black transition-colors cursor-pointer py-4">
-              <Link href="/collections/mens">Men</Link>
-              <MegaMenu type="mens" />
-            </li>
-
-            {/* WOMEN MEGA MENU */}
-            <li className="group hover:text-black transition-colors cursor-pointer py-4">
-              <Link href="/collections/womens">Women</Link>
-              <MegaMenu type="womens" />
-            </li>
-
-            <li className="group hover:text-black transition-colors cursor-pointer py-4 relative">
-              <Link href="/collections/deals">Best Sets</Link>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 bg-white text-black shadow-xl border border-neutral-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 w-56 z-50 transform translate-y-2 group-hover:translate-y-0 p-6 flex flex-col space-y-5">
-                <Link href="/collections/deals" className="text-sm font-light hover:text-neutral-500 transition-colors capitalize">View All Sets</Link>
-                <Link href="/collections/deals" className="text-sm font-light hover:text-neutral-500 transition-colors capitalize">Ramadan Specials</Link>
-              </div>
-            </li>
+            {topCategories.map((category) => (
+              <li key={category.id} className="group hover:text-black transition-colors cursor-pointer py-4">
+                <Link href={`/collections/${category.slug}`}>{category.name}</Link>
+                <MegaMenu categorySlug={category.slug} />
+              </li>
+            ))}
           </ul> 
         </div>
       </div>

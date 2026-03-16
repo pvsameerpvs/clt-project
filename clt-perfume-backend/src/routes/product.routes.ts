@@ -3,6 +3,10 @@ import { supabaseAdmin } from '../config/supabase'
 
 export const productRoutes = Router()
 
+function isMissingParentIdColumn(error: { message?: string } | null | undefined) {
+  return Boolean(error?.message?.includes("'parent_id'"))
+}
+
 // GET /api/products/categories - List all categories
 productRoutes.get('/categories', async (req, res) => {
   try {
@@ -46,7 +50,7 @@ productRoutes.get('/', async (req, res) => {
 
     // Filter by category slug
     if (category) {
-      // We first need the category ID if we only have the slug
+      // Resolve category by slug and include direct child categories (parent/child taxonomy)
       const { data: catData } = await supabaseAdmin
         .from('categories')
         .select('id')
@@ -54,7 +58,17 @@ productRoutes.get('/', async (req, res) => {
         .single()
       
       if (catData) {
-        query = query.eq('category_id', catData.id)
+        const { data: childCategories, error: childCategoriesError } = await supabaseAdmin
+          .from('categories')
+          .select('id')
+          .eq('parent_id', catData.id)
+
+        if (childCategoriesError && !isMissingParentIdColumn(childCategoriesError)) {
+          throw childCategoriesError
+        }
+
+        const categoryIds = [catData.id, ...(childCategories || []).map((item: { id: string }) => item.id)]
+        query = query.in('category_id', categoryIds)
       }
     }
 

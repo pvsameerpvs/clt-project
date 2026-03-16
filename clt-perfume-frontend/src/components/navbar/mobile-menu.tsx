@@ -3,22 +3,98 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { X, ChevronRight, Zap, User } from "lucide-react"
-import { getSiteSettings } from "@/lib/api"
+import { getCategories, getSiteSettings, NavMenuCategory, ProductCategory } from "@/lib/api"
 
 interface MobileMenuProps {
   isOpen: boolean
   onClose: () => void
 }
 
+interface MobileNavData {
+  [key: string]: { categories?: unknown } | undefined
+}
+
+interface MenuCategoryLink {
+  name: string
+  slug: string
+  href: string
+}
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+}
+
+function normalizeCategories(input: unknown): NavMenuCategory[] {
+  if (!Array.isArray(input)) return []
+
+  return input
+    .map((item) => {
+      if (typeof item === "string") {
+        const name = item.trim()
+        if (!name) return null
+        return { name, slug: slugify(name), subcategories: [] }
+      }
+      if (!item || typeof item !== "object") return null
+
+      const source = item as { name?: unknown; slug?: unknown; subcategories?: unknown }
+      const name =
+        typeof source.name === "string" && source.name.trim()
+          ? source.name.trim()
+          : typeof source.slug === "string"
+            ? source.slug.replace(/-/g, " ").trim()
+            : ""
+      const slug =
+        typeof source.slug === "string" && source.slug.trim()
+          ? slugify(source.slug)
+          : slugify(name)
+      if (!name || !slug) return null
+
+      const subcategories = Array.isArray(source.subcategories)
+        ? source.subcategories
+            .map((sub) => (typeof sub === "string" ? sub.trim() : ""))
+            .filter(Boolean)
+        : []
+
+      return { name, slug, subcategories }
+    })
+    .filter((item): item is NavMenuCategory => Boolean(item))
+}
+
+function buildStandardCategories(parentSlug: string, categories: ProductCategory[]): MenuCategoryLink[] {
+  const parent = categories.find((category) => category.slug === parentSlug)
+  if (!parent) return []
+
+  const children = categories.filter((category) => category.parent_id === parent.id)
+  if (children.length > 0) {
+    return children.map((child) => ({
+      name: child.name,
+      slug: child.slug,
+      href: `/collections/${parent.slug}?sub=${encodeURIComponent(child.slug)}`,
+    }))
+  }
+
+  return [{ name: parent.name, slug: parent.slug, href: `/collections/${parent.slug}` }]
+}
+
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
-  const [activeMenu, setActiveMenu] = useState<'main' | 'mens' | 'womens'>('main')
-  const [navData, setNavData] = useState<any>(null)
+  const [activeMenu, setActiveMenu] = useState("main")
+  const [navData, setNavData] = useState<MobileNavData | null>(null)
+  const [catalogCategories, setCatalogCategories] = useState<ProductCategory[]>([])
+  const topCategories = catalogCategories
+    .filter((category) => !category.parent_id)
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   useEffect(() => {
     async function load() {
-      const settings = await getSiteSettings()
+      const [settings, categories] = await Promise.all([getSiteSettings(), getCategories()])
+      setCatalogCategories(categories)
       if (settings?.navigation) {
-        setNavData(settings.navigation)
+        setNavData(settings.navigation as MobileNavData)
       }
     }
     load()
@@ -51,23 +127,19 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           {/* Main Menu */}
           <div className={`w-full flex flex-col p-6 ${activeMenu === 'main' ? 'block animate-in fade-in slide-in-from-left-4 duration-300' : 'hidden'}`}>
             <div className="flex flex-col gap-6">
-              <button 
-                onClick={() => setActiveMenu('mens')}
-                className="flex items-center justify-between py-2 text-base font-serif uppercase tracking-widest border-b border-neutral-100 pb-4"
-              >
-                Men <ChevronRight className="w-5 h-5 text-neutral-400" />
-              </button>
-              
-              <button 
-                onClick={() => setActiveMenu('womens')}
-                className="flex items-center justify-between py-2 text-base font-serif uppercase tracking-widest border-b border-neutral-100 pb-4"
-              >
-                Women <ChevronRight className="w-5 h-5 text-neutral-400" />
-              </button>
-              
-              <Link onClick={onClose} href="/collections/deals" className="py-2 text-base font-serif uppercase tracking-widest border-b border-neutral-100 pb-4">
-                Best Sets
-              </Link>
+              {topCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveMenu(`category:${category.slug}`)}
+                  className="flex items-center justify-between py-2 text-base font-serif uppercase tracking-widest border-b border-neutral-100 pb-4"
+                >
+                  {category.name}
+                  <ChevronRight className="w-5 h-5 text-neutral-400" />
+                </button>
+              ))}
+              {topCategories.length === 0 && (
+                <p className="text-sm text-neutral-500">Create top-level categories in admin to show menu items.</p>
+              )}
               
               <Link onClick={onClose} href="/offers" className="py-2 text-base font-serif uppercase tracking-widest border-b border-neutral-100 pb-4 text-amber-600 flex items-center gap-2">
                 <Zap className="w-4 h-4 fill-current" /> Exclusive Offers
@@ -82,19 +154,41 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           </div>
 
           {/* Submenus */}
-          {['mens', 'womens'].map((gender: any) => (
-            <div key={gender} className={`w-full flex flex-col p-6 ${activeMenu === gender ? 'block animate-in fade-in slide-in-from-right-4 duration-100' : 'hidden'}`}>
-              <h3 className="font-serif text-xl tracking-widest uppercase mb-8 pb-4 border-b border-neutral-100 capitalize">{gender}</h3>
-              <div className="space-y-5">
-                {navData?.[gender]?.categories?.map((cat: string) => (
-                   <Link key={cat} onClick={onClose} href={`/collections/${gender}`} className="block text-sm text-neutral-600 uppercase tracking-wider py-1 hover:text-black">
-                     {cat}
-                   </Link>
-                ))}
-                {(!navData?.[gender]?.categories) && <p className="text-neutral-400 text-xs italic">Manage categories in Admin Dashboard</p>}
+          {topCategories.map((topCategory) => {
+            const standardCategories = buildStandardCategories(topCategory.slug, catalogCategories)
+            const fallbackCategories = normalizeCategories(navData?.[topCategory.slug]?.categories).map((category) => ({
+              name: category.name,
+              slug: category.slug,
+              href:
+                category.slug === topCategory.slug
+                  ? `/collections/${topCategory.slug}`
+                  : `/collections/${topCategory.slug}?sub=${encodeURIComponent(category.slug)}`,
+            }))
+            const menuCategories = standardCategories.length ? standardCategories : fallbackCategories
+
+            return (
+              <div
+                key={topCategory.id}
+                className={`w-full flex flex-col p-6 ${activeMenu === `category:${topCategory.slug}` ? 'block animate-in fade-in slide-in-from-right-4 duration-100' : 'hidden'}`}
+              >
+                  <h3 className="font-serif text-xl tracking-widest uppercase mb-8 pb-4 border-b border-neutral-100">
+                    {topCategory.name}
+                  </h3>
+                  <div className="space-y-5">
+                    {menuCategories.map((category) => {
+                      return (
+                        <div key={`${topCategory.slug}-${category.slug}-${category.name}`} className="space-y-1">
+                          <Link onClick={onClose} href={category.href} className="block text-sm text-neutral-600 uppercase tracking-wider py-1 hover:text-black">
+                            {category.name}
+                          </Link>
+                        </div>
+                      )
+                    })}
+                    {(!menuCategories.length) && <p className="text-neutral-400 text-xs italic">Create Product Categories to show here.</p>}
+                  </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </>

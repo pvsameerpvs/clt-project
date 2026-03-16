@@ -15,9 +15,9 @@ export function PocketFriendlySettings({ configs, onChange }: PocketFriendlySett
   }
 
   return (
-    <section className="bg-white p-8 rounded-2xl border border-neutral-200 shadow-sm">
-      <h2 className="text-xl font-bold mb-2 flex items-center gap-2">💸 Pocket Friendly Thresholds</h2>
-      <p className="text-sm text-neutral-500 mb-6">Define the price points for the "Under X AED" buttons on the home page.</p>
+    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-7">
+      <h2 className="text-2xl font-serif text-neutral-900">Pocket-Friendly Thresholds</h2>
+      <p className="mt-1 mb-6 text-sm text-neutral-500">Define the price points for the &quot;Under X AED&quot; filters.</p>
       
       <div className="flex flex-wrap gap-4">
         {configs.map((price, index) => (

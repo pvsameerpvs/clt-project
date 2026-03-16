@@ -15,9 +15,10 @@ export function BrandStorySettings({ story, onChange }: BrandStorySettingsProps)
   }
 
   return (
-    <section className="bg-white p-8 rounded-2xl border border-neutral-200 shadow-sm">
-      <h2 className="text-xl font-bold mb-6 flex items-center gap-2">📖 Brand Philosophy Section</h2>
-      <div className="grid md:grid-cols-2 gap-8">
+    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-7">
+      <h2 className="text-2xl font-serif text-neutral-900">Brand Story Section</h2>
+      <p className="mt-1 text-sm text-neutral-500">Controls the dark philosophy block and story features.</p>
+      <div className="mt-6 grid gap-8 md:grid-cols-2">
         <div className="space-y-4">
           <label className="text-xs font-bold text-neutral-400 uppercase">Main Title</label>
           <input className="w-full border border-neutral-300 rounded-lg p-3 text-sm font-bold" value={story.title} onChange={(e) => onChange({ ...story, title: e.target.value })} />

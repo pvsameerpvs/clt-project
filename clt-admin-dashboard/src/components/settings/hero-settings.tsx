@@ -15,9 +15,10 @@ export function HeroSettings({ slides, onChange }: HeroSettingsProps) {
   }
 
   return (
-    <section className="bg-white p-8 rounded-2xl border border-neutral-200 shadow-sm">
-      <h2 className="text-xl font-bold mb-6 flex items-center gap-2">🖼️ Hero Section Banners</h2>
-      <div className="grid md:grid-cols-3 gap-6">
+    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm sm:p-7">
+      <h2 className="text-2xl font-serif text-neutral-900">Hero Section Banners</h2>
+      <p className="mt-1 text-sm text-neutral-500">Update hero images, tagline and headline shown first on homepage.</p>
+      <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {slides.map((slide, idx) => (
           <div key={idx} className="p-6 bg-neutral-50 rounded-2xl border border-neutral-200 grid gap-4 relative">
             <span className="absolute -top-3 -left-3 bg-black text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-4 ring-white shadow-md">{idx + 1}</span>

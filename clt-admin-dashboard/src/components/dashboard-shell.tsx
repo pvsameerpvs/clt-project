@@ -12,6 +12,8 @@ import {
   LayoutGrid,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 const menuItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -42,42 +44,26 @@ export function DashboardShell({
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "260px 1fr" }}>
-      <aside
-        style={{
-          borderRight: "1px solid #e5e7eb",
-          background: "#fff",
-          padding: 16,
-          display: "grid",
-          gridTemplateRows: "auto 1fr auto",
-          gap: 20,
-        }}
-      >
+    <div className="min-h-screen bg-neutral-50 md:grid md:grid-cols-[260px_1fr]">
+      <aside className="border-b border-neutral-200 bg-white px-4 py-4 md:grid md:min-h-screen md:grid-rows-[auto_1fr_auto] md:gap-5 md:border-b-0 md:border-r md:p-4">
         <div>
-          <p style={{ margin: 0, fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            CLT
-          </p>
-          <h2 style={{ margin: "4px 0 0", fontSize: 20 }}>Admin Dashboard</h2>
+          <p className="text-[11px] uppercase tracking-[0.08em] text-neutral-500">CLT</p>
+          <h2 className="mt-1 text-xl font-semibold text-neutral-900">Admin Dashboard</h2>
         </div>
 
-        <nav style={{ display: "grid", gap: 8, alignContent: "start" }}>
+        <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 md:mt-0 md:grid md:content-start md:gap-2 md:overflow-visible md:pb-0">
           {menuItems.map((item) => {
             const active = item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href)
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: active ? "1px solid #111" : "1px solid transparent",
-                  background: active ? "#111" : "transparent",
-                  color: active ? "#fff" : "#4b5563",
-                  fontSize: 14,
-                }}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors md:flex",
+                  active
+                    ? "border-black bg-black text-white"
+                    : "border-transparent bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+                )}
               >
                 <item.icon size={16} />
                 {item.label}
@@ -86,31 +72,20 @@ export function DashboardShell({
           })}
         </nav>
 
-        <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
-          <p style={{ margin: "0 0 10px", fontSize: 12, color: "#6b7280" }}>{userEmail}</p>
-          <button
+        <div className="mt-4 border-t border-neutral-200 pt-3 md:mt-0">
+          <p className="mb-2 truncate text-xs text-neutral-500">{userEmail}</p>
+          <Button
             onClick={handleLogout}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              border: "1px solid #fecaca",
-              color: "#dc2626",
-              background: "#fff",
-              borderRadius: 10,
-              padding: "10px 12px",
-              cursor: "pointer",
-            }}
+            variant="outline"
+            className="w-full justify-center border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
           >
             <LogOut size={14} />
             Logout
-          </button>
+          </Button>
         </div>
       </aside>
 
-      <main style={{ padding: 20 }}>{children}</main>
+      <main className="p-4 sm:p-6">{children}</main>
     </div>
   )
 }

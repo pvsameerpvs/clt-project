@@ -31,10 +31,13 @@ CREATE TABLE IF NOT EXISTS public.categories (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   slug TEXT NOT NULL UNIQUE,
+  parent_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
   description TEXT,
   image_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON public.categories(parent_id);
 
 -- 3. PRODUCTS
 CREATE TABLE IF NOT EXISTS public.products (

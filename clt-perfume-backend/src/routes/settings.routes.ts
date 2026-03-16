@@ -43,7 +43,13 @@ settingsRoutes.get('/', async (req, res) => {
       ],
       navigation: {
         mens: {
-          categories: ["Men Perfumes", "Best Seller For Men", "Gift Sets For Men", "Arabic Perfume", "Niche Perfumes"],
+          categories: [
+            { name: "Men Perfumes", slug: "mens", subcategories: [] },
+            { name: "Best Seller For Men", slug: "mens", subcategories: ["Top Rated", "Most Loved"] },
+            { name: "Gift Sets For Men", slug: "mens", subcategories: ["Under 199 AED", "Premium Boxes"] },
+            { name: "Arabic Perfume", slug: "mens", subcategories: ["Oud", "Amber"] },
+            { name: "Niche Perfumes", slug: "mens", subcategories: ["Limited Edition"] }
+          ],
           notes: [
             { name: "Woody", image: "/prfume-bannar-2.jpg" },
             { name: "Spicy", image: "/prfume-bannar-4.png" }
@@ -54,7 +60,13 @@ settingsRoutes.get('/', async (req, res) => {
           ]
         },
         womens: {
-          categories: ["Women Perfumes", "Best Seller For Women", "Gift Sets For Women", "Cosmetics", "Body Mist"],
+          categories: [
+            { name: "Women Perfumes", slug: "womens", subcategories: [] },
+            { name: "Best Seller For Women", slug: "womens", subcategories: ["Top Rated", "Trending"] },
+            { name: "Gift Sets For Women", slug: "womens", subcategories: ["Under 199 AED", "Luxury Boxes"] },
+            { name: "Cosmetics", slug: "womens", subcategories: ["Makeup", "Skincare"] },
+            { name: "Body Mist", slug: "womens", subcategories: ["Everyday", "Travel"] }
+          ],
           notes: [
             { name: "Fruity", image: "/prfume-bannar-3.jpg" },
             { name: "Floral", image: "/prfume-bannar-2.jpg" }

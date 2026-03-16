@@ -33,6 +33,7 @@ export interface Category {
   id: string
   name: string
   slug: string
+  parent_id?: string | null
   description?: string
   image_url?: string
   created_at?: string
@@ -91,10 +92,7 @@ export interface SiteSettings {
     action: string
     href: string
   }>
-  navigation: {
-    mens: NavSection
-    womens: NavSection
-  }
+  navigation: Record<string, NavSection>
   global_store_info?: {
     name: string
     slogan: string
@@ -113,9 +111,15 @@ export interface SiteSettings {
 }
 
 export interface NavSection {
-  categories: string[]
+  categories: NavCategory[]
   notes: Array<{ name: string, image: string }>
   banners: Array<{ title: string, image: string }>
+}
+
+export interface NavCategory {
+  name: string
+  slug: string
+  subcategories: string[]
 }
 
 

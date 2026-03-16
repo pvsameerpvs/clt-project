@@ -20,3 +20,12 @@ BEGIN
         ALTER TABLE public.categories ADD COLUMN image_url TEXT;
     END IF;
 END $$;
+
+-- Enable parent/child category hierarchy for mega menu and subcategory filtering
+ALTER TABLE public.categories
+ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES public.categories(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON public.categories(parent_id);
+
+-- Refresh PostgREST schema cache (Supabase API)
+NOTIFY pgrst, 'reload schema';

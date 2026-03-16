@@ -11,8 +11,8 @@ export interface Review {
 
 export type ProductCategory =
   | string
-  | { name?: string | null }
-  | Array<{ name?: string | null }>
+  | { name?: string | null; slug?: string | null }
+  | Array<{ name?: string | null; slug?: string | null }>
   | null
 
 export interface Product {
@@ -62,6 +62,29 @@ export function getCategoryLabel(category: ProductCategory): string {
   }
 
   return "Uncategorized"
+}
+
+export function getCategorySlug(category: ProductCategory): string | null {
+  if (typeof category === "string") {
+    const value = category.trim()
+    return value ? value.toLowerCase().replace(/\s+/g, "-") : null
+  }
+
+  if (Array.isArray(category)) {
+    const first = category.find((item) => (item?.slug && item.slug.trim()) || (item?.name && item.name.trim()))
+    if (!first) return null
+    if (first.slug && first.slug.trim()) return first.slug.trim()
+    return first.name ? first.name.trim().toLowerCase().replace(/\s+/g, "-") : null
+  }
+
+  if (category && typeof category === "object") {
+    if (typeof category.slug === "string" && category.slug.trim()) return category.slug.trim()
+    if (typeof category.name === "string" && category.name.trim()) {
+      return category.name.trim().toLowerCase().replace(/\s+/g, "-")
+    }
+  }
+
+  return null
 }
 
 

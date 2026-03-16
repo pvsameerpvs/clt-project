@@ -1,6 +1,102 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
 
-const DEFAULT_SITE_SETTINGS = {
+export interface NavMenuCategory {
+  name: string
+  slug: string
+  subcategories: string[]
+}
+
+export interface ProductCategory {
+  id: string
+  name: string
+  slug: string
+  parent_id?: string | null
+  description?: string | null
+  image_url?: string | null
+}
+
+interface NavSectionData {
+  categories: NavMenuCategory[]
+  notes: Array<{ name: string; image: string }>
+  banners: Array<{ title: string; image: string }>
+}
+
+interface SiteSettingsData {
+  hero_slides: Array<{ image: string; tagline: string; headline: string }>
+  ticker_text: string
+  pocket_friendly_configs: number[]
+  collections: Array<{ href: string; image: string; subtitle: string; title: string; action: string }>
+  brand_story: {
+    title: string
+    description: string
+    image: string
+    features: Array<{ title: string; text: string }>
+  }
+  offers: Array<{ title: string; description: string; action: string; href: string }>
+  navigation: Record<string, NavSectionData>
+  global_store_info: {
+    name: string
+    slogan: string
+    description: string
+    email: string
+    phone: string
+    address: string
+    social_links: {
+      instagram: string
+      facebook: string
+      twitter: string
+      youtube: string
+      linkedin: string
+    }
+  }
+}
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+}
+
+function normalizeCategories(input: unknown): NavMenuCategory[] {
+  if (!Array.isArray(input)) return []
+
+  return input
+    .map((item) => {
+      if (typeof item === "string") {
+        const name = item.trim()
+        if (!name) return null
+        return { name, slug: slugify(name), subcategories: [] }
+      }
+
+      if (!item || typeof item !== "object") return null
+      const source = item as { name?: unknown; slug?: unknown; subcategories?: unknown }
+      const name =
+        typeof source.name === "string" && source.name.trim()
+          ? source.name.trim()
+          : typeof source.slug === "string"
+            ? source.slug.replace(/-/g, " ").trim()
+            : ""
+      const slug =
+        typeof source.slug === "string" && source.slug.trim()
+          ? slugify(source.slug)
+          : slugify(name)
+      if (!name || !slug) return null
+
+      const subcategories = Array.isArray(source.subcategories)
+        ? source.subcategories
+            .map((sub) => (typeof sub === "string" ? sub.trim() : ""))
+            .filter(Boolean)
+        : []
+
+      return { name, slug, subcategories }
+    })
+    .filter((item): item is NavMenuCategory => Boolean(item))
+}
+
+const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   hero_slides: [
     { image: "/prfume-bannar-1.jpg", tagline: "ELEGANCE IN EVERY DROP", headline: "Unveil Your <br/> Inner Essence" },
     { image: "/prfume-bannar-3.jpg", tagline: "LIMITED EDITION", headline: "Ramadan <br/> Signature Scents" },
@@ -29,7 +125,13 @@ const DEFAULT_SITE_SETTINGS = {
   ],
   navigation: {
     mens: {
-      categories: ["Men Perfumes", "Best Seller For Men", "Gift Sets For Men", "Arabic Perfume", "Niche Perfumes"],
+      categories: [
+        { name: "Men Perfumes", slug: "mens", subcategories: [] },
+        { name: "Best Seller For Men", slug: "mens", subcategories: ["Top Rated", "Most Loved"] },
+        { name: "Gift Sets For Men", slug: "mens", subcategories: ["Under 199 AED", "Premium Boxes"] },
+        { name: "Arabic Perfume", slug: "mens", subcategories: ["Oud", "Amber"] },
+        { name: "Niche Perfumes", slug: "mens", subcategories: ["Limited Edition"] },
+      ],
       notes: [
         { name: "Woody", image: "/prfume-bannar-2.jpg" },
         { name: "Spicy", image: "/prfume-bannar-4.png" },
@@ -40,7 +142,13 @@ const DEFAULT_SITE_SETTINGS = {
       ],
     },
     womens: {
-      categories: ["Women Perfumes", "Best Seller For Women", "Gift Sets For Women", "Cosmetics", "Body Mist"],
+      categories: [
+        { name: "Women Perfumes", slug: "womens", subcategories: [] },
+        { name: "Best Seller For Women", slug: "womens", subcategories: ["Top Rated", "Trending"] },
+        { name: "Gift Sets For Women", slug: "womens", subcategories: ["Under 199 AED", "Luxury Boxes"] },
+        { name: "Cosmetics", slug: "womens", subcategories: ["Makeup", "Skincare"] },
+        { name: "Body Mist", slug: "womens", subcategories: ["Everyday", "Travel"] },
+      ],
       notes: [
         { name: "Fruity", image: "/prfume-bannar-3.jpg" },
         { name: "Floral", image: "/prfume-bannar-2.jpg" },
@@ -68,27 +176,55 @@ const DEFAULT_SITE_SETTINGS = {
   },
 }
 
-let settingsCache: typeof DEFAULT_SITE_SETTINGS | null = null
-let settingsRequest: Promise<typeof DEFAULT_SITE_SETTINGS> | null = null
+let settingsCache: SiteSettingsData | null = null
+let settingsRequest: Promise<SiteSettingsData> | null = null
 let hasLoggedSettingsWarning = false
 
-function mergeSettings(data: unknown): typeof DEFAULT_SITE_SETTINGS {
+function mergeNavigation(input: unknown) {
+  const sourceNavigation = (input && typeof input === "object"
+    ? (input as Record<string, { categories?: unknown; notes?: unknown; banners?: unknown }>)
+    : {}) || {}
+
+  const defaultNavigation = DEFAULT_SITE_SETTINGS.navigation as Record<
+    string,
+    { categories: NavMenuCategory[]; notes: Array<{ name: string; image: string }>; banners: Array<{ title: string; image: string }> }
+  >
+
+  const mergedKeys = new Set([
+    ...Object.keys(defaultNavigation),
+    ...Object.keys(sourceNavigation),
+  ])
+
+  const mergedNavigation: Record<
+    string,
+    { categories: NavMenuCategory[]; notes: Array<{ name: string; image: string }>; banners: Array<{ title: string; image: string }> }
+  > = {}
+
+  for (const key of mergedKeys) {
+    const sourceSection = sourceNavigation[key] || {}
+    const defaultSection = defaultNavigation[key] || { categories: [], notes: [], banners: [] }
+    const categories = normalizeCategories(sourceSection.categories)
+
+    mergedNavigation[key] = {
+      ...defaultSection,
+      ...sourceSection,
+      categories: categories.length ? categories : defaultSection.categories,
+      notes: Array.isArray(sourceSection.notes) ? sourceSection.notes : defaultSection.notes,
+      banners: Array.isArray(sourceSection.banners) ? sourceSection.banners : defaultSection.banners,
+    }
+  }
+
+  return mergedNavigation
+}
+
+function mergeSettings(data: unknown): SiteSettingsData {
   if (!data || typeof data !== "object") return DEFAULT_SITE_SETTINGS
-  const source = data as Partial<typeof DEFAULT_SITE_SETTINGS>
+  const source = data as Partial<SiteSettingsData>
 
   return {
     ...DEFAULT_SITE_SETTINGS,
     ...source,
-    navigation: {
-      mens: {
-        ...DEFAULT_SITE_SETTINGS.navigation.mens,
-        ...(source.navigation?.mens || {}),
-      },
-      womens: {
-        ...DEFAULT_SITE_SETTINGS.navigation.womens,
-        ...(source.navigation?.womens || {}),
-      },
-    },
+    navigation: mergeNavigation(source.navigation),
     global_store_info: {
       ...DEFAULT_SITE_SETTINGS.global_store_info,
       ...(source.global_store_info || {}),
@@ -180,10 +316,10 @@ export async function getCategories() {
   try {
     const res = await fetch(`${API_BASE_URL}/api/products/categories`, { cache: 'no-store' })
     if (!res.ok) throw new Error("Failed to fetch categories")
-    return res.json()
+    return res.json() as Promise<ProductCategory[]>
   } catch (error) {
     console.error(error)
-    return []
+    return [] as ProductCategory[]
   }
 }
 
@@ -191,7 +327,7 @@ export async function getCategoryBySlug(slug: string) {
   try {
     const res = await fetch(`${API_BASE_URL}/api/products/categories/${slug}`, { cache: 'no-store' })
     if (!res.ok) return null
-    return res.json()
+    return res.json() as Promise<ProductCategory>
   } catch (error) {
     console.error(error)
     return null

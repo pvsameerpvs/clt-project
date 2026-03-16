@@ -10,6 +10,13 @@ interface CategoryListProps {
 }
 
 export function CategoryList({ categories, loading, onEdit, onDelete }: CategoryListProps) {
+  const categoryNameById = new Map(categories.map((category) => [category.id, category.name]))
+  const sortedCategories = [...categories].sort((a, b) => {
+    if (!a.parent_id && b.parent_id) return -1
+    if (a.parent_id && !b.parent_id) return 1
+    return a.name.localeCompare(b.name)
+  })
+
   return (
     <div className="bg-white p-6 rounded-2xl border border-neutral-200">
       <h2 className="text-xl font-bold mb-6">Existing Collections</h2>
@@ -22,7 +29,7 @@ export function CategoryList({ categories, loading, onEdit, onDelete }: Category
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((cat) => (
+          {sortedCategories.map((cat) => (
             <div key={cat.id} className="group relative border rounded-2xl p-4 hover:border-black transition-all bg-neutral-50">
               <div className="aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-neutral-200">
                 {cat.image_url ? (
@@ -35,6 +42,11 @@ export function CategoryList({ categories, loading, onEdit, onDelete }: Category
               
               <h3 className="font-bold text-sm tracking-tight">{cat.name}</h3>
               <p className="text-[11px] text-neutral-500 font-mono">/{cat.slug}</p>
+              <p className="text-[11px] mt-1 text-neutral-500">
+                {cat.parent_id
+                  ? `Child of: ${categoryNameById.get(cat.parent_id) || "Unknown"}`
+                  : "Top-level category"}
+              </p>
               
               <div className="mt-4 flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button 
