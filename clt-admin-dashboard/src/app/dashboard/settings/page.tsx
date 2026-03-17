@@ -8,6 +8,14 @@ import {
   NavSection,
   NavCategory,
 } from "@/lib/admin-api"
+import { TickerPreview } from "@/components/preview/ticker-preview"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { HeroSettings } from "@/components/settings/hero-settings"
 import { BrandStorySettings } from "@/components/settings/brand-story-settings"
 import { CollectionsSettings } from "@/components/settings/collections-settings"
@@ -102,6 +110,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [isTickerModalOpen, setIsTickerModalOpen] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -148,102 +157,156 @@ export default function SettingsPage() {
     "whitespace-nowrap rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-700 transition-colors hover:border-black hover:text-black"
 
   return (
-    <div className="mx-auto grid max-w-[1100px] gap-5 px-4 pb-24 pt-4 sm:px-6">
+    <div className="mx-auto grid max-w-7xl gap-6 pt-0">
       <Card className="relative overflow-hidden rounded-3xl">
         <div className="pointer-events-none absolute -right-24 top-0 h-56 w-56 rounded-full bg-neutral-200/50 blur-3xl" />
         <CardHeader className="relative">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-neutral-500">CLE Perfumes</p>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-neutral-500 font-bold">CLE Perfumes</p>
           <CardTitle className="mt-3 text-3xl sm:text-4xl">Homepage Settings Studio</CardTitle>
-          <CardDescription className="mt-3 max-w-2xl font-light">
-            Responsive and clean settings editor for your frontend homepage content.
+          <CardDescription className="mt-3 max-w-2xl font-light italic">
+            Synchronize your visual presence and brand identity directly with your storefront.
           </CardDescription>
         </CardHeader>
       </Card>
 
-      <div className="sticky top-3 z-20 rounded-2xl border border-neutral-200 bg-white/95 p-3 shadow-sm backdrop-blur">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            <a href="#ticker" className={sectionLinkClass}>Ticker</a>
+      <div className="sticky top-0 z-20 -mx-4 px-4 py-3 sm:-mx-8 sm:px-8 bg-neutral-50/80 backdrop-blur-md">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between max-w-7xl mx-auto border border-neutral-200 bg-white p-2 rounded-2xl shadow-sm">
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             <a href="#hero" className={sectionLinkClass}>Hero</a>
+            <a href="#collections" className={sectionLinkClass}>Collections</a>
+            <a href="#brand" className={sectionLinkClass}>Brand Story</a>
+            <a href="#ticker" className={sectionLinkClass}>Ticker</a>
             <a href="#pocket" className={sectionLinkClass}>Pocket</a>
             <a href="#store" className={sectionLinkClass}>Store Info</a>
-            <a href="#brand" className={sectionLinkClass}>Brand Story</a>
-            <a href="#collections" className={sectionLinkClass}>Collections</a>
           </div>
-          <Button onClick={handleSave} disabled={saving} size="sm">
-            {saving ? "Saving..." : "Apply All Changes"}
+          <Button onClick={handleSave} disabled={saving} className="rounded-full px-8 shadow-lg shadow-black/10">
+            {saving ? "Saving Changes..." : "Publish Website"}
           </Button>
         </div>
       </div>
 
-      {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 font-medium">{error}</div>}
-      {success && <div className="bg-green-50 text-green-600 p-4 rounded-xl border border-green-200 font-medium">✨ Website updated successfully!</div>}
+      {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 font-medium">⚠️ {error}</div>}
+      {success && <div className="bg-emerald-50 text-emerald-600 p-4 rounded-xl border border-emerald-200 font-medium">✨ Your changes are now live!</div>}
 
-      <div className="grid gap-8">
-        {/* Ticker Settings */}
-        <Card id="ticker">
-          <CardHeader>
-            <CardTitle>Top Scrolling Announcement</CardTitle>
-            <CardDescription>Controls the moving text bar on top of the homepage.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-            className="h-24"
-            value={settings?.ticker_text || ""}
-            onChange={(e) => setSettings((prev) => (prev ? ({ ...prev, ticker_text: e.target.value }) : null))}
-            placeholder="Enter the text that scrolls at the top..."
-          />
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-12 items-start">
+        {/* Ordered Settings Flow */}
+        <div className="space-y-12">
+          {settings && (
+            <>
+              {/* 1. Announcement Bar */}
+              <section className="rounded-3xl border border-neutral-200 bg-white p-8 shadow-sm scroll-mt-32" id="ticker">
+                <div className="mb-8 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-serif text-neutral-900">1. Announcement Bar</h2>
+                    <p className="mt-1 text-sm text-neutral-500 font-light">The scrolling text at the very top of your website.</p>
+                  </div>
+                  <Button onClick={() => setIsTickerModalOpen(true)} variant="outline" className="rounded-full px-6">
+                    Edit Text
+                  </Button>
+                </div>
 
-        {settings && (
-          <>
-            <div id="hero">
-              <HeroSettings 
-                slides={settings.hero_slides} 
-                onChange={(slides) => setSettings({ ...settings, hero_slides: slides })} 
-              />
-            </div>
+                <TickerPreview 
+                  text={settings?.ticker_text || ""} 
+                  onEditClick={() => setIsTickerModalOpen(true)} 
+                />
 
-            <div id="pocket">
-              <PocketFriendlySettings 
-                configs={settings.pocket_friendly_configs}
-                onChange={(configs) => setSettings({ ...settings, pocket_friendly_configs: configs })}
-              />
-            </div>
+                <Dialog open={isTickerModalOpen} onOpenChange={setIsTickerModalOpen}>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-serif">Edit Announcement</DialogTitle>
+                      <DialogDescription>
+                        This text scrolls continuously at the top of every page.
+                      </DialogDescription>
+                    </DialogHeader>
 
-            <div id="store">
-              <GlobalStoreSettings 
-                info={settings.global_store_info || {
-                  name: "CLE PERFUMES",
-                  slogan: "CLE PERFUMES.",
-                  description: "",
-                  email: "",
-                  phone: "",
-                  address: "",
-                  social_links: { instagram: "", facebook: "", twitter: "", youtube: "", linkedin: "" }
-                }}
-                onChange={(info) => setSettings({ ...settings, global_store_info: info })}
-              />
-            </div>
+                    <div className="mt-6 space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest px-1">Announcement Text</label>
+                        <textarea
+                          className="w-full border border-neutral-200 bg-white rounded-2xl p-4 text-sm h-32 focus:ring-2 focus:ring-black outline-none transition-all resize-none font-medium"
+                          value={settings?.ticker_text || ""}
+                          onChange={(e) => setSettings((prev) => (prev ? ({ ...prev, ticker_text: e.target.value }) : null))}
+                          placeholder="Enter the text that scrolls at the top..."
+                        />
+                      </div>
+                    </div>
 
-            <div id="brand">
-              <BrandStorySettings 
-                story={settings.brand_story} 
-                onChange={(story) => setSettings({ ...settings, brand_story: story })} 
-              />
-            </div>
+                    <div className="flex justify-end pt-6 border-t mt-6">
+                      <Button onClick={() => setIsTickerModalOpen(false)} variant="secondary" className="px-8 rounded-full">
+                        Apply Changes
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </section>
 
-            <div id="collections">
-              <CollectionsSettings 
-                collections={settings.collections} 
-                offers={settings.offers}
-                onCollectionsChange={(cols) => setSettings({ ...settings, collections: cols })}
-                onOffersChange={(offers) => setSettings({ ...settings, offers })}
-              />
-            </div>
-          </>
-        )}
+              {/* 2. Live Hero Preview */}
+              <div id="hero" className="scroll-mt-32">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-serif text-neutral-900">2. Live Hero Preview</h2>
+                </div>
+                <HeroSettings 
+                  slides={settings.hero_slides} 
+                  onChange={(slides) => setSettings(prev => prev ? ({ ...prev, hero_slides: slides }) : null)} 
+                />
+              </div>
+
+              {/* 3. Curated Selections Preview */}
+              <div id="collections" className="scroll-mt-32">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-serif text-neutral-900">3. Curated Selections Preview</h2>
+                </div>
+                <CollectionsSettings 
+                  collections={settings.collections} 
+                  offers={settings.offers}
+                  onCollectionsChange={(cols) => setSettings(prev => prev ? ({ ...prev, collections: cols }) : null)}
+                  onOffersChange={(offers) => setSettings(prev => prev ? ({ ...prev, offers }) : null)}
+                />
+              </div>
+
+              {/* 4. Brand Story Preview */}
+              <div id="brand" className="scroll-mt-32">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-serif text-neutral-900">4. Brand Story Preview</h2>
+                </div>
+                <BrandStorySettings 
+                  story={settings.brand_story} 
+                  onChange={(story) => setSettings(prev => prev ? ({ ...prev, brand_story: story }) : null)} 
+                />
+              </div>
+
+              {/* 5. Pocket-Friendly Preview */}
+              <div id="pocket" className="scroll-mt-32">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-serif text-neutral-900">5. Pocket-Friendly Preview</h2>
+                </div>
+                <PocketFriendlySettings 
+                  configs={settings.pocket_friendly_configs}
+                  onChange={(configs) => setSettings(prev => prev ? ({ ...prev, pocket_friendly_configs: configs }) : null)}
+                />
+              </div>
+
+              {/* 6. Global Store Preview */}
+              <div id="store" className="scroll-mt-32">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-serif text-neutral-900">6. Global Store Preview</h2>
+                </div>
+                <GlobalStoreSettings 
+                  info={settings.global_store_info || {
+                    name: "CLE PERFUMES",
+                    slogan: "CLE PERFUMES.",
+                    description: "",
+                    email: "",
+                    phone: "",
+                    address: "",
+                    social_links: { instagram: "", facebook: "", twitter: "", youtube: "", linkedin: "" }
+                  }}
+                  onChange={(info) => setSettings(prev => prev ? ({ ...prev, global_store_info: info }) : null)}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

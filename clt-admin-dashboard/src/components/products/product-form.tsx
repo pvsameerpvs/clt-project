@@ -62,9 +62,13 @@ export function ProductForm({ form, setForm, onSubmit, onClear, saving, categori
               onChange={(e) => setForm(prev => ({ ...prev, category_id: e.target.value }))}
             >
               <option value="">Uncategorized</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
+              {categories.map(cat => {
+                const parent = cat.parent_id ? categories.find(c => c.id === cat.parent_id) : null;
+                const label = parent ? `${parent.name} › ${cat.name}` : cat.name;
+                return (
+                  <option key={cat.id} value={cat.id}>{label}</option>
+                );
+              })}
             </select>
           </div>
 

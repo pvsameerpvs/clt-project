@@ -38,19 +38,28 @@ productRoutes.get('/categories/:slug', async (req, res) => {
   }
 })
 
-// GET /api/products - List all active products with filtering
+// GET /api/products - List all active products with advanced filtering
 productRoutes.get('/', async (req, res) => {
   try {
-    const { category, search, minPrice, maxPrice, limit } = req.query
+    const { 
+      category, 
+      search, 
+      minPrice, 
+      maxPrice, 
+      limit,
+      is_best_seller,
+      is_new,
+      is_exclusive,
+      scent
+    } = req.query
     
     let query = supabaseAdmin
       .from('products')
       .select('*, category:categories(name, slug)')
       .eq('is_active', true)
 
-    // Filter by category slug
+    // 1. Category Bypass (Hierarchical)
     if (category) {
-      // Resolve category by slug and include direct child categories (parent/child taxonomy)
       const { data: catData } = await supabaseAdmin
         .from('categories')
         .select('id')
@@ -72,11 +81,21 @@ productRoutes.get('/', async (req, res) => {
       }
     }
 
-    // Filter by price
+    // 2. Feature Bypass (Flags)
+    if (is_best_seller === 'true') query = query.eq('is_best_seller', true)
+    if (is_new === 'true') query = query.eq('is_new', true)
+    if (is_exclusive === 'true') query = query.eq('is_exclusive', true)
+
+    // 3. Scent/Note Bypass (Text Search)
+    if (scent) {
+      query = query.ilike('scent', `%${scent}%`)
+    }
+
+    // 4. Price Filters
     if (minPrice) query = query.gte('price', minPrice)
     if (maxPrice) query = query.lte('price', maxPrice)
 
-    // Search by name or description
+    // 5. General Search
     if (search) {
       query = query.ilike('name', `%${search}%`)
     }
