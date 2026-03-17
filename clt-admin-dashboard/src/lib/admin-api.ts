@@ -113,8 +113,8 @@ export interface SiteSettings {
 
 export interface NavSection {
   categories: NavCategory[]
-  notes: Array<{ name: string, image: string }>
-  banners: Array<{ title: string, image: string }>
+  notes: Array<{ name: string, image: string, href?: string, product_slugs?: string[] }>
+  banners: Array<{ title: string, image: string, href?: string, product_slugs?: string[] }>
 }
 
 export interface NavCategory {

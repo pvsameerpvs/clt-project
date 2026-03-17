@@ -1,12 +1,13 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Category, NavSection } from "@/lib/admin-api"
+import { AdminProduct, Category, NavSection } from "@/lib/admin-api"
 import { NavSettings } from "@/components/settings/nav-settings"
 
 interface MegaMenuPanelProps {
   navigation: Record<string, NavSection> | null
   categories: Category[]
+  products: AdminProduct[]
   sectionKeys: string[]
   onUpdate: (
     sectionKey: string,
@@ -21,6 +22,7 @@ interface MegaMenuPanelProps {
 export function MegaMenuPanel({
   navigation,
   categories,
+  products,
   sectionKeys,
   onUpdate,
   onSave,
@@ -96,6 +98,7 @@ export function MegaMenuPanel({
           navigation={navigation}
           onUpdate={onUpdate}
           catalogCategories={categories}
+          catalogProducts={products}
           showCategoryControls={false}
           sections={activeSections}
           compact

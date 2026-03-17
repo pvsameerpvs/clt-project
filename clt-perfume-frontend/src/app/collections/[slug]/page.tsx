@@ -16,6 +16,16 @@ function normalizeToken(value: string) {
     .replace(/-+/g, "-")
 }
 
+function parseSelectedProductSlugs(value?: string) {
+  if (!value) return new Set<string>()
+  const slugs = value
+    .split(",")
+    .map((token) => decodeURIComponent(token.trim()))
+    .map((token) => normalizeToken(token))
+    .filter(Boolean)
+  return new Set(slugs)
+}
+
 function collectDescendantCategorySlugs(
   categorySlug: string,
   categories: Array<{ id: string; slug: string; parent_id?: string | null }>
@@ -53,15 +63,22 @@ export default async function CollectionPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ sub?: string }>
+  searchParams: Promise<{ sub?: string; products?: string }>
 }) {
   const { slug } = await params
-  const { sub } = await searchParams
+  const { sub, products: selectedProducts } = await searchParams
   const selectedSubcategory = typeof sub === "string" ? sub.trim() : ""
+  const selectedProductSlugs = parseSelectedProductSlugs(
+    typeof selectedProducts === "string" ? selectedProducts : undefined
+  )
   
   // Special case for 'all' products collection
   if (slug === 'all') {
     const products = (await getProducts()) as Product[]
+    const visibleProducts =
+      selectedProductSlugs.size > 0
+        ? products.filter((product) => selectedProductSlugs.has(normalizeToken(product.slug)))
+        : products
     const allCategory = {
       name: "The Collection",
       description: "Explore our entire range of signature fragrances, crafted for every mood and occasion.",
@@ -87,12 +104,12 @@ export default async function CollectionPage({
 
         <div className="container mx-auto px-4 py-20">
           <div className="flex items-center justify-between mb-12 border-b border-neutral-100 pb-6">
-            <h2 className="text-xl font-serif">All Fragrances ({products.length})</h2>
+            <h2 className="text-xl font-serif">All Fragrances ({visibleProducts.length})</h2>
           </div>
 
-          {products.length > 0 ? (
+          {visibleProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {products.map((product) => (
+              {visibleProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
@@ -120,7 +137,7 @@ export default async function CollectionPage({
   const validSubcategorySlugs = normalizedSubcategory
     ? collectDescendantCategorySlugs(normalizedSubcategory, allCategories)
     : null
-  const visibleProducts = normalizedSubcategory
+  const subFilteredProducts = normalizedSubcategory
     ? products.filter((product) => {
         if (normalizedSubcategory === "best-seller") {
           return Boolean(product.is_best_seller ?? product.isBestSeller)
@@ -137,6 +154,10 @@ export default async function CollectionPage({
         return validSubcategorySlugs ? validSubcategorySlugs.has(normalizedProductCategorySlug) : false
       })
     : products
+  const visibleProducts =
+    selectedProductSlugs.size > 0
+      ? subFilteredProducts.filter((product) => selectedProductSlugs.has(normalizeToken(product.slug)))
+      : subFilteredProducts
 
   return (
     <div className="min-h-screen bg-white pb-20">
@@ -180,10 +201,19 @@ export default async function CollectionPage({
         </div>
 
         {/* Products Grid */}
-        {selectedSubcategory && (
+        {(selectedSubcategory || selectedProductSlugs.size > 0) && (
           <div className="mb-6 flex items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm">
             <p className="text-neutral-700">
-              Filtering by subcategory: <span className="font-semibold">{selectedSubcategory}</span>
+              {selectedSubcategory ? (
+                <>
+                  Filtering by subcategory: <span className="font-semibold">{selectedSubcategory}</span>
+                </>
+              ) : (
+                <>
+                  Filtering by selected products:{" "}
+                  <span className="font-semibold">{selectedProductSlugs.size}</span>
+                </>
+              )}
             </p>
             <Link href={`/collections/${slug}`} className="text-xs font-semibold uppercase tracking-wider text-neutral-500 hover:text-black">
               Clear Filter

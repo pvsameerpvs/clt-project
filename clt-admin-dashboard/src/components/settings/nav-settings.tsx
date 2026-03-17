@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Category, NavCategory, NavSection } from "@/lib/admin-api"
+import { useMemo, useState } from "react"
+import { AdminProduct, Category, NavCategory, NavSection } from "@/lib/admin-api"
 import { SingleImageUpload } from "@/components/single-image-upload"
 import { Plus, Trash2 } from "lucide-react"
 
@@ -13,6 +13,7 @@ interface NavSettingsProps {
     value: NavSection[keyof NavSection]
   ) => void
   catalogCategories?: Category[]
+  catalogProducts?: AdminProduct[]
   showCategoryControls?: boolean
   sections?: string[]
   compact?: boolean
@@ -27,16 +28,87 @@ function slugify(value: string) {
     .replace(/-+/g, "-")
 }
 
+function getProductCategoryName(product: AdminProduct) {
+  const category = Array.isArray(product.category) ? product.category[0] : product.category
+  if (category?.name && typeof category.name === "string" && category.name.trim()) {
+    return category.name.trim()
+  }
+  return "Uncategorized"
+}
+
+function getProductSlugFromHref(href?: string) {
+  const value = typeof href === "string" ? href.trim() : ""
+  if (!value) return ""
+  const match = value.match(/^\/product\/([^/?#]+)/i)
+  return match?.[1] ? decodeURIComponent(match[1]) : ""
+}
+
+function toMultiProductHref(slugs: string[]) {
+  const tokens = slugs
+    .map((slug) => slug.trim())
+    .filter(Boolean)
+    .map((slug) => encodeURIComponent(slug))
+
+  if (tokens.length === 0) return ""
+  if (tokens.length === 1) return `/product/${tokens[0]}`
+  return `/collections/all?products=${tokens.join(",")}`
+}
+
+function normalizeProductSlugs(input: unknown) {
+  if (!Array.isArray(input)) return []
+  const seen = new Set<string>()
+  const values: string[] = []
+
+  for (const token of input) {
+    if (typeof token !== "string") continue
+    const value = token.trim()
+    if (!value || seen.has(value)) continue
+    seen.add(value)
+    values.push(value)
+  }
+
+  return values
+}
+
+function getProductSelection(item: { href?: string; product_slugs?: string[] }) {
+  const fromArray = normalizeProductSlugs(item.product_slugs)
+  if (fromArray.length > 0) return fromArray
+
+  const fromHref = getProductSlugFromHref(item.href)
+  return fromHref ? [fromHref] : []
+}
+
 export function NavSettings({
   navigation,
   onUpdate,
   catalogCategories = [],
+  catalogProducts = [],
   showCategoryControls = true,
   sections,
   compact = false,
 }: NavSettingsProps) {
   const sectionKeys = (sections && sections.length ? sections : Object.keys(navigation)).filter(Boolean)
   const [catalogPicker, setCatalogPicker] = useState<Record<string, string>>({})
+  const productOptions = useMemo(() => {
+    const seenSlugs = new Set<string>()
+    return catalogProducts
+      .map((product) => {
+        const slug = typeof product.slug === "string" ? product.slug.trim() : ""
+        if (!slug || seenSlugs.has(slug)) return null
+        seenSlugs.add(slug)
+        const name =
+          typeof product.name === "string" && product.name.trim()
+            ? product.name.trim()
+            : slug
+        return {
+          slug,
+          name,
+          categoryName: getProductCategoryName(product),
+        }
+      })
+      .filter((product): product is { slug: string; name: string; categoryName: string } => Boolean(product))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [catalogProducts])
   const emptySection: NavSection = { categories: [], notes: [], banners: [] }
   const getSection = (sectionKey: string) => navigation[sectionKey] || emptySection
 
@@ -260,12 +332,27 @@ export function NavSettings({
                 <button
                   type="button"
                   className="inline-flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-700 hover:border-black hover:text-black"
-                  onClick={() => setNotes(sectionKey, [...section.notes, { name: "New Note", image: "" }])}
+                  onClick={() =>
+                    setNotes(sectionKey, [
+                      ...section.notes,
+                      { name: "New Note", image: "", href: "", product_slugs: [] },
+                    ])
+                  }
                 >
                   <Plus className="h-3 w-3" />
                   Add
                 </button>
               </div>
+              <p className="mb-2 text-[10px] text-neutral-500">
+                Optional link example: <span className="font-mono">/collections/men?sub=gift-sets</span> or{" "}
+                <span className="font-mono">/product/noir-de-soir</span>
+              </p>
+              <p className="mb-2 text-[10px] text-neutral-500">
+                Multi-select products and we will auto-link to a combined products page.
+              </p>
+              <p className="mb-2 text-[10px] text-neutral-500">
+                Hold Ctrl/Cmd to choose multiple products.
+              </p>
               <div className={`grid gap-3 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
                 {section.notes.map((note, noteIndex) => (
                   <div key={`${sectionKey}-note-${noteIndex}`} className="rounded-lg border border-neutral-200 bg-white p-3">
@@ -291,6 +378,40 @@ export function NavSettings({
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
+                    <select
+                      className="mb-2 min-h-24 w-full rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] outline-none focus:border-black disabled:bg-neutral-100"
+                      multiple
+                      value={getProductSelection(note)}
+                      disabled={productOptions.length === 0}
+                      onChange={(event) => {
+                        const selectedSlugs = Array.from(event.target.selectedOptions)
+                          .map((option) => option.value)
+                          .filter(Boolean)
+                        const next = [...section.notes]
+                        next[noteIndex] = {
+                          ...next[noteIndex],
+                          product_slugs: selectedSlugs,
+                          href: toMultiProductHref(selectedSlugs),
+                        }
+                        setNotes(sectionKey, next)
+                      }}
+                    >
+                      {productOptions.map((product) => (
+                        <option key={`note-product-${product.slug}`} value={product.slug}>
+                          {product.name} ({product.categoryName})
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      className="mb-2 h-8 w-full rounded-md border border-neutral-200 px-2 text-[11px] font-mono outline-none focus:border-black"
+                      value={note.href || ""}
+                      onChange={(event) => {
+                        const next = [...section.notes]
+                        next[noteIndex] = { ...next[noteIndex], href: event.target.value }
+                        setNotes(sectionKey, next)
+                      }}
+                      placeholder="/collections/men?sub=best-seller"
+                    />
                     <SingleImageUpload
                       value={note.image}
                       onUpload={(url) => {
@@ -315,12 +436,26 @@ export function NavSettings({
                 <button
                   type="button"
                   className="inline-flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-700 hover:border-black hover:text-black"
-                  onClick={() => setBanners(sectionKey, [...section.banners, { title: "New Banner", image: "" }])}
+                  onClick={() =>
+                    setBanners(sectionKey, [
+                      ...section.banners,
+                      { title: "New Banner", image: "", href: "", product_slugs: [] },
+                    ])
+                  }
                 >
                   <Plus className="h-3 w-3" />
                   Add
                 </button>
               </div>
+              <p className="mb-2 text-[10px] text-neutral-500">
+                Banner link controls product landing. Use collection filters or direct product URL.
+              </p>
+              <p className="mb-2 text-[10px] text-neutral-500">
+                Multi-select products and we will auto-link to a combined products page.
+              </p>
+              <p className="mb-2 text-[10px] text-neutral-500">
+                Hold Ctrl/Cmd to choose multiple products.
+              </p>
               <div className={compact ? "space-y-2" : "space-y-3"}>
                 {section.banners.map((banner, bannerIndex) => (
                   <div key={`${sectionKey}-banner-${bannerIndex}`} className="rounded-lg border border-neutral-200 bg-white p-3">
@@ -346,6 +481,40 @@ export function NavSettings({
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
+                    <select
+                      className="mb-2 min-h-24 w-full rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] outline-none focus:border-black disabled:bg-neutral-100"
+                      multiple
+                      value={getProductSelection(banner)}
+                      disabled={productOptions.length === 0}
+                      onChange={(event) => {
+                        const selectedSlugs = Array.from(event.target.selectedOptions)
+                          .map((option) => option.value)
+                          .filter(Boolean)
+                        const next = [...section.banners]
+                        next[bannerIndex] = {
+                          ...next[bannerIndex],
+                          product_slugs: selectedSlugs,
+                          href: toMultiProductHref(selectedSlugs),
+                        }
+                        setBanners(sectionKey, next)
+                      }}
+                    >
+                      {productOptions.map((product) => (
+                        <option key={`banner-product-${product.slug}`} value={product.slug}>
+                          {product.name} ({product.categoryName})
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      className="mb-2 h-8 w-full rounded-md border border-neutral-200 px-2 text-[11px] font-mono outline-none focus:border-black"
+                      value={banner.href || ""}
+                      onChange={(event) => {
+                        const next = [...section.banners]
+                        next[bannerIndex] = { ...next[bannerIndex], href: event.target.value }
+                        setBanners(sectionKey, next)
+                      }}
+                      placeholder="/collections/men?sub=new-arrivals"
+                    />
                     <SingleImageUpload
                       value={banner.image}
                       onUpload={(url) => {

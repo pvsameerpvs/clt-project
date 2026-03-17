@@ -72,7 +72,7 @@ export function ProductForm({ form, setForm, onSubmit, onClear, saving, categori
             >
               <option value="">Uncategorized</option>
               {selectedCategoryOption && !selectedCategoryIsLeaf && (
-                <option value={selectedCategory.id}>
+                <option value={selectedCategoryOption.category.id}>
                   {selectedCategoryOption.path} (Current non-leaf)
                 </option>
               )}

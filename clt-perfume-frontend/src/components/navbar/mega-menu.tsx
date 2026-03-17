@@ -12,11 +12,15 @@ interface MegaMenuProps {
 interface MenuNote {
   name: string
   image: string
+  href?: string
+  product_slugs?: string[]
 }
 
 interface MenuBanner {
   title: string
   image: string
+  href?: string
+  product_slugs?: string[]
 }
 
 interface MegaMenuData {
@@ -86,26 +90,67 @@ function normalizeCategories(input: unknown): NavMenuCategory[] {
 
 function normalizeNotes(input: unknown): MenuNote[] {
   if (!Array.isArray(input)) return []
-  return input
-    .map((item) => {
-      if (!item || typeof item !== "object") return null
-      const source = item as { name?: unknown; image?: unknown }
-      if (typeof source.name !== "string" || typeof source.image !== "string") return null
-      return { name: source.name, image: source.image }
+  const notes: MenuNote[] = []
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue
+    const source = item as { name?: unknown; image?: unknown; href?: unknown; product_slugs?: unknown }
+    if (typeof source.name !== "string" || typeof source.image !== "string") continue
+
+    notes.push({
+      name: source.name,
+      image: source.image,
+      href: typeof source.href === "string" ? source.href : undefined,
+      product_slugs: normalizeProductSlugs(source.product_slugs),
     })
-    .filter((item): item is MenuNote => Boolean(item))
+  }
+  return notes
 }
 
 function normalizeBanners(input: unknown): MenuBanner[] {
   if (!Array.isArray(input)) return []
-  return input
-    .map((item) => {
-      if (!item || typeof item !== "object") return null
-      const source = item as { title?: unknown; image?: unknown }
-      if (typeof source.title !== "string" || typeof source.image !== "string") return null
-      return { title: source.title, image: source.image }
+  const banners: MenuBanner[] = []
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue
+    const source = item as { title?: unknown; image?: unknown; href?: unknown; product_slugs?: unknown }
+    if (typeof source.title !== "string" || typeof source.image !== "string") continue
+
+    banners.push({
+      title: source.title,
+      image: source.image,
+      href: typeof source.href === "string" ? source.href : undefined,
+      product_slugs: normalizeProductSlugs(source.product_slugs),
     })
-    .filter((item): item is MenuBanner => Boolean(item))
+  }
+  return banners
+}
+
+function normalizeProductSlugs(input: unknown) {
+  if (!Array.isArray(input)) return []
+
+  const seen = new Set<string>()
+  const values: string[] = []
+  for (const token of input) {
+    if (typeof token !== "string") continue
+    const value = token.trim()
+    if (!value || seen.has(value)) continue
+    seen.add(value)
+    values.push(value)
+  }
+  return values
+}
+
+function buildProductsHref(productSlugs?: string[]) {
+  const slugs = normalizeProductSlugs(productSlugs)
+  if (slugs.length === 0) return ""
+  if (slugs.length === 1) return `/product/${encodeURIComponent(slugs[0])}`
+  return `/collections/all?products=${slugs.map((slug) => encodeURIComponent(slug)).join(",")}`
+}
+
+function resolveMenuLink(item: { href?: string; product_slugs?: string[] }, defaultHref: string) {
+  const href = item.href?.trim()
+  if (href) return href
+  const productsHref = buildProductsHref(item.product_slugs)
+  return productsHref || defaultHref
 }
 
 function buildStandardCategories(categorySlug: string, categories: ProductCategory[]): MenuCategoryLink[] {
@@ -241,7 +286,7 @@ export function MegaMenu({ categorySlug }: MegaMenuProps) {
           <h3 className="text-black font-serif text-base tracking-wide uppercase mb-6 drop-shadow-sm">Shop By Notes</h3>
           <div className="grid grid-cols-2 gap-6 w-full max-w-[220px]">
             {data.notes.map((note) => (
-              <Link key={note.name} href={defaultHref} className="flex flex-col items-center gap-3 group/note">
+              <Link key={note.name} href={resolveMenuLink(note, defaultHref)} className="flex flex-col items-center gap-3 group/note">
                 <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg shadow-black/20 group-hover/note:scale-105 transition-transform">
                   {note.image ? (
                     <Image src={note.image} alt={note.name} width={80} height={80} className="object-cover w-full h-full" />
@@ -260,7 +305,7 @@ export function MegaMenu({ categorySlug }: MegaMenuProps) {
         {/* Banners Column */}
         <div className="flex flex-col gap-4 flex-[1.5]">
           {data.banners.map((banner) => (
-            <Link key={banner.title} href={defaultHref} className="relative w-full h-[80px] rounded overflow-hidden group/banner block shadow-md">
+            <Link key={banner.title} href={resolveMenuLink(banner, defaultHref)} className="relative w-full h-[80px] rounded overflow-hidden group/banner block shadow-md">
               {banner.image ? (
                 <Image src={banner.image} alt={banner.title} fill className="object-cover group-hover/banner:scale-105 transition-transform duration-700" />
               ) : (

@@ -17,8 +17,8 @@ export interface ProductCategory {
 
 interface NavSectionData {
   categories: NavMenuCategory[]
-  notes: Array<{ name: string; image: string }>
-  banners: Array<{ title: string; image: string }>
+  notes: Array<{ name: string; image: string; href?: string; product_slugs?: string[] }>
+  banners: Array<{ title: string; image: string; href?: string; product_slugs?: string[] }>
 }
 
 interface SiteSettingsData {
@@ -187,7 +187,11 @@ function mergeNavigation(input: unknown) {
 
   const defaultNavigation = DEFAULT_SITE_SETTINGS.navigation as Record<
     string,
-    { categories: NavMenuCategory[]; notes: Array<{ name: string; image: string }>; banners: Array<{ title: string; image: string }> }
+    {
+      categories: NavMenuCategory[]
+      notes: Array<{ name: string; image: string; href?: string; product_slugs?: string[] }>
+      banners: Array<{ title: string; image: string; href?: string; product_slugs?: string[] }>
+    }
   >
 
   const mergedKeys = new Set([
@@ -197,7 +201,11 @@ function mergeNavigation(input: unknown) {
 
   const mergedNavigation: Record<
     string,
-    { categories: NavMenuCategory[]; notes: Array<{ name: string; image: string }>; banners: Array<{ title: string; image: string }> }
+    {
+      categories: NavMenuCategory[]
+      notes: Array<{ name: string; image: string; href?: string; product_slugs?: string[] }>
+      banners: Array<{ title: string; image: string; href?: string; product_slugs?: string[] }>
+    }
   > = {}
 
   for (const key of mergedKeys) {

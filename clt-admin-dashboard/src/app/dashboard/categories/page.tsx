@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react"
 import {
   Category,
+  AdminProduct,
   getAdminCategories,
+  getAdminProducts,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
@@ -98,6 +100,7 @@ function ensureNavigationSections(navigation: Record<string, NavSection>, sectio
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
+  const [products, setProducts] = useState<AdminProduct[]>([])
   const [navigation, setNavigation] = useState<SiteSettings["navigation"] | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -110,11 +113,13 @@ export default function CategoriesPage() {
   async function load() {
     try {
       setLoading(true)
-      const [nextCategories, settings] = await Promise.all([
+      const [nextCategories, nextProducts, settings] = await Promise.all([
         getAdminCategories(),
+        getAdminProducts(),
         getSiteSettings(),
       ])
       setCategories(nextCategories)
+      setProducts(nextProducts)
       const topLevelSlugs = nextCategories.filter((category) => !category.parent_id).map((category) => category.slug)
       const normalizedNavigation = normalizeNavigation(settings.navigation)
       setNavigation(ensureNavigationSections(normalizedNavigation, topLevelSlugs))
@@ -257,6 +262,7 @@ export default function CategoriesPage() {
           <MegaMenuPanel
             navigation={navigation}
             categories={categories}
+            products={products}
             sectionKeys={sectionKeys}
             onUpdate={updateNav}
             onSave={handleSaveMegaMenu}
