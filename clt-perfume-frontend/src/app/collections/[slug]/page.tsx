@@ -4,8 +4,18 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import { ProductCard } from "@/components/product/product-card"
-import { getCategories, getCategoryBySlug, getProducts } from "@/lib/api"
+import { getCategories, getCategoryBySlug, getProducts, getSiteSettings } from "@/lib/api"
 import { Product, getCategorySlug } from "@/lib/products"
+
+interface CuratedCollectionItem {
+  href: string
+  image: string
+  cover_image?: string
+  subtitle: string
+  title: string
+  action: string
+  product_slugs?: string[]
+}
 
 function normalizeToken(value: string) {
   return value
@@ -16,6 +26,10 @@ function normalizeToken(value: string) {
     .replace(/-+/g, "-")
 }
 
+function stripHtml(value: string) {
+  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+}
+
 function parseSelectedProductSlugs(value?: string) {
   if (!value) return new Set<string>()
   const slugs = value
@@ -24,6 +38,26 @@ function parseSelectedProductSlugs(value?: string) {
     .map((token) => normalizeToken(token))
     .filter(Boolean)
   return new Set(slugs)
+}
+
+function normalizeProductSlugs(input: unknown) {
+  if (!Array.isArray(input)) return []
+  const seen = new Set<string>()
+  const values: string[] = []
+  for (const token of input) {
+    if (typeof token !== "string") continue
+    const value = normalizeToken(token)
+    if (!value || seen.has(value)) continue
+    seen.add(value)
+    values.push(value)
+  }
+  return values
+}
+
+function extractCollectionSlugFromHref(href?: string) {
+  const value = typeof href === "string" ? href.trim() : ""
+  const match = value.match(/^\/collections\/([^/?#]+)/i)
+  return match?.[1] ? normalizeToken(decodeURIComponent(match[1])) : ""
 }
 
 function collectDescendantCategorySlugs(
@@ -74,28 +108,57 @@ export default async function CollectionPage({
   
   // Special case for 'all' products collection
   if (slug === 'all') {
-    const products = (await getProducts()) as Product[]
+    const [products, settings] = await Promise.all([
+      getProducts(),
+      getSiteSettings(),
+    ])
+    const allProducts = products as Product[]
+    const curatedCollections = Array.isArray(settings?.collections)
+      ? (settings.collections as CuratedCollectionItem[])
+      : []
+    const matchedCuratedCollection =
+      selectedProductSlugs.size > 0
+        ? curatedCollections.find((collection) => {
+            const productSlugs = normalizeProductSlugs(collection.product_slugs)
+            if (productSlugs.length === 0) return false
+            if (productSlugs.length !== selectedProductSlugs.size) return false
+            return productSlugs.every((token) => selectedProductSlugs.has(token))
+          })
+        : null
     const visibleProducts =
       selectedProductSlugs.size > 0
-        ? products.filter((product) => selectedProductSlugs.has(normalizeToken(product.slug)))
-        : products
+        ? allProducts.filter((product) => selectedProductSlugs.has(normalizeToken(product.slug)))
+        : allProducts
     const allCategory = {
-      name: "The Collection",
-      description: "Explore our entire range of signature fragrances, crafted for every mood and occasion.",
-      image_url: "/prfume-bannar-1.jpg"
+      name: matchedCuratedCollection ? stripHtml(matchedCuratedCollection.title) : "The Collection",
+      titleHtml: matchedCuratedCollection?.title || "The Collection",
+      description:
+        matchedCuratedCollection?.subtitle ||
+        "Explore our entire range of signature fragrances, crafted for every mood and occasion.",
+      image_url:
+        matchedCuratedCollection?.cover_image ||
+        matchedCuratedCollection?.image ||
+        "/prfume-bannar-1.jpg",
     }
     
     return (
       <div className="min-h-screen bg-white">
         {/* Banner Section */}
-        <div className="relative h-[40vh] min-h-[300px] w-full bg-neutral-900">
-           <div className="absolute inset-0 opacity-40">
-             {/* Use fallback if no image */}
-             <div className="w-full h-full bg-gradient-to-b from-neutral-800 to-black" />
-           </div>
+        <div className="relative h-[40vh] min-h-[300px] w-full bg-neutral-900 overflow-hidden">
+           <Image
+             src={allCategory.image_url}
+             alt={allCategory.name}
+             fill
+             className="object-cover"
+             priority
+           />
+           <div className="absolute inset-0 bg-black/55" />
            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
               <span className="text-white/60 uppercase tracking-[0.3em] text-[10px] mb-4">Discover</span>
-              <h1 className="text-white text-5xl md:text-7xl font-serif mb-4">{allCategory.name}</h1>
+              <h1
+                className="text-white text-5xl md:text-7xl font-serif mb-4"
+                dangerouslySetInnerHTML={{ __html: allCategory.titleHtml }}
+              />
               <p className="text-white/80 max-w-xl font-light text-sm md:text-base leading-relaxed">
                 {allCategory.description}
               </p>
@@ -123,22 +186,40 @@ export default async function CollectionPage({
     )
   }
 
-  // Fetch real category from DB
-  const category = await getCategoryBySlug(slug)
-  
-  if (!category) {
+  const [category, allCategories, settings] = await Promise.all([
+    getCategoryBySlug(slug),
+    getCategories(),
+    getSiteSettings(),
+  ])
+  const curatedCollections = Array.isArray(settings?.collections)
+    ? (settings.collections as CuratedCollectionItem[])
+    : []
+  const curatedCollection =
+    curatedCollections.find(
+      (collection) => extractCollectionSlugFromHref(collection.href) === normalizeToken(slug)
+    ) || null
+
+  if (!category && !curatedCollection) {
     notFound()
   }
 
-  // Fetch real products for this category
-  const products = (await getProducts({ category: slug })) as Product[]
-  const allCategories = await getCategories()
+  const products = category
+    ? ((await getProducts({ category: slug })) as Product[])
+    : ((await getProducts()) as Product[])
+  const curatedProductSlugs =
+    curatedCollection && Array.isArray(curatedCollection.product_slugs)
+      ? new Set(curatedCollection.product_slugs.map((item) => normalizeToken(item)).filter(Boolean))
+      : null
+  const baseProducts =
+    curatedProductSlugs && curatedProductSlugs.size > 0
+      ? products.filter((product) => curatedProductSlugs.has(normalizeToken(product.slug)))
+      : products
   const normalizedSubcategory = normalizeToken(selectedSubcategory)
   const validSubcategorySlugs = normalizedSubcategory
     ? collectDescendantCategorySlugs(normalizedSubcategory, allCategories)
     : null
-  const subFilteredProducts = normalizedSubcategory
-    ? products.filter((product) => {
+  const subFilteredProducts = normalizedSubcategory && category
+    ? baseProducts.filter((product) => {
         if (normalizedSubcategory === "best-seller") {
           return Boolean(product.is_best_seller ?? product.isBestSeller)
         }
@@ -153,19 +234,27 @@ export default async function CollectionPage({
         const normalizedProductCategorySlug = normalizeToken(productCategorySlug)
         return validSubcategorySlugs ? validSubcategorySlugs.has(normalizedProductCategorySlug) : false
       })
-    : products
+    : baseProducts
   const visibleProducts =
     selectedProductSlugs.size > 0
       ? subFilteredProducts.filter((product) => selectedProductSlugs.has(normalizeToken(product.slug)))
       : subFilteredProducts
+  const heroImage =
+    curatedCollection?.cover_image ||
+    curatedCollection?.image ||
+    category?.image_url ||
+    "/curated-pefume-banner.png"
+  const heroTitleHtml = curatedCollection?.title || category?.name || slug
+  const heroTitleText = stripHtml(heroTitleHtml)
+  const heroSubtitle = curatedCollection?.subtitle || category?.description || ""
 
   return (
     <div className="min-h-screen bg-white pb-20">
       {/* Dynamic Collection Hero */}
       <div className="relative h-[40vh] min-h-[400px] w-full flex items-center justify-center mb-16">
         <Image 
-          src={category.image_url || "/curated-pefume-banner.png"}
-          alt={category.name}
+          src={heroImage}
+          alt={heroTitleText}
           fill
           className="object-cover"
           priority
@@ -175,12 +264,13 @@ export default async function CollectionPage({
           <Badge variant="outline" className="mb-4 text-white border-white/30 tracking-widest uppercase bg-transparent hover:bg-transparent">
             Collection
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-serif text-white mb-6 leading-tight">
-            {category.name}
-          </h1>
-          {category.description && (
+          <h1
+            className="text-4xl md:text-6xl font-serif text-white mb-6 leading-tight"
+            dangerouslySetInnerHTML={{ __html: heroTitleHtml }}
+          />
+          {heroSubtitle && (
             <p className="text-white/80 font-light text-lg">
-              {category.description}
+              {heroSubtitle}
             </p>
           )}
         </div>

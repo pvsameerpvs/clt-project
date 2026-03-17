@@ -4,8 +4,45 @@ import { useEffect, useState } from "react"
 import { CollectionCard } from "@/components/collections/collection-card"
 import { getSiteSettings } from "@/lib/api"
 
+interface CuratedCollectionItem {
+  href: string
+  image: string
+  cover_image?: string
+  subtitle: string
+  title: string
+  action: string
+  product_slugs?: string[]
+}
+
+function normalizeProductSlugs(input: unknown) {
+  if (!Array.isArray(input)) return []
+  const seen = new Set<string>()
+  const values: string[] = []
+  for (const token of input) {
+    if (typeof token !== "string") continue
+    const value = token.trim()
+    if (!value || seen.has(value)) continue
+    seen.add(value)
+    values.push(value)
+  }
+  return values
+}
+
+function buildCollectionHref(collection: CuratedCollectionItem) {
+  const existingHref = typeof collection.href === "string" ? collection.href.trim() : ""
+  if (existingHref) return existingHref
+
+  const productSlugs = normalizeProductSlugs(collection.product_slugs)
+  if (productSlugs.length === 1) return `/product/${encodeURIComponent(productSlugs[0])}`
+  if (productSlugs.length > 1) {
+    return `/collections/all?products=${productSlugs.map((slug) => encodeURIComponent(slug)).join(",")}`
+  }
+
+  return "/collections/all"
+}
+
 export function Collections() {
-  const [collections, setCollections] = useState<any[]>([])
+  const [collections, setCollections] = useState<CuratedCollectionItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -37,7 +74,7 @@ export function Collections() {
           {collections.map((col, idx) => (
             <CollectionCard 
               key={idx}
-              href={col.href}
+              href={buildCollectionHref(col)}
               imageSrc={col.image}
               imageAlt={col.subtitle}
               subtitle={col.subtitle}

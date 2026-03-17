@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { SingleImageUpload } from "@/components/single-image-upload"
 import { CollectionsPreview } from "@/components/preview/collections-preview"
 import { OffersPreview } from "@/components/preview/offers-preview"
@@ -13,11 +13,30 @@ import { Button } from "@/components/ui/button"
 import { getAdminCategories, getAdminProducts, type Category, type AdminProduct } from "@/lib/admin-api"
 import { Plus, Trash2, Palette, Link2 } from "lucide-react"
 
+interface CuratedCollection {
+  href: string
+  image: string
+  cover_image?: string
+  subtitle: string
+  title: string
+  action: string
+  product_slugs?: string[]
+}
+
+interface PromoOffer {
+  title: string
+  description: string
+  action: string
+  href: string
+  badge?: string
+  bgColor?: string
+}
+
 interface CollectionsSettingsProps {
-  collections: any[]
-  offers: any[]
-  onCollectionsChange: (cols: any[]) => void
-  onOffersChange: (offers: any[]) => void
+  collections: CuratedCollection[]
+  offers: PromoOffer[]
+  onCollectionsChange: (cols: CuratedCollection[]) => void
+  onOffersChange: (offers: PromoOffer[]) => void
 }
 
 const PRESET_COLORS = [
@@ -28,10 +47,89 @@ const PRESET_COLORS = [
   { name: 'Noir', class: 'bg-[#1A1A1A] text-white' },
 ]
 
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+}
+
+function extractCollectionSlug(href?: string) {
+  const value = typeof href === "string" ? href.trim() : ""
+  const match = value.match(/^\/collections\/([^/?#]+)/i)
+  return match?.[1] ? decodeURIComponent(match[1]) : ""
+}
+
+function toCollectionHref(slug: string) {
+  const normalized = slugify(slug)
+  return normalized ? `/collections/${encodeURIComponent(normalized)}` : ""
+}
+
+function toProductHref(slug: string) {
+  const normalized = slugify(slug)
+  return normalized ? `/product/${encodeURIComponent(normalized)}` : ""
+}
+
+function normalizeProductSlugs(input: unknown) {
+  if (!Array.isArray(input)) return []
+  const seen = new Set<string>()
+  const values: string[] = []
+  for (const token of input) {
+    if (typeof token !== "string") continue
+    const value = slugify(token)
+    if (!value || seen.has(value)) continue
+    seen.add(value)
+    values.push(value)
+  }
+  return values
+}
+
+function extractProductSlugsFromHref(href?: string) {
+  const value = typeof href === "string" ? href.trim() : ""
+  if (!value) return []
+
+  const directMatch = value.match(/^\/product\/([^/?#]+)/i)
+  if (directMatch?.[1]) return [slugify(decodeURIComponent(directMatch[1]))]
+
+  const query = value.split("?")[1] || ""
+  const params = new URLSearchParams(query)
+  const products = params.get("products")
+  if (!products) return []
+
+  return products
+    .split(",")
+    .map((slug) => slugify(decodeURIComponent(slug)))
+    .filter(Boolean)
+}
+
+function getCollectionProductSlugs(collection: CuratedCollection) {
+  const fromArray = normalizeProductSlugs(collection.product_slugs)
+  if (fromArray.length > 0) return fromArray
+  return extractProductSlugsFromHref(collection.href)
+}
+
+function toProductsHref(productSlugs: string[]) {
+  const slugs = normalizeProductSlugs(productSlugs)
+  if (slugs.length === 0) return ""
+  if (slugs.length === 1) return toProductHref(slugs[0])
+  return `/collections/all?products=${slugs.map((slug) => encodeURIComponent(slug)).join(",")}`
+}
+
+function hasProductHref(href?: string) {
+  const value = typeof href === "string" ? href.trim() : ""
+  if (!value) return false
+  if (/^\/product\/[^/?#]+/i.test(value)) return true
+  return extractProductSlugsFromHref(value).length > 0
+}
+
 export function CollectionsSettings({ collections, offers, onCollectionsChange, onOffersChange }: CollectionsSettingsProps) {
   const [activeModal, setActiveModal] = useState<'collections' | 'offers' | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<AdminProduct[]>([])
+  const [collectionProductPicker, setCollectionProductPicker] = useState<Record<number, string>>({})
+  const [linkFieldsLocked, setLinkFieldsLocked] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     async function fetchData() {
@@ -46,11 +144,69 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
     fetchData()
   }, [])
 
-  const updateCol = (idx: number, field: string, value: string) => {
-    const next = [...collections]; next[idx] = { ...next[idx], [field]: value }; onCollectionsChange(next)
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.name.localeCompare(b.name)),
+    [categories]
+  )
+  const sortedProducts = useMemo(
+    () => [...products].sort((a, b) => a.name.localeCompare(b.name)),
+    [products]
+  )
+  const productNameBySlug = useMemo(
+    () =>
+      sortedProducts.reduce<Record<string, string>>((acc, product) => {
+        const slug = slugify(product.slug)
+        if (slug) acc[slug] = product.name
+        return acc
+      }, {}),
+    [sortedProducts]
+  )
+
+  const updateCol = (idx: number, field: keyof CuratedCollection, value: string) => {
+    const next = [...collections]
+    next[idx] = { ...next[idx], [field]: value }
+    onCollectionsChange(next)
+  }
+
+  const patchCol = (idx: number, patch: Partial<CuratedCollection>) => {
+    const next = [...collections]
+    next[idx] = { ...next[idx], ...patch }
+    onCollectionsChange(next)
+  }
+
+  const addCollectionProduct = (idx: number) => {
+    const selectedSlug = slugify(collectionProductPicker[idx] || "")
+    if (!selectedSlug) return
+
+    const existing = getCollectionProductSlugs(collections[idx])
+    if (existing.includes(selectedSlug)) return
+
+    const nextProductSlugs = [...existing, selectedSlug]
+    patchCol(idx, {
+      product_slugs: nextProductSlugs,
+      href: toProductsHref(nextProductSlugs),
+    })
+    setCollectionProductPicker((prev) => ({ ...prev, [idx]: "" }))
+  }
+
+  const removeCollectionProduct = (idx: number, slug: string) => {
+    const nextProductSlugs = getCollectionProductSlugs(collections[idx]).filter((item) => item !== slug)
+    patchCol(idx, {
+      product_slugs: nextProductSlugs,
+      href: toProductsHref(nextProductSlugs),
+    })
+  }
+
+  const isLinkLocked = (idx: number) => linkFieldsLocked[idx] ?? true
+
+  const toggleLinkLock = (idx: number) => {
+    setLinkFieldsLocked((prev) => ({
+      ...prev,
+      [idx]: !(prev[idx] ?? true),
+    }))
   }
   
-  const updateOffer = (idx: number, field: string, value: string) => {
+  const updateOffer = (idx: number, field: keyof PromoOffer, value: string) => {
     const next = [...offers]; next[idx] = { ...next[idx], [field]: value }; onOffersChange(next)
   }
 
@@ -75,7 +231,11 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
           </Button>
         </div>
 
-        <CollectionsPreview collections={collections} onEditClick={() => setActiveModal('collections')} />
+        <CollectionsPreview
+          collections={collections}
+          productNameBySlug={productNameBySlug}
+          onEditClick={() => setActiveModal('collections')}
+        />
       </section>
 
       <section className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -107,17 +267,79 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
                    <span className="bg-black text-white w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold">{idx + 1}</span>
                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Card {idx + 1}</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => toggleLinkLock(idx)}
+                  className={`w-full rounded-xl border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${
+                    isLinkLocked(idx)
+                      ? "border-amber-300 bg-amber-50 text-amber-700 hover:border-amber-400"
+                      : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:border-emerald-400"
+                  }`}
+                >
+                  {isLinkLocked(idx) ? "Unlock Link Fields" : "Lock Link Fields"}
+                </button>
                 
-                <SingleImageUpload 
-                  value={col.image} 
-                  onUpload={(url) => updateCol(idx, 'image', url)} 
-                  onRemove={() => updateCol(idx, 'image', "")}
-                />
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest px-1">Card Image</label>
+                  <SingleImageUpload 
+                    value={col.image} 
+                    onUpload={(url) => updateCol(idx, 'image', url)} 
+                    onRemove={() => updateCol(idx, 'image', "")}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest px-1">Cover Image (Collection Hero)</label>
+                  <SingleImageUpload
+                    value={col.cover_image || ""}
+                    onUpload={(url) => updateCol(idx, 'cover_image', url)}
+                    onRemove={() => updateCol(idx, 'cover_image', "")}
+                  />
+                </div>
 
                 <div className="space-y-4">
                    <div className="space-y-1">
                       <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest px-1">Subtitle</label>
-                      <input className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs" value={col.subtitle} onChange={(e) => updateCol(idx, 'subtitle', e.target.value)} />
+                      <input
+                        className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs"
+                        value={col.subtitle}
+                        onChange={(e) => {
+                          const locked = isLinkLocked(idx)
+                          const nextSubtitle = e.target.value
+                          const productSelection = getCollectionProductSlugs(col)
+                          const canAutoGenerate =
+                            !locked &&
+                            productSelection.length === 0 &&
+                            !hasProductHref(col.href) &&
+                            (!col.href || Boolean(extractCollectionSlug(col.href)))
+
+                          patchCol(idx, {
+                            subtitle: nextSubtitle,
+                            ...(canAutoGenerate ? { href: toCollectionHref(nextSubtitle) } : {}),
+                          })
+                        }}
+                      />
+                      <div className="flex items-center justify-between gap-2 px-1">
+                        <p className="text-[10px] text-neutral-500">
+                          Slug preview:{" "}
+                          <span className="font-mono">
+                            {toCollectionHref(col.subtitle) || "/collections/your-slug"}
+                          </span>
+                        </p>
+                        <button
+                          type="button"
+                          disabled={isLinkLocked(idx)}
+                          onClick={() =>
+                            patchCol(idx, {
+                              href: toCollectionHref(col.subtitle),
+                              product_slugs: [],
+                            })
+                          }
+                          className="rounded-lg border border-neutral-300 bg-white px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-neutral-700 hover:border-black hover:text-black disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Generate Slug
+                        </button>
+                      </div>
                    </div>
                    <div className="space-y-1">
                       <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest px-1">Title (HTML)</label>
@@ -126,19 +348,110 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
                    <div className="space-y-1">
                       <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest px-1 flex items-center gap-1"><Link2 className="h-2 w-2"/> Pick Category</label>
                       <select 
-                        className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs outline-none focus:ring-2 focus:ring-black transition-all appearance-none cursor-pointer"
-                        value=""
-                        onChange={(e) => updateCol(idx, 'href', `/categories/${e.target.value}`)}
+                        className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs outline-none focus:ring-2 focus:ring-black transition-all appearance-none cursor-pointer disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed"
+                        value={extractCollectionSlug(col.href)}
+                        disabled={isLinkLocked(idx)}
+                        onChange={(e) =>
+                          patchCol(idx, {
+                            href: toCollectionHref(e.target.value),
+                            product_slugs: [],
+                          })
+                        }
                       >
-                        <option value="" disabled>Select a category...</option>
-                        {categories.map((cat) => (
+                        <option value="">Select a category...</option>
+                        {sortedCategories.map((cat) => (
                           <option key={cat.id} value={cat.slug}>{cat.name}</option>
                         ))}
                       </select>
                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest px-1 flex items-center gap-1"><Link2 className="h-2 w-2"/> Pick Related Product</label>
+                      {(() => {
+                        const selectedProductSlugs = new Set(getCollectionProductSlugs(col))
+                        const pickerSlug = slugify(collectionProductPicker[idx] || "")
+                        const isDuplicateSelection = pickerSlug ? selectedProductSlugs.has(pickerSlug) : false
+
+                        return (
+                      <div className="grid grid-cols-[1fr_auto] gap-2">
+                        <select
+                          className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs outline-none focus:ring-2 focus:ring-black transition-all appearance-none cursor-pointer"
+                          value={collectionProductPicker[idx] || ""}
+                          onChange={(e) =>
+                            setCollectionProductPicker((prev) => ({ ...prev, [idx]: e.target.value }))
+                          }
+                        >
+                          <option value="">Select product...</option>
+                          {sortedProducts.map((prod) => (
+                            <option
+                              key={prod.id}
+                              value={prod.slug}
+                              disabled={selectedProductSlugs.has(slugify(prod.slug))}
+                            >
+                              {prod.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => addCollectionProduct(idx)}
+                          disabled={!collectionProductPicker[idx] || isDuplicateSelection}
+                          className="rounded-xl border border-neutral-300 bg-white px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-700 hover:border-black hover:text-black disabled:opacity-40"
+                        >
+                          Add
+                        </button>
+                      </div>
+                        )
+                      })()}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {getCollectionProductSlugs(col).map((slug) => (
+                          <span
+                            key={`${idx}-${slug}`}
+                            className="inline-flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-[10px] font-medium text-neutral-700"
+                          >
+                            {productNameBySlug[slug] || slug}
+                            <button
+                              type="button"
+                              className="text-neutral-500 hover:text-red-500"
+                              onClick={() => removeCollectionProduct(idx, slug)}
+                              aria-label="Remove selected product"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                        {getCollectionProductSlugs(col).length === 0 && (
+                          <p className="text-[10px] text-neutral-500">No products selected.</p>
+                        )}
+                      </div>
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest px-1">Create New Collection Slug</label>
+                      <input
+                        className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed"
+                        value={extractCollectionSlug(col.href)}
+                        disabled={isLinkLocked(idx)}
+                        onChange={(e) =>
+                          patchCol(idx, {
+                            href: toCollectionHref(e.target.value),
+                            product_slugs: [],
+                          })
+                        }
+                        placeholder="new-collection-slug"
+                      />
+                   </div>
                    <div className="space-y-1">
                       <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest px-1">Deep Link / Slug</label>
-                      <input className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs" value={col.href} onChange={(e) => updateCol(idx, 'href', e.target.value)} />
+                      <input
+                        className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed"
+                        value={col.href}
+                        disabled={isLinkLocked(idx)}
+                        onChange={(e) =>
+                          patchCol(idx, {
+                            href: e.target.value,
+                            product_slugs: extractProductSlugsFromHref(e.target.value),
+                          })
+                        }
+                      />
                    </div>
                 </div>
               </div>
@@ -230,18 +543,18 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
                           value=""
                           onChange={(e) => {
                             const val = e.target.value;
-                            if (val.startsWith('cat:')) updateOffer(idx, 'href', `/categories/${val.replace('cat:', '')}`)
-                            else if (val.startsWith('prod:')) updateOffer(idx, 'href', `/products/${val.replace('prod:', '')}`)
+                            if (val.startsWith('cat:')) updateOffer(idx, 'href', toCollectionHref(val.replace('cat:', '')))
+                            else if (val.startsWith('prod:')) updateOffer(idx, 'href', toProductHref(val.replace('prod:', '')))
                           }}
                         >
                           <option value="" disabled>Link to Category or Product...</option>
                           <optgroup label="Categories">
-                            {categories.map((cat) => (
+                            {sortedCategories.map((cat) => (
                               <option key={cat.id} value={`cat:${cat.slug}`}>{cat.name}</option>
                             ))}
                           </optgroup>
                           <optgroup label="Products">
-                            {products.map((prod) => (
+                            {sortedProducts.map((prod) => (
                               <option key={prod.id} value={`prod:${prod.slug}`}>{prod.name}</option>
                             ))}
                           </optgroup>

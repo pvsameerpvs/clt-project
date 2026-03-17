@@ -77,9 +77,11 @@ export interface SiteSettings {
   collections: Array<{
     href: string
     image: string
+    cover_image?: string
     subtitle: string
     title: string
     action: string
+    product_slugs?: string[]
   }>
   brand_story: {
     title: string

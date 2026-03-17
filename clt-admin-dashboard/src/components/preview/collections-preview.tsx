@@ -4,12 +4,22 @@ import Image from "next/image"
 import { Edit3, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+interface CuratedCollectionPreviewItem {
+  href: string
+  image: string
+  subtitle: string
+  title: string
+  action: string
+  product_slugs?: string[]
+}
+
 interface CollectionsPreviewProps {
-  collections: any[]
+  collections: CuratedCollectionPreviewItem[]
+  productNameBySlug?: Record<string, string>
   onEditClick: () => void
 }
 
-export function CollectionsPreview({ collections, onEditClick }: CollectionsPreviewProps) {
+export function CollectionsPreview({ collections, productNameBySlug = {}, onEditClick }: CollectionsPreviewProps) {
   return (
     <div className="group relative">
       <section className="py-12 bg-white rounded-3xl border border-neutral-100 px-6">
@@ -37,6 +47,23 @@ export function CollectionsPreview({ collections, onEditClick }: CollectionsPrev
                <div className="relative z-10 w-full h-full flex flex-col justify-end p-6">
                   <span className="text-white/70 text-[9px] font-medium uppercase tracking-[0.2em] mb-2">{col.subtitle}</span>
                   <h3 className="text-2xl font-serif text-white mb-4 leading-tight" dangerouslySetInnerHTML={{ __html: col.title }} />
+                  {Array.isArray(col.product_slugs) && col.product_slugs.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-1.5">
+                      {col.product_slugs.slice(0, 2).map((slug) => (
+                        <span
+                          key={`${idx}-${slug}`}
+                          className="rounded-full border border-white/30 bg-black/35 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-white/90"
+                        >
+                          {productNameBySlug[slug] || slug}
+                        </span>
+                      ))}
+                      {col.product_slugs.length > 2 && (
+                        <span className="rounded-full border border-white/30 bg-black/35 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-white/90">
+                          +{col.product_slugs.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center text-white text-[10px] items-center gap-2">
                      <span className="uppercase tracking-widest font-medium border-b border-white/30 pb-1">{col.action || "Shop Now"}</span>
                      <ArrowRight className="h-3 w-3" />
