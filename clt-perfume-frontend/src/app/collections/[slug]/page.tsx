@@ -68,6 +68,52 @@ function isNewArrival(product: Product) {
   return Boolean(product.is_new ?? product.isNew)
 }
 
+function buildRelatedProducts(allProducts: Product[], visibleProducts: Product[]) {
+  const selectedVisibleSlugs = new Set(visibleProducts.map((product) => normalizeToken(product.slug)))
+  const selectedCategorySlugs = new Set(
+    visibleProducts
+      .map((product) => normalizeToken(getCategorySlug(product.category) || ""))
+      .filter(Boolean)
+  )
+  const relatedCandidates = allProducts.filter((product) => {
+    const slugToken = normalizeToken(product.slug)
+    if (selectedVisibleSlugs.has(slugToken)) return false
+    if (selectedCategorySlugs.size === 0) return true
+    const categoryToken = normalizeToken(getCategorySlug(product.category) || "")
+    return categoryToken ? selectedCategorySlugs.has(categoryToken) : false
+  })
+
+  const primaryMode: "best-seller" | "new-arrival" =
+    new Date().getUTCDate() % 2 === 0 ? "best-seller" : "new-arrival"
+  const primaryRelated =
+    primaryMode === "best-seller"
+      ? relatedCandidates.filter(isBestSeller)
+      : relatedCandidates.filter(isNewArrival)
+  const secondaryRelated =
+    primaryMode === "best-seller"
+      ? relatedCandidates.filter(isNewArrival)
+      : relatedCandidates.filter(isBestSeller)
+  const relatedProducts = (
+    primaryRelated.length
+      ? primaryRelated
+      : secondaryRelated.length
+        ? secondaryRelated
+        : relatedCandidates
+  ).slice(0, 4)
+
+  const relatedTitle = primaryRelated.length
+    ? primaryMode === "best-seller"
+      ? "Related Best Sellers"
+      : "Related New Arrivals"
+    : secondaryRelated.length
+      ? primaryMode === "best-seller"
+        ? "Related New Arrivals"
+        : "Related Best Sellers"
+      : "Related Picks"
+
+  return { relatedProducts, relatedTitle }
+}
+
 function collectDescendantCategorySlugs(
   categorySlug: string,
   categories: Array<{ id: string; slug: string; parent_id?: string | null }>
@@ -137,45 +183,7 @@ export default async function CollectionPage({
       selectedProductSlugs.size > 0
         ? allProducts.filter((product) => selectedProductSlugs.has(normalizeToken(product.slug)))
         : allProducts
-    const selectedVisibleSlugs = new Set(visibleProducts.map((product) => normalizeToken(product.slug)))
-    const selectedCategorySlugs = new Set(
-      visibleProducts
-        .map((product) => normalizeToken(getCategorySlug(product.category) || ""))
-        .filter(Boolean)
-    )
-    const relatedCandidates = allProducts.filter((product) => {
-      const slugToken = normalizeToken(product.slug)
-      if (selectedVisibleSlugs.has(slugToken)) return false
-      if (selectedCategorySlugs.size === 0) return true
-      const categoryToken = normalizeToken(getCategorySlug(product.category) || "")
-      return categoryToken ? selectedCategorySlugs.has(categoryToken) : false
-    })
-    const primaryMode: "best-seller" | "new-arrival" =
-      new Date().getUTCDate() % 2 === 0 ? "best-seller" : "new-arrival"
-    const primaryRelated =
-      primaryMode === "best-seller"
-        ? relatedCandidates.filter(isBestSeller)
-        : relatedCandidates.filter(isNewArrival)
-    const secondaryRelated =
-      primaryMode === "best-seller"
-        ? relatedCandidates.filter(isNewArrival)
-        : relatedCandidates.filter(isBestSeller)
-    const relatedProducts = (
-      primaryRelated.length
-        ? primaryRelated
-        : secondaryRelated.length
-          ? secondaryRelated
-          : relatedCandidates
-    ).slice(0, 4)
-    const relatedTitle = primaryRelated.length
-      ? primaryMode === "best-seller"
-        ? "Related Best Sellers"
-        : "Related New Arrivals"
-      : secondaryRelated.length
-        ? primaryMode === "best-seller"
-          ? "Related New Arrivals"
-          : "Related Best Sellers"
-        : "Related Picks"
+    const { relatedProducts, relatedTitle } = buildRelatedProducts(allProducts, visibleProducts)
     const allCategory = {
       name: matchedCuratedCollection ? stripHtml(matchedCuratedCollection.title) : "The Collection",
       titleHtml: matchedCuratedCollection?.title || "The Collection",
@@ -247,10 +255,11 @@ export default async function CollectionPage({
     )
   }
 
-  const [category, allCategories, settings] = await Promise.all([
+  const [category, allCategories, settings, allProductsRaw] = await Promise.all([
     getCategoryBySlug(slug),
     getCategories(),
     getSiteSettings(),
+    getProducts(),
   ])
   const curatedCollections = Array.isArray(settings?.collections)
     ? (settings.collections as CuratedCollectionItem[])
@@ -264,9 +273,10 @@ export default async function CollectionPage({
     notFound()
   }
 
+  const allCatalogProducts = allProductsRaw as Product[]
   const products = category
     ? ((await getProducts({ category: slug })) as Product[])
-    : ((await getProducts()) as Product[])
+    : allCatalogProducts
   const curatedProductSlugs =
     curatedCollection && Array.isArray(curatedCollection.product_slugs)
       ? new Set(curatedCollection.product_slugs.map((item) => normalizeToken(item)).filter(Boolean))
@@ -300,6 +310,7 @@ export default async function CollectionPage({
     selectedProductSlugs.size > 0
       ? subFilteredProducts.filter((product) => selectedProductSlugs.has(normalizeToken(product.slug)))
       : subFilteredProducts
+  const { relatedProducts, relatedTitle } = buildRelatedProducts(allCatalogProducts, visibleProducts)
   const heroImage =
     curatedCollection?.cover_image ||
     curatedCollection?.image ||
@@ -381,6 +392,20 @@ export default async function CollectionPage({
         {visibleProducts.length === 0 && (
           <div className="text-center py-20 text-neutral-500">
             No products found in this collection{selectedSubcategory ? ` for "${selectedSubcategory}".` : "."}
+          </div>
+        )}
+
+        {relatedProducts.length > 0 && (
+          <div className="mt-16 border-t border-neutral-100 pt-10">
+            <div className="mb-8 flex items-center justify-between border-b border-neutral-100 pb-4">
+              <h3 className="text-xl font-serif">{relatedTitle} ({relatedProducts.length})</h3>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">Smart Rotation</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {relatedProducts.map((product) => (
+                <ProductCard key={`related-${product.id}`} product={product} />
+              ))}
+            </div>
           </div>
         )}
       </div>
