@@ -7,6 +7,45 @@ function isMissingParentIdColumn(error: { message?: string } | null | undefined)
   return Boolean(error?.message?.includes("'parent_id'"))
 }
 
+async function resolveCategoryBranchIds(rootCategoryId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('categories')
+    .select('id, parent_id')
+
+  if (error) {
+    if (isMissingParentIdColumn(error)) {
+      return [rootCategoryId]
+    }
+    throw error
+  }
+
+  const byParent = new Map<string, string[]>()
+  for (const row of data || []) {
+    const item = row as { id: string; parent_id?: string | null }
+    if (!item.parent_id) continue
+    if (!byParent.has(item.parent_id)) byParent.set(item.parent_id, [])
+    byParent.get(item.parent_id)?.push(item.id)
+  }
+
+  const seen = new Set<string>()
+  const ordered: string[] = []
+  const stack = [rootCategoryId]
+
+  while (stack.length) {
+    const current = stack.pop()
+    if (!current || seen.has(current)) continue
+    seen.add(current)
+    ordered.push(current)
+
+    const children = byParent.get(current) || []
+    for (const child of children) {
+      if (!seen.has(child)) stack.push(child)
+    }
+  }
+
+  return ordered.length ? ordered : [rootCategoryId]
+}
+
 // GET /api/products/categories - List all categories
 productRoutes.get('/categories', async (req, res) => {
   try {
@@ -67,16 +106,7 @@ productRoutes.get('/', async (req, res) => {
         .single()
       
       if (catData) {
-        const { data: childCategories, error: childCategoriesError } = await supabaseAdmin
-          .from('categories')
-          .select('id')
-          .eq('parent_id', catData.id)
-
-        if (childCategoriesError && !isMissingParentIdColumn(childCategoriesError)) {
-          throw childCategoriesError
-        }
-
-        const categoryIds = [catData.id, ...(childCategories || []).map((item: { id: string }) => item.id)]
+        const categoryIds = await resolveCategoryBranchIds(catData.id)
         query = query.in('category_id', categoryIds)
       }
     }

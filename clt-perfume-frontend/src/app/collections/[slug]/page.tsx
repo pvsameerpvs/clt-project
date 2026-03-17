@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import { ProductCard } from "@/components/product/product-card"
-import { getCategoryBySlug, getProducts } from "@/lib/api"
+import { getCategories, getCategoryBySlug, getProducts } from "@/lib/api"
 import { Product, getCategorySlug } from "@/lib/products"
 
 function normalizeToken(value: string) {
@@ -14,6 +14,38 @@ function normalizeToken(value: string) {
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
+}
+
+function collectDescendantCategorySlugs(
+  categorySlug: string,
+  categories: Array<{ id: string; slug: string; parent_id?: string | null }>
+) {
+  const normalizedSlug = normalizeToken(categorySlug)
+  const slugMap = new Map(categories.map((category) => [normalizeToken(category.slug), category]))
+  const root = slugMap.get(normalizedSlug)
+  if (!root) return new Set([normalizedSlug])
+
+  const childrenByParent = new Map<string, Array<{ id: string; slug: string; parent_id?: string | null }>>()
+  for (const category of categories) {
+    if (!category.parent_id) continue
+    if (!childrenByParent.has(category.parent_id)) childrenByParent.set(category.parent_id, [])
+    childrenByParent.get(category.parent_id)?.push(category)
+  }
+
+  const slugs = new Set<string>()
+  const stack = [root]
+  const visited = new Set<string>()
+
+  while (stack.length) {
+    const current = stack.pop()
+    if (!current || visited.has(current.id)) continue
+    visited.add(current.id)
+    slugs.add(normalizeToken(current.slug))
+    const children = childrenByParent.get(current.id) || []
+    for (const child of children) stack.push(child)
+  }
+
+  return slugs
 }
 
 export default async function CollectionPage({
@@ -83,11 +115,26 @@ export default async function CollectionPage({
 
   // Fetch real products for this category
   const products = (await getProducts({ category: slug })) as Product[]
+  const allCategories = await getCategories()
   const normalizedSubcategory = normalizeToken(selectedSubcategory)
+  const validSubcategorySlugs = normalizedSubcategory
+    ? collectDescendantCategorySlugs(normalizedSubcategory, allCategories)
+    : null
   const visibleProducts = normalizedSubcategory
     ? products.filter((product) => {
+        if (normalizedSubcategory === "best-seller") {
+          return Boolean(product.is_best_seller ?? product.isBestSeller)
+        }
+
+        if (normalizedSubcategory === "new-arrivals" || normalizedSubcategory === "new") {
+          return Boolean(product.is_new ?? product.isNew)
+        }
+
         const productCategorySlug = getCategorySlug(product.category)
-        return productCategorySlug ? normalizeToken(productCategorySlug) === normalizedSubcategory : false
+        if (!productCategorySlug) return false
+
+        const normalizedProductCategorySlug = normalizeToken(productCategorySlug)
+        return validSubcategorySlugs ? validSubcategorySlugs.has(normalizedProductCategorySlug) : false
       })
     : products
 

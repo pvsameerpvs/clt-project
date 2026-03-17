@@ -214,9 +214,9 @@ export default function CategoriesPage() {
         <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
           <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-neutral-700">How It Works</h2>
           <div className="mt-2 space-y-1 text-sm text-neutral-600">
-            <p>1) Top-level category appears in navbar. Example: <span className="font-mono">perfume</span></p>
-            <p>2) Child category appears inside mega menu Shop By Category.</p>
-            <p>3) Frontend links follow: <span className="font-mono">/collections/perfume?sub=men</span></p>
+            <p>1) Top-level category appears in navbar. Example: <span className="font-mono">men</span></p>
+            <p>2) Any nested category appears under Shop By Category hierarchy.</p>
+            <p>3) Assign products to leaf categories for precise filtering and menu placement.</p>
             <p>4) Shop By Notes and Right Banners are managed in the Mega Menu Navigation tab.</p>
           </div>
         </div>

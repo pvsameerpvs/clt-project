@@ -18,6 +18,7 @@ interface MenuCategoryLink {
   name: string
   slug: string
   href: string
+  depth: number
 }
 
 function slugify(value: string) {
@@ -69,16 +70,48 @@ function buildStandardCategories(parentSlug: string, categories: ProductCategory
   const parent = categories.find((category) => category.slug === parentSlug)
   if (!parent) return []
 
-  const children = categories.filter((category) => category.parent_id === parent.id)
-  if (children.length > 0) {
-    return children.map((child) => ({
-      name: child.name,
-      slug: child.slug,
-      href: `/collections/${parent.slug}?sub=${encodeURIComponent(child.slug)}`,
-    }))
+  const childrenByParent = new Map<string, ProductCategory[]>()
+  for (const category of categories) {
+    if (!category.parent_id) continue
+    if (!childrenByParent.has(category.parent_id)) childrenByParent.set(category.parent_id, [])
+    childrenByParent.get(category.parent_id)?.push(category)
+  }
+  for (const items of childrenByParent.values()) {
+    items.sort((a, b) => a.name.localeCompare(b.name))
   }
 
-  return [{ name: parent.name, slug: parent.slug, href: `/collections/${parent.slug}` }]
+  const topChildren = childrenByParent.get(parent.id) || []
+  if (topChildren.length > 0) {
+    const links: MenuCategoryLink[] = []
+    const visited = new Set<string>()
+
+    const walk = (node: ProductCategory, depth: number) => {
+      if (visited.has(node.id)) return
+      visited.add(node.id)
+
+      links.push({
+        name: node.name,
+        slug: node.slug,
+        href: `/collections/${parent.slug}?sub=${encodeURIComponent(node.slug)}`,
+        depth,
+      })
+
+      const children = childrenByParent.get(node.id) || []
+      for (const child of children) {
+        walk(child, depth + 1)
+      }
+    }
+
+    for (const child of topChildren) {
+      walk(child, 0)
+    }
+
+    return withSmartCollectionLinks(parent.slug, links)
+  }
+
+  return withSmartCollectionLinks(parent.slug, [
+    { name: parent.name, slug: parent.slug, href: `/collections/${parent.slug}`, depth: 0 },
+  ])
 }
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
@@ -163,8 +196,11 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                 category.slug === topCategory.slug
                   ? `/collections/${topCategory.slug}`
                   : `/collections/${topCategory.slug}?sub=${encodeURIComponent(category.slug)}`,
+              depth: 0,
             }))
-            const menuCategories = standardCategories.length ? standardCategories : fallbackCategories
+            const menuCategories = standardCategories.length
+              ? standardCategories
+              : withSmartCollectionLinks(topCategory.slug, fallbackCategories)
 
             return (
               <div
@@ -177,7 +213,11 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   <div className="space-y-5">
                     {menuCategories.map((category) => {
                       return (
-                        <div key={`${topCategory.slug}-${category.slug}-${category.name}`} className="space-y-1">
+                        <div
+                          key={`${topCategory.slug}-${category.slug}-${category.name}`}
+                          className="space-y-1"
+                          style={{ marginLeft: `${Math.min(category.depth, 3) * 14}px` }}
+                        >
                           <Link onClick={onClose} href={category.href} className="block text-sm text-neutral-600 uppercase tracking-wider py-1 hover:text-black">
                             {category.name}
                           </Link>
@@ -193,4 +233,30 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       </div>
     </>
   )
+}
+
+function withSmartCollectionLinks(parentSlug: string, links: MenuCategoryLink[]) {
+  const smartLinks: MenuCategoryLink[] = [
+    {
+      name: "Best Seller",
+      slug: "best-seller",
+      href: `/collections/${parentSlug}?sub=best-seller`,
+      depth: 0,
+    },
+    {
+      name: "New Arrivals",
+      slug: "new-arrivals",
+      href: `/collections/${parentSlug}?sub=new-arrivals`,
+      depth: 0,
+    },
+  ]
+
+  const existing = new Set(links.map((link) => link.slug))
+  const merged = [...links]
+  for (const smartLink of smartLinks) {
+    if (!existing.has(smartLink.slug)) {
+      merged.push(smartLink)
+    }
+  }
+  return merged
 }

@@ -4,6 +4,7 @@ import { Dispatch, FormEvent, SetStateAction } from "react"
 import { ImageUpload } from "@/components/image-upload"
 import { ProductFormState, joinCsv, splitCsv } from "@/components/products/types"
 import { Category } from "@/lib/admin-api"
+import { buildCategoryHierarchyOptions } from "@/lib/category-hierarchy"
 
 interface ProductFormProps {
   form: ProductFormState
@@ -26,6 +27,14 @@ function slugify(value: string) {
 export function ProductForm({ form, setForm, onSubmit, onClear, saving, categories }: ProductFormProps) {
   const isEditing = Boolean(form.id)
   const generatedSlug = slugify(form.name)
+  const allCategoryOptions = buildCategoryHierarchyOptions(categories)
+  const leafCategoryOptions = allCategoryOptions.filter((option) => option.isLeaf)
+  const categoryOptions = leafCategoryOptions.length ? leafCategoryOptions : allCategoryOptions
+  const leafCategoryIds = new Set(leafCategoryOptions.map((option) => option.category.id))
+  const selectedCategory = categories.find((category) => category.id === form.category_id) || null
+  const selectedCategoryOption =
+    selectedCategory ? allCategoryOptions.find((option) => option.category.id === selectedCategory.id) : undefined
+  const selectedCategoryIsLeaf = selectedCategory ? leafCategoryIds.has(selectedCategory.id) : true
 
   return (
     <form className="form-shell" onSubmit={onSubmit}>
@@ -62,14 +71,20 @@ export function ProductForm({ form, setForm, onSubmit, onClear, saving, categori
               onChange={(e) => setForm(prev => ({ ...prev, category_id: e.target.value }))}
             >
               <option value="">Uncategorized</option>
-              {categories.map(cat => {
-                const parent = cat.parent_id ? categories.find(c => c.id === cat.parent_id) : null;
-                const label = parent ? `${parent.name} › ${cat.name}` : cat.name;
-                return (
-                  <option key={cat.id} value={cat.id}>{label}</option>
-                );
-              })}
+              {selectedCategoryOption && !selectedCategoryIsLeaf && (
+                <option value={selectedCategory.id}>
+                  {selectedCategoryOption.path} (Current non-leaf)
+                </option>
+              )}
+              {categoryOptions.map((option) => (
+                <option key={option.category.id} value={option.category.id}>
+                  {option.path}
+                </option>
+              ))}
             </select>
+            <p className="hint">
+              Select a leaf category for precise placement in Shop By Category menus.
+            </p>
           </div>
 
           <div className="form-section full">

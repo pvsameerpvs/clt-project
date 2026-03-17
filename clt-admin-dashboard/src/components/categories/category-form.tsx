@@ -3,6 +3,7 @@
 import { Dispatch, FormEvent, SetStateAction } from "react"
 import { SingleImageUpload } from "@/components/single-image-upload"
 import { Category } from "@/lib/admin-api"
+import { buildCategoryHierarchyOptions, getDescendantCategoryIds } from "@/lib/category-hierarchy"
 import { Plus, Trash2 } from "lucide-react"
 
 interface CategoryFormProps {
@@ -26,7 +27,13 @@ function slugify(value: string) {
 export function CategoryForm({ form, setForm, onSubmit, onClear, saving, categories }: CategoryFormProps) {
   const isEditing = Boolean(form.id)
   const generatedSlug = slugify(form.name || "")
-  const parentCandidates = categories.filter((category) => category.id !== form.id)
+  const blockedIds = new Set<string>()
+  if (form.id) {
+    blockedIds.add(form.id)
+    const descendants = getDescendantCategoryIds(categories, form.id)
+    for (const id of descendants) blockedIds.add(id)
+  }
+  const parentCandidates = buildCategoryHierarchyOptions(categories, { excludeIds: blockedIds })
 
   return (
     <form className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm" onSubmit={onSubmit}>
@@ -81,14 +88,14 @@ export function CategoryForm({ form, setForm, onSubmit, onClear, saving, categor
             onChange={(e) => setForm((prev) => ({ ...prev, parent_id: e.target.value || null }))}
           >
             <option value="">No parent (Top-level)</option>
-            {parentCandidates.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name} ({category.slug})
+            {parentCandidates.map((entry) => (
+              <option key={entry.category.id} value={entry.category.id}>
+                {entry.path} ({entry.category.slug})
               </option>
             ))}
           </select>
           <p className="text-[11px] text-neutral-500">
-            Example: Parent = <span className="font-mono">mens</span>, Child = <span className="font-mono">best-seller-for-men</span>.
+            Multi-level supported: Top-level appears in navbar, nested levels appear under Shop By Category.
           </p>
         </div>
 

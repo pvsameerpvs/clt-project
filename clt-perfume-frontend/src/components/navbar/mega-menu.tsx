@@ -29,6 +29,7 @@ interface MenuCategoryLink {
   name: string
   slug: string
   href: string
+  depth: number
 }
 
 interface NavigationMap {
@@ -111,16 +112,48 @@ function buildStandardCategories(categorySlug: string, categories: ProductCatego
   const parent = categories.find((category) => category.slug === categorySlug)
   if (!parent) return []
 
-  const children = categories.filter((category) => category.parent_id === parent.id)
-  if (children.length > 0) {
-    return children.map((child) => ({
-      name: child.name,
-      slug: child.slug,
-      href: `/collections/${parent.slug}?sub=${encodeURIComponent(child.slug)}`,
-    }))
+  const childrenByParent = new Map<string, ProductCategory[]>()
+  for (const category of categories) {
+    if (!category.parent_id) continue
+    if (!childrenByParent.has(category.parent_id)) childrenByParent.set(category.parent_id, [])
+    childrenByParent.get(category.parent_id)?.push(category)
+  }
+  for (const items of childrenByParent.values()) {
+    items.sort((a, b) => a.name.localeCompare(b.name))
   }
 
-  return [{ name: parent.name, slug: parent.slug, href: `/collections/${parent.slug}` }]
+  const topChildren = childrenByParent.get(parent.id) || []
+  if (topChildren.length > 0) {
+    const links: MenuCategoryLink[] = []
+    const visited = new Set<string>()
+
+    const walk = (node: ProductCategory, depth: number) => {
+      if (visited.has(node.id)) return
+      visited.add(node.id)
+
+      links.push({
+        name: node.name,
+        slug: node.slug,
+        href: `/collections/${parent.slug}?sub=${encodeURIComponent(node.slug)}`,
+        depth,
+      })
+
+      const children = childrenByParent.get(node.id) || []
+      for (const child of children) {
+        walk(child, depth + 1)
+      }
+    }
+
+    for (const child of topChildren) {
+      walk(child, 0)
+    }
+
+    return withSmartCollectionLinks(parent.slug, links)
+  }
+
+  return withSmartCollectionLinks(parent.slug, [
+    { name: parent.name, slug: parent.slug, href: `/collections/${parent.slug}`, depth: 0 },
+  ])
 }
 
 function pickNavigationSection(navigation: NavigationMap, categorySlug: string) {
@@ -166,12 +199,16 @@ export function MegaMenu({ categorySlug }: MegaMenuProps) {
       category.slug === categorySlug
         ? `/collections/${categorySlug}`
         : `/collections/${categorySlug}?sub=${encodeURIComponent(category.slug)}`,
+    depth: 0,
   }))
   const categories = standardCategories.length
     ? standardCategories
-    : fallbackCategories.length
-      ? fallbackCategories
-      : [{ name: categorySlug.replace(/-/g, " "), slug: categorySlug, href: `/collections/${categorySlug}` }]
+    : withSmartCollectionLinks(
+        categorySlug,
+        fallbackCategories.length
+          ? fallbackCategories
+          : [{ name: categorySlug.replace(/-/g, " "), slug: categorySlug, href: `/collections/${categorySlug}`, depth: 0 }]
+      )
 
   return (
     <div className="absolute top-full left-0 right-0 bg-white text-black shadow-2xl border-t border-neutral-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 transform translate-y-2 group-hover:translate-y-0 pb-10 pt-8 px-12">
@@ -182,7 +219,11 @@ export function MegaMenu({ categorySlug }: MegaMenuProps) {
           <div className="flex flex-col space-y-4">
             {categories.map((category) => {
               return (
-                <div key={`${category.slug}-${category.name}`} className="space-y-1">
+                <div
+                  key={`${category.slug}-${category.name}`}
+                  className="space-y-1"
+                  style={{ marginLeft: `${Math.min(category.depth, 3) * 16}px` }}
+                >
                   <Link
                     href={category.href}
                     className="text-sm font-light text-neutral-500 hover:text-black transition-colors capitalize"
@@ -236,4 +277,30 @@ export function MegaMenu({ categorySlug }: MegaMenuProps) {
       </div>
     </div>
   )
+}
+
+function withSmartCollectionLinks(parentSlug: string, links: MenuCategoryLink[]) {
+  const smartLinks: MenuCategoryLink[] = [
+    {
+      name: "Best Seller",
+      slug: "best-seller",
+      href: `/collections/${parentSlug}?sub=best-seller`,
+      depth: 0,
+    },
+    {
+      name: "New Arrivals",
+      slug: "new-arrivals",
+      href: `/collections/${parentSlug}?sub=new-arrivals`,
+      depth: 0,
+    },
+  ]
+
+  const existing = new Set(links.map((link) => link.slug))
+  const merged = [...links]
+  for (const smartLink of smartLinks) {
+    if (!existing.has(smartLink.slug)) {
+      merged.push(smartLink)
+    }
+  }
+  return merged
 }
