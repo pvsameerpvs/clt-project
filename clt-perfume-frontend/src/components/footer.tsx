@@ -5,8 +5,24 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getSiteSettings } from "@/lib/api"
 
+interface StoreInfo {
+  name: string
+  slogan: string
+  description: string
+  email: string
+  phone: string
+  address: string
+  social_links: {
+    instagram: string
+    facebook: string
+    twitter: string
+    youtube: string
+    linkedin: string
+  }
+}
+
 export function Footer() {
-  const [info, setInfo] = useState<any>(null)
+  const [info, setInfo] = useState<StoreInfo | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -18,7 +34,13 @@ export function Footer() {
     load()
   }, [])
 
-  const socialLinks = info?.social_links || {}
+  const socialLinks: StoreInfo["social_links"] = info?.social_links || {
+    instagram: "",
+    facebook: "",
+    twitter: "",
+    youtube: "",
+    linkedin: "",
+  }
 
   return (
     <footer className="bg-black text-white border-t border-neutral-900">
@@ -28,10 +50,10 @@ export function Footer() {
           {/* Brand Info */}
           <div className="space-y-6 col-span-1 lg:col-span-2">
             <h3 className="text-2xl font-bold font-serif tracking-widest text-white mb-4">
-              {info?.slogan || "CLE PERFUMES."}
+              {info?.slogan || ""}
             </h3>
             <p className="max-w-md font-light leading-relaxed">
-              {info?.description || "Elevating the everyday with scents that define your presence. Discover the true essence of luxury with our original collections, crafted meticulously for the discerning individual."}
+              {info?.description || ""}
             </p>
             
             {/* Social Media */}
@@ -94,7 +116,7 @@ export function Footer() {
           {/* Apps */}
           <div className="space-y-6">
             <h4 className="font-semibold text-white uppercase tracking-widest text-xs">Download Our App</h4>
-            <p className="text-xs font-light leading-relaxed mb-4">Shop anytime, anywhere with the {info?.name || "CLE"} app. Available on iOS and Android.</p>
+            <p className="text-xs font-light leading-relaxed mb-4">Shop anytime, anywhere with the {info?.name || ""} app. Available on iOS and Android.</p>
             <div className="flex flex-col gap-3">
               <a href="#" className="inline-block hover:scale-105 transition-transform origin-left">
                 <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 w-[160px] shadow-sm">
@@ -120,7 +142,7 @@ export function Footer() {
         
         {/* Bottom Bar */}
         <div className="border-t border-neutral-900 mt-16 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <p>&copy; {new Date().getFullYear()} {info?.name || "CLE Perfumes"}. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {info?.name || ""}. All rights reserved.</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-white transition-colors">Terms of Service</a>

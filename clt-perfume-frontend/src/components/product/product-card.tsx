@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Heart } from "lucide-react"
 import Link from "next/link"
@@ -11,9 +10,46 @@ import { useCart } from "@/contexts/cart-context"
 import { useWishlist } from "@/contexts/wishlist-context"
 import { toast } from "sonner"
 
+interface ProductBadgeConfig {
+  key: "new" | "exclusive" | "best-seller"
+  label: string
+  className: string
+}
+
+function getProductBadges(product: Product): ProductBadgeConfig[] {
+  const badges: ProductBadgeConfig[] = []
+
+  if (product.isNew || product.is_new) {
+    badges.push({
+      key: "new",
+      label: "New Arrival",
+      className: "bg-white text-black border-neutral-200",
+    })
+  }
+
+  if (product.isExclusive || product.is_exclusive) {
+    badges.push({
+      key: "exclusive",
+      label: "Exclusive",
+      className: "bg-black text-white border-black",
+    })
+  }
+
+  if (product.isBestSeller || product.is_best_seller) {
+    badges.push({
+      key: "best-seller",
+      label: "Best Seller",
+      className: "bg-amber-500 text-white border-amber-500",
+    })
+  }
+
+  return badges
+}
+
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart()
   const { toggleWishlist, isInWishlist } = useWishlist()
+  const badges = getProductBadges(product)
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -62,22 +98,17 @@ export function ProductCard({ product }: { product: Product }) {
             />
           </div>
           
-          {(product.isNew || product.is_new) && (
-            <Badge className="absolute top-4 left-4 z-20 bg-white text-black hover:bg-neutral-100 uppercase text-[10px] tracking-widest px-2 py-1 rounded-none shadow-sm border border-neutral-100">
-              New Arrival
-            </Badge>
-          )}
-
-          {(product.isBestSeller || product.is_best_seller) && !(product.isNew || product.is_new) && (
-            <Badge className="absolute top-4 left-4 z-20 bg-amber-500 text-white hover:bg-amber-600 uppercase text-[10px] tracking-widest px-2 py-1 rounded-none shadow-sm border-none">
-              Best Seller
-            </Badge>
-          )}
-
-          {(product.isExclusive || product.is_exclusive) && (
-            <Badge className="absolute top-4 left-4 z-20 bg-black text-white hover:bg-neutral-900 uppercase text-[10px] tracking-widest px-2 py-1 rounded-none shadow-sm border-none">
-              Exclusive
-            </Badge>
+          {badges.length > 0 && (
+            <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
+              {badges.map((badge) => (
+                <span
+                  key={badge.key}
+                  className={`rounded-md border px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] shadow-sm ${badge.className}`}
+                >
+                  {badge.label}
+                </span>
+              ))}
+            </div>
           )}
 
 

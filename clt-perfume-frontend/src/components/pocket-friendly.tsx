@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react"
 import { ProductCard } from "@/components/product/product-card"
 import { getSiteSettings, getProducts } from "@/lib/api"
+import { Product } from "@/lib/products"
 
 export function PocketFriendly() {
   const [selectedPrice, setSelectedPrice] = useState<number | null>(null)
-  const [pricePoints, setPricePoints] = useState<number[]>([49, 99, 149, 199, 299])
-  const [allProducts, setAllProducts] = useState<any[]>([])
+  const [pricePoints, setPricePoints] = useState<number[]>([])
+  const [allProducts, setAllProducts] = useState<Product[]>([])
 
   useEffect(() => {
     async function load() {
@@ -15,7 +16,7 @@ export function PocketFriendly() {
       if (settings?.pocket_friendly_configs) {
         setPricePoints(settings.pocket_friendly_configs)
       }
-      const productsData = await getProducts()
+      const productsData = (await getProducts()) as Product[]
       setAllProducts(productsData || [])
     }
     load()
@@ -67,7 +68,7 @@ export function PocketFriendly() {
             
             {filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {filteredProducts.map((product: any) => (
+                {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>

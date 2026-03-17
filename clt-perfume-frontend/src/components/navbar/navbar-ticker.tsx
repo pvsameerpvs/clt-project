@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { getSiteSettings } from "@/lib/api"
 
 export function NavbarTicker() {
-  const [text, setText] = useState("FREE SHIPPING ON ALL ORDERS OVER 200 AED 🚚 SHOP OUR NEW ARRIVALS NOW!")
+  const [text, setText] = useState("")
 
   useEffect(() => {
     async function load() {
@@ -15,6 +15,8 @@ export function NavbarTicker() {
     }
     load()
   }, [])
+
+  if (!text.trim()) return null
 
   return (
     <div className="bg-black text-white text-[10px] md:text-xs py-2 overflow-hidden flex">
