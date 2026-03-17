@@ -36,6 +36,7 @@ export interface Category {
   parent_id?: string | null
   description?: string
   image_url?: string
+  scent_notes?: string[]
   created_at?: string
 }
 

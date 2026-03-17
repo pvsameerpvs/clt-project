@@ -93,6 +93,9 @@ export default function ProductsPage() {
   const [viewFilter, setViewFilter] = useState<ProductViewFilter>("all")
   const [form, setForm] = useState<ProductFormState>(EMPTY_PRODUCT_FORM)
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  
+  // Professional Hub Tabs
+  const [activeTab, setActiveTab] = useState<"studio" | "catalog" | "preview">("catalog")
 
   const sortedProducts = useMemo(
     () => [...products].sort((a, b) => +new Date(b.created_at || 0) - +new Date(a.created_at || 0)),
@@ -193,6 +196,7 @@ export default function ProductsPage() {
       is_exclusive: Boolean(product.is_exclusive),
       category_id: product.category_id || "",
     })
+    setActiveTab("studio") // Auto-switch to studio for editing
   }
 
   async function handleDelete(productId: string) {
@@ -252,6 +256,7 @@ export default function ProductsPage() {
 
       setForm(EMPTY_PRODUCT_FORM)
       await loadProducts(savedProduct.id)
+      setActiveTab("catalog") // Back to catalog after success
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save product.")
     } finally {
@@ -276,91 +281,128 @@ export default function ProductsPage() {
     }
   }, [products])
 
+  const tabBtnClass = (id: string) => `
+    flex items-center gap-3 px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all
+    ${activeTab === id 
+      ? "bg-black text-white shadow-2xl shadow-black/20 scale-[1.05]" 
+      : "bg-white text-neutral-400 border border-neutral-100 hover:border-black hover:text-black"
+    }
+  `
+
   return (
-    <div className="space-y-6 p-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          <p className="text-neutral-500 mt-1">
-            User-friendly product management with frontend-style preview before you publish.
+    <div className="space-y-12 p-4 sm:p-12 max-w-[1700px] mx-auto min-h-screen content-start">
+      <header className="flex flex-wrap items-end justify-between gap-8">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+             <div className="h-[2px] w-12 bg-black" />
+             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-neutral-400">Inventory Hub</span>
+          </div>
+          <h1 className="text-5xl md:text-7xl font-serif text-neutral-900 italic tracking-tighter">Product Mastery</h1>
+          <p className="text-neutral-500 font-light max-w-2xl text-lg italic">
+            Curate your fragrances across collections, manage stock levels, and preview the luxury presentation in real-time.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        
+        <div className="flex items-center gap-4">
           <button
             onClick={() => {
               setForm(EMPTY_PRODUCT_FORM)
               setSelectedProductId(null)
+              setActiveTab("studio")
             }}
-            className="bg-white border rounded-lg px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+            className="bg-black text-white rounded-full px-10 py-5 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-neutral-800 transition-all shadow-2xl shadow-black/10 hover:scale-105 active:scale-95"
             type="button"
           >
-            New Product
-          </button>
-          <button
-            onClick={() => loadProducts()}
-            className="bg-white border rounded-lg px-4 py-2 text-sm font-medium hover:bg-neutral-50"
-            type="button"
-          >
-            Refresh
+            + Create New Essence
           </button>
         </div>
       </header>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 text-sm font-medium">{error}</div>
+        <div className="bg-red-50 text-red-600 p-6 rounded-3xl border border-red-100 text-xs font-bold flex items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
+          <span className="bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] shadow-lg shadow-red-500/20">!</span>
+          {error}
+        </div>
       )}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <article className="rounded-xl border border-neutral-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-wider text-neutral-500">Total</p>
-          <h3 className="mt-2 text-2xl font-semibold">{stats.total}</h3>
-        </article>
-        <article className="rounded-xl border border-neutral-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-wider text-neutral-500">Active</p>
-          <h3 className="mt-2 text-2xl font-semibold">{stats.activeProducts}</h3>
-        </article>
-        <article className="rounded-xl border border-neutral-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-wider text-neutral-500">Inactive</p>
-          <h3 className="mt-2 text-2xl font-semibold">{stats.inactiveProducts}</h3>
-        </article>
-        <article className="rounded-xl border border-neutral-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-wider text-neutral-500">Low Stock</p>
-          <h3 className="mt-2 text-2xl font-semibold">{stats.lowStock}</h3>
-        </article>
-        <article className="rounded-xl border border-neutral-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-wider text-neutral-500">Featured Flags</p>
-          <h3 className="mt-2 text-2xl font-semibold">{stats.flagged}</h3>
-        </article>
+      {/* 📊 Luxury Stats Strip */}
+      <section className="grid gap-6 grid-cols-2 lg:grid-cols-5">
+        {[
+          { label: "Total Inventory", val: stats.total },
+          { label: "Active Shop", val: stats.activeProducts },
+          { label: "Draft/Inactive", val: stats.inactiveProducts },
+          { label: "Critical Stock", val: stats.lowStock, warning: stats.lowStock > 0 },
+          { label: "Premium Flagged", val: stats.flagged }
+        ].map((s, i) => (
+          <article key={i} className="rounded-[2.5rem] border border-neutral-100 bg-white/50 backdrop-blur-sm p-7 shadow-sm hover:shadow-xl hover:border-black/5 transition-all duration-500 group">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-neutral-400 group-hover:text-black transition-colors">{s.label}</p>
+            <h3 className={`mt-3 text-3xl font-serif italic tracking-tighter ${s.warning ? 'text-red-500' : 'text-neutral-900'}`}>{s.val}</h3>
+          </article>
+        ))}
       </section>
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)_minmax(300px,360px)] items-start">
-        <ProductForm
-          form={form}
-          setForm={setForm}
-          onSubmit={handleSubmit}
-          onClear={() => {
-            setForm(EMPTY_PRODUCT_FORM)
-            setSelectedProductId(null)
-          }}
-          saving={saving}
-          categories={categories}
-        />
+      {/* 📑 Premium Hub Navigator */}
+      <nav className="flex items-center gap-6 border-b border-neutral-100 pb-4">
+        {[
+          { id: "studio", label: "Product Studio", icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> },
+          { id: "catalog", label: "Master Catalog", icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg> },
+          { id: "preview", label: "Live Visualizer", icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> }
+        ].map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={tabBtnClass(tab.id)}>
+            <span className="bg-neutral-100 rounded-xl p-2 group-hover:bg-black group-hover:text-white transition-all">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </nav>
 
-        <ProductList
-          products={filteredProducts}
-          loading={loading}
-          selectedProductId={selectedProductId}
-          onSelect={(product) => setSelectedProductId(product.id)}
-          onEdit={startEdit}
-          onDelete={handleDelete}
-          query={query}
-          setQuery={setQuery}
-          viewFilter={viewFilter}
-          setViewFilter={setViewFilter}
-        />
+      {/* 🎭 Workspace Stage */}
+      <main className="min-h-[700px]">
+        {activeTab === "studio" && (
+          <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <ProductForm
+              form={form}
+              setForm={setForm}
+              onSubmit={handleSubmit}
+              onClear={() => {
+                setForm(EMPTY_PRODUCT_FORM)
+                setSelectedProductId(null)
+              }}
+              saving={saving}
+              categories={categories}
+            />
+          </div>
+        )}
 
-        <ProductPreview product={previewProduct} isDraft={shouldPreviewForm} />
-      </div>
+        {activeTab === "catalog" && (
+          <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <ProductList
+              products={filteredProducts}
+              loading={loading}
+              selectedProductId={selectedProductId}
+              onSelect={(product) => setSelectedProductId(product.id)}
+              onEdit={startEdit}
+              onDelete={handleDelete}
+              query={query}
+              setQuery={setQuery}
+              viewFilter={viewFilter}
+              setViewFilter={setViewFilter}
+            />
+          </div>
+        )}
+
+        {activeTab === "preview" && (
+          <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-700">
+            <div className="text-center mb-10 space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-600">Boutique View</span>
+              <h2 className="text-3xl font-serif italic">Real-Time Presentation</h2>
+              <p className="text-neutral-400 text-sm italic">Validation of how your customers perceive this fragrance.</p>
+            </div>
+            <div className="w-full max-w-sm">
+              <ProductPreview product={previewProduct} isDraft={shouldPreviewForm} />
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   )
 }

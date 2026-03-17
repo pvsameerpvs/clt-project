@@ -3,6 +3,7 @@
 import { Dispatch, FormEvent, SetStateAction } from "react"
 import { SingleImageUpload } from "@/components/single-image-upload"
 import { Category } from "@/lib/admin-api"
+import { Plus, Trash2 } from "lucide-react"
 
 interface CategoryFormProps {
   form: Partial<Category>
@@ -99,6 +100,62 @@ export function CategoryForm({ form, setForm, onSubmit, onClear, saving, categor
             onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
             placeholder="Short summary of this collection..."
           />
+        </div>
+
+        <div className="space-y-4">
+          <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Collection Scent Identity</label>
+          <div className="flex flex-wrap gap-2.5">
+            {(form.scent_notes || []).map((note, index) => (
+              <div key={index} className="flex items-center gap-2 bg-neutral-900 text-white pl-4 pr-1.5 py-1.5 rounded-full shadow-lg shadow-black/10 animate-in fade-in zoom-in-95">
+                <span className="text-[11px] font-bold tracking-wide">{note}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = [...(form.scent_notes || [])]
+                    next.splice(index, 1)
+                    setForm(prev => ({ ...prev, scent_notes: next }))
+                  }}
+                  className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex gap-3">
+            <input 
+              id="new-scent-note"
+              className="flex-1 border border-neutral-200 rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-black transition-all bg-neutral-50/50"
+              placeholder="e.g. Damascus Rose"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  const val = (e.currentTarget as HTMLInputElement).value.trim()
+                  if (val) {
+                    setForm(prev => ({ ...prev, scent_notes: [...(prev.scent_notes || []), val] }))
+                    e.currentTarget.value = ""
+                  }
+                }
+              }}
+            />
+            <button 
+              type="button"
+              className="px-6 py-4 bg-black text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-neutral-800 transition-all flex items-center gap-3 shadow-xl shadow-black/10 hover:scale-105"
+              onClick={() => {
+                const input = document.getElementById('new-scent-note') as HTMLInputElement
+                const val = input.value.trim()
+                if (val) {
+                  setForm(prev => ({ ...prev, scent_notes: [...(prev.scent_notes || []), val] }))
+                  input.value = ""
+                }
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Add
+            </button>
+          </div>
+          <p className="text-[10px] text-neutral-400 italic">Define unique notes that will appear as dropdown options in the Product Studio.</p>
         </div>
 
         <div className="space-y-1">

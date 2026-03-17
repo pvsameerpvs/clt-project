@@ -138,12 +138,56 @@ export function ProductForm({ form, setForm, onSubmit, onClear, saving, categori
         <div className="field-grid two">
           <div className="form-section full">
             <label>Scent Profile</label>
-            <input
-              className="field-input"
-              value={form.scent}
-              onChange={(event) => setForm((prev) => ({ ...prev, scent: event.target.value }))}
-              placeholder="Woody & Spicy"
-            />
+            {(() => {
+              const selectedCat = categories.find(c => c.id === form.category_id);
+              const scentNotes = selectedCat?.scent_notes || [];
+              
+              if (scentNotes.length > 0) {
+                return (
+                  <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-left-4 duration-500">
+                    <select
+                      className="field-input cursor-pointer border-black bg-neutral-50 font-bold"
+                      value={scentNotes.includes(form.scent) ? form.scent : (form.scent ? "custom" : "")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val !== "custom") {
+                          setForm(prev => ({ ...prev, scent: val }))
+                        } else {
+                          // If switching to custom, we keep current if it's not in notes, 
+                          // or clear if it was in notes
+                          setForm(prev => ({ ...prev, scent: scentNotes.includes(prev.scent) ? "" : prev.scent }))
+                        }
+                      }}
+                    >
+                      <option value="">Choose Predefined Note...</option>
+                      {scentNotes.map(note => (
+                        <option key={note} value={note}>{note}</option>
+                      ))}
+                      <option value="custom">-- Custom Essence --</option>
+                    </select>
+                    
+                    {(form.scent === "custom" || (form.scent && !scentNotes.includes(form.scent))) && (
+                      <input
+                        className="field-input border-dashed border-neutral-300 bg-white"
+                        value={form.scent === "custom" ? "" : form.scent}
+                        onChange={(event) => setForm((prev) => ({ ...prev, scent: event.target.value }))}
+                        placeholder="Define custom scent profile..."
+                        autoFocus
+                      />
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <input
+                  className="field-input transition-all focus:border-black"
+                  value={form.scent}
+                  onChange={(event) => setForm((prev) => ({ ...prev, scent: event.target.value }))}
+                  placeholder="e.g. Woody & Spicy"
+                />
+              );
+            })()}
           </div>
 
           <div className="form-section full">
