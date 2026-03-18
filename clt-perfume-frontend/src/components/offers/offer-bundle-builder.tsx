@@ -39,6 +39,13 @@ function calculateOfferPrice(originalPrice: number, discountPercent: number) {
   }
 }
 
+function getDiscountedUnitPrice(originalPrice: number, discountPercent: number) {
+  const normalizedPrice = toNumber(originalPrice)
+  const safeDiscount = Math.min(100, Math.max(0, discountPercent))
+  const discounted = normalizedPrice - (normalizedPrice * safeDiscount) / 100
+  return Math.max(0, Math.round(discounted * 100) / 100)
+}
+
 function normalizeBundleSizes(input?: number[]) {
   const source = Array.isArray(input) ? input : []
   const normalized = source
@@ -117,7 +124,15 @@ export function OfferBundleBuilder({
       return
     }
 
-    selectedProducts.forEach((product) => addToCart(product, 1))
+    selectedProducts.forEach((product) => {
+      addToCart(
+        {
+          ...product,
+          price: getDiscountedUnitPrice(toNumber(product.price), currentDiscount),
+        },
+        1
+      )
+    })
     const bundleName = `${bundleSize} Bundle - ${offerTitle}`
     toast.success(`${bundleName} added to bag`)
     router.push(`/cart?bundle=${encodeURIComponent(bundleName)}`)

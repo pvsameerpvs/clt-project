@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Plus, Minus, X } from "lucide-react"
-import { useCart } from "@/contexts/cart-context"
+import { getCartLineKey, useCart } from "@/contexts/cart-context"
 import { Product, getCategoryLabel } from "@/lib/products"
 
 interface CartLineItem {
@@ -13,6 +13,7 @@ interface CartLineItem {
 
 export function CartItem({ item }: { item: CartLineItem }) {
   const { updateQuantity, removeFromCart } = useCart()
+  const lineKey = getCartLineKey(item.product.id, Number(item.product.price))
   const categoryLabel = getCategoryLabel(item.product.category)
 
   return (
@@ -37,7 +38,7 @@ export function CartItem({ item }: { item: CartLineItem }) {
             <p className="text-xs uppercase tracking-widest text-neutral-500 mt-1">{categoryLabel}</p>
           </div>
           <button 
-            onClick={() => removeFromCart(item.product.id)}
+            onClick={() => removeFromCart(lineKey)}
             className="text-neutral-400 hover:text-black transition-colors"
           >
             <X className="h-5 w-5" />
@@ -47,14 +48,14 @@ export function CartItem({ item }: { item: CartLineItem }) {
         <div className="flex justify-between items-end mt-4">
           <div className="flex items-center border border-neutral-200 rounded-full">
             <button 
-              onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+              onClick={() => updateQuantity(lineKey, item.quantity - 1)}
               className="h-8 w-8 flex items-center justify-center hover:bg-neutral-50 rounded-l-full transition-colors"
             >
               <Minus className="h-3 w-3" />
             </button>
             <span className="w-8 text-center text-xs font-medium">{item.quantity}</span>
             <button 
-              onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+              onClick={() => updateQuantity(lineKey, item.quantity + 1)}
               className="h-8 w-8 flex items-center justify-center hover:bg-neutral-50 rounded-r-full transition-colors"
             >
               <Plus className="h-3 w-3" />

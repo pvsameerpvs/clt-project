@@ -3,7 +3,7 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useCart } from "@/contexts/cart-context"
+import { getCartLineKey, useCart } from "@/contexts/cart-context"
 import { CartItem } from "@/components/cart/cart-item"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, ShoppingBag } from "lucide-react"
@@ -64,7 +64,7 @@ function CartPageContent() {
           <div className="lg:col-span-2 bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-neutral-100 h-fit">
             <div className="space-y-2">
               {items.map(item => (
-                <CartItem key={item.product.id} item={item} />
+                <CartItem key={getCartLineKey(item.product.id, Number(item.product.price))} item={item} />
               ))}
             </div>
           </div>

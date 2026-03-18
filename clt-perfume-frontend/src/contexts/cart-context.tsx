@@ -8,11 +8,24 @@ interface CartItem {
   quantity: number
 }
 
+function toPriceNumber(value: unknown) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+export function getCartLineKey(productId: string, unitPrice: number) {
+  return `${productId}::${Math.round(toPriceNumber(unitPrice) * 100)}`
+}
+
+function getItemLineKey(item: CartItem) {
+  return getCartLineKey(item.product.id, toPriceNumber(item.product.price))
+}
+
 interface CartContextType {
   items: CartItem[]
   addToCart: (product: Product, quantity: number) => void
-  removeFromCart: (productId: string) => void
-  updateQuantity: (productId: string, quantity: number) => void
+  removeFromCart: (lineKey: string) => void
+  updateQuantity: (lineKey: string, quantity: number) => void
   totalItems: number
   totalPrice: number
 }
@@ -50,10 +63,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (product: Product, quantity: number) => {
     setItems(prev => {
-      const existing = prev.find(item => item.product.id === product.id)
+      const targetLineKey = getCartLineKey(product.id, toPriceNumber(product.price))
+      const existing = prev.find(item => getItemLineKey(item) === targetLineKey)
       if (existing) {
         return prev.map(item => 
-          item.product.id === product.id 
+          getItemLineKey(item) === targetLineKey
             ? { ...item, quantity: item.quantity + quantity }
             : item
         )
@@ -62,17 +76,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  const removeFromCart = (productId: string) => {
-    setItems(prev => prev.filter(item => item.product.id !== productId))
+  const removeFromCart = (lineKey: string) => {
+    setItems(prev => prev.filter(item => getItemLineKey(item) !== lineKey))
   }
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (lineKey: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId)
+      removeFromCart(lineKey)
       return
     }
     setItems(prev => prev.map(item => 
-      item.product.id === productId ? { ...item, quantity } : item
+      getItemLineKey(item) === lineKey ? { ...item, quantity } : item
     ))
   }
 
