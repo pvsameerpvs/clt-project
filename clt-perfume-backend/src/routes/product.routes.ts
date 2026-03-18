@@ -156,7 +156,7 @@ productRoutes.get('/:slug', async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('products')
-      .select('*, category:categories(name)')
+      .select('*, category:categories(name, slug)')
       .eq('slug', req.params.slug)
       .single()
 

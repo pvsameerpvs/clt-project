@@ -5,8 +5,33 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { getSiteSettings } from "@/lib/api"
 
+interface PromoOffer {
+  title: string
+  description: string
+  action: string
+  href: string
+  badge?: string
+  bgColor?: string
+}
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+}
+
+function resolveOfferHref(offer: PromoOffer) {
+  const href = typeof offer.href === "string" ? offer.href.trim() : ""
+  if (/^\/offers\/[^/?#]+/i.test(href)) return href
+  const fallbackSlug = slugify(offer.title)
+  return fallbackSlug ? `/offers/${fallbackSlug}` : "/offers"
+}
+
 export function OfferCards() {
-  const [offers, setOffers] = useState<any[]>([])
+  const [offers, setOffers] = useState<PromoOffer[]>([])
 
   useEffect(() => {
     async function load() {
@@ -29,7 +54,7 @@ export function OfferCards() {
           {offers.map((card, idx) => (
             <Link 
               key={idx}
-              href={card.href} 
+              href={resolveOfferHref(card)}
               className={`${bgColors[idx % 3]} p-10 lg:p-14 h-full flex flex-col justify-between group block hover:shadow-xl transition-all duration-500 border border-black/5`}
             >
               <div>

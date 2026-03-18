@@ -94,6 +94,10 @@ export interface SiteSettings {
     description: string
     action: string
     href: string
+    badge?: string
+    bgColor?: string
+    product_slugs?: string[]
+    discount_percentage?: number
   }>
   navigation: Record<string, NavSection>
   global_store_info?: {

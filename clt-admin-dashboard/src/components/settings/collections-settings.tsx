@@ -30,6 +30,8 @@ interface PromoOffer {
   href: string
   badge?: string
   bgColor?: string
+  product_slugs?: string[]
+  discount_percentage?: number
 }
 
 interface CollectionsSettingsProps {
@@ -124,11 +126,27 @@ function hasProductHref(href?: string) {
   return extractProductSlugsFromHref(value).length > 0
 }
 
+function extractOfferSlug(href?: string) {
+  const value = typeof href === "string" ? href.trim() : ""
+  const match = value.match(/^\/offers\/([^/?#]+)/i)
+  return match?.[1] ? decodeURIComponent(match[1]) : ""
+}
+
+function toOfferHref(value: string) {
+  const normalized = slugify(value)
+  return normalized ? `/offers/${encodeURIComponent(normalized)}` : ""
+}
+
+function getOfferProductSlugs(offer: PromoOffer) {
+  return normalizeProductSlugs(offer.product_slugs)
+}
+
 export function CollectionsSettings({ collections, offers, onCollectionsChange, onOffersChange }: CollectionsSettingsProps) {
   const [activeModal, setActiveModal] = useState<'collections' | 'offers' | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<AdminProduct[]>([])
   const [collectionProductPicker, setCollectionProductPicker] = useState<Record<number, string>>({})
+  const [offerProductPicker, setOfferProductPicker] = useState<Record<number, string>>({})
   const [linkFieldsLocked, setLinkFieldsLocked] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
@@ -205,13 +223,58 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
       [idx]: !(prev[idx] ?? true),
     }))
   }
-  
-  const updateOffer = (idx: number, field: keyof PromoOffer, value: string) => {
-    const next = [...offers]; next[idx] = { ...next[idx], [field]: value }; onOffersChange(next)
+
+  const patchOffer = (idx: number, patch: Partial<PromoOffer>) => {
+    const next = [...offers]
+    next[idx] = { ...next[idx], ...patch }
+    onOffersChange(next)
+  }
+
+  const updateOffer = <K extends keyof PromoOffer>(idx: number, field: K, value: PromoOffer[K]) => {
+    const current = offers[idx]
+    const patch: Partial<PromoOffer> = { [field]: value } as Partial<PromoOffer>
+    if (field === "title") {
+      const existingHref = current?.href?.trim() || ""
+      const shouldAutoGenerateSlug = !existingHref || Boolean(extractOfferSlug(existingHref))
+      if (shouldAutoGenerateSlug) {
+        patch.href = toOfferHref(String(value))
+      }
+    }
+    patchOffer(idx, patch)
+  }
+
+  const addOfferProduct = (idx: number) => {
+    const selectedSlug = slugify(offerProductPicker[idx] || "")
+    if (!selectedSlug) return
+
+    const existing = getOfferProductSlugs(offers[idx])
+    if (existing.includes(selectedSlug)) return
+
+    patchOffer(idx, { product_slugs: [...existing, selectedSlug] })
+    setOfferProductPicker((prev) => ({ ...prev, [idx]: "" }))
+  }
+
+  const removeOfferProduct = (idx: number, slug: string) => {
+    patchOffer(idx, {
+      product_slugs: getOfferProductSlugs(offers[idx]).filter((item) => item !== slug),
+    })
   }
 
   const addOffer = () => {
-    onOffersChange([...offers, { title: "New Offer", description: "Special promotion details here...", action: "Shop Now", href: "", badge: "", bgColor: "bg-[#F3F0EA]" }])
+    const title = "New Offer"
+    onOffersChange([
+      ...offers,
+      {
+        title,
+        description: "Special promotion details here...",
+        action: "Shop Now",
+        href: toOfferHref(title),
+        badge: "",
+        bgColor: "bg-[#F3F0EA]",
+        product_slugs: [],
+        discount_percentage: 0,
+      },
+    ])
   }
 
   const removeOffer = (idx: number) => {
@@ -481,9 +544,9 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
             </div>
           </DialogHeader>
 
-          <div className="grid gap-6 mt-2 md:grid-cols-2 lg:grid-cols-3">
-            {offers.map((offer, idx) => (
-              <div key={idx} className="group relative p-6 bg-white rounded-3xl border border-neutral-200 shadow-sm space-y-5">
+	          <div className="grid gap-6 mt-2 md:grid-cols-2 lg:grid-cols-3">
+	            {offers.map((offer, idx) => (
+	              <div key={idx} className="group relative p-6 bg-white rounded-3xl border border-neutral-200 shadow-sm space-y-5">
                  {/* Delete Button */}
                  <button 
                    onClick={() => removeOffer(idx)}
@@ -492,36 +555,83 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
                    <Trash2 className="h-4 w-4" />
                  </button>
 
-                 <div className="flex items-center justify-between border-b pb-3">
-                   <div className="flex items-center gap-2">
-                     <span className="bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
-                     <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.1em]">Card Configuration</span>
-                   </div>
-                 </div>
-                
-                <div className="space-y-4">
-                   <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Offer Title</label>
-                      <input className="w-full border border-neutral-200 bg-neutral-50 rounded-xl p-3 text-sm font-serif italic" value={offer.title} onChange={(e) => updateOffer(idx, 'title', e.target.value)} />
-                   </div>
-                   
-                   <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Badge (Text)</label>
-                        <input placeholder="e.g. New" className="w-full border border-neutral-200 bg-white rounded-xl p-2.5 text-xs text-center font-bold" value={offer.badge || ""} onChange={(e) => updateOffer(idx, 'badge', e.target.value)} />
+	                 <div className="flex items-center justify-between border-b pb-3">
+	                   <div className="flex items-center gap-2">
+	                     <span className="bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
+	                     <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.1em]">Card Configuration</span>
+	                   </div>
+	                 </div>
+	                
+	                <div className="space-y-4">
+	                   <div className="space-y-1.5">
+	                      <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Offer Title</label>
+	                      <input className="w-full border border-neutral-200 bg-neutral-50 rounded-xl p-3 text-sm font-serif italic" value={offer.title} onChange={(e) => updateOffer(idx, 'title', e.target.value)} />
+                        <div className="flex items-center justify-between gap-2 px-1">
+                          <p className="text-[10px] text-neutral-500">
+                            Slug preview:{" "}
+                            <span className="font-mono">{toOfferHref(offer.title) || "/offers/your-offer-slug"}</span>
+                          </p>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-neutral-300 bg-white px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-neutral-700 hover:border-black hover:text-black"
+                            onClick={() => patchOffer(idx, { href: toOfferHref(offer.title) })}
+                          >
+                            Use Title Slug
+                          </button>
+                        </div>
+	                   </div>
+	                   
+	                   <div className="grid grid-cols-2 gap-3">
+	                      <div className="space-y-1.5">
+	                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Badge (Text)</label>
+	                        <input placeholder="e.g. New" className="w-full border border-neutral-200 bg-white rounded-xl p-2.5 text-xs text-center font-bold" value={offer.badge || ""} onChange={(e) => updateOffer(idx, 'badge', e.target.value)} />
+	                      </div>
+	                      <div className="space-y-1.5">
+	                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Action Text</label>
+	                        <input placeholder="Shop Now" className="w-full border border-neutral-200 bg-white rounded-xl p-2.5 text-xs text-center" value={offer.action || ""} onChange={(e) => updateOffer(idx, 'action', e.target.value)} />
+	                      </div>
+	                   </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest px-1">Offer Slug</label>
+                        <input
+                          className="w-full border border-neutral-200 bg-white rounded-xl px-3 py-2 text-[10px] font-mono"
+                          value={extractOfferSlug(offer.href)}
+                          onChange={(e) => patchOffer(idx, { href: toOfferHref(e.target.value) })}
+                          placeholder="signature-sets"
+                        />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Action Text</label>
-                        <input placeholder="Shop Now" className="w-full border border-neutral-200 bg-white rounded-xl p-2.5 text-xs text-center" value={offer.action || ""} onChange={(e) => updateOffer(idx, 'action', e.target.value)} />
+                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Discount %</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          className="w-full border border-neutral-200 bg-white rounded-xl p-2.5 text-xs text-center font-semibold"
+                          value={typeof offer.discount_percentage === "number" ? offer.discount_percentage : ""}
+                          onChange={(e) => {
+                            const raw = e.target.value.trim()
+                            if (!raw) {
+                              patchOffer(idx, { discount_percentage: undefined })
+                              return
+                            }
+                            const parsed = Number(raw)
+                            if (!Number.isFinite(parsed)) return
+                            patchOffer(idx, {
+                              discount_percentage: Math.min(100, Math.max(0, Math.round(parsed))),
+                            })
+                          }}
+                        />
                       </div>
-                   </div>
+                    </div>
 
-                   <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Description</label>
-                      <textarea className="w-full border border-neutral-200 bg-neutral-50 rounded-xl p-3 text-xs h-20 resize-none font-light" value={offer.description} onChange={(e) => updateOffer(idx, 'description', e.target.value)} />
-                   </div>
+	                   <div className="space-y-1.5">
+	                      <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Description</label>
+	                      <textarea className="w-full border border-neutral-200 bg-neutral-50 rounded-xl p-3 text-xs h-20 resize-none font-light" value={offer.description} onChange={(e) => updateOffer(idx, 'description', e.target.value)} />
+	                   </div>
 
-                   <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-4">
+	                   <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-4">
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1 flex items-center gap-1.5"><Palette className="h-3 w-3"/> Card Theme</label>
                         <div className="flex flex-wrap gap-2 px-1">
@@ -533,38 +643,78 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
                               title={color.name}
                             />
                           ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1 flex items-center gap-1.5"><Link2 className="h-3 w-3"/> Standard Slug Link</label>
-                        <select 
-                          className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs outline-none focus:ring-2 focus:ring-black transition-all appearance-none cursor-pointer font-medium"
-                          value=""
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val.startsWith('cat:')) updateOffer(idx, 'href', toCollectionHref(val.replace('cat:', '')))
-                            else if (val.startsWith('prod:')) updateOffer(idx, 'href', toProductHref(val.replace('prod:', '')))
-                          }}
-                        >
-                          <option value="" disabled>Link to Category or Product...</option>
-                          <optgroup label="Categories">
-                            {sortedCategories.map((cat) => (
-                              <option key={cat.id} value={`cat:${cat.slug}`}>{cat.name}</option>
-                            ))}
-                          </optgroup>
-                          <optgroup label="Products">
-                            {sortedProducts.map((prod) => (
-                              <option key={prod.id} value={`prod:${prod.slug}`}>{prod.name}</option>
-                            ))}
-                          </optgroup>
-                        </select>
-                      </div>
+	                        </div>
+	                      </div>
 
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest px-1">Manual Deep Link</label>
-                        <input className="w-full border border-neutral-200 bg-white rounded-xl px-3 py-2 text-[10px] font-mono" value={offer.href} onChange={(e) => updateOffer(idx, 'href', e.target.value)} />
+                        <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest px-1 flex items-center gap-1">
+                          <Link2 className="h-2 w-2" /> Bundle Products
+                        </label>
+                        {(() => {
+                          const selectedProductSlugs = new Set(getOfferProductSlugs(offer))
+                          const pickerSlug = slugify(offerProductPicker[idx] || "")
+                          const isDuplicateSelection = pickerSlug ? selectedProductSlugs.has(pickerSlug) : false
+
+                          return (
+                            <>
+                              <div className="grid grid-cols-[1fr_auto] gap-2">
+                                <select
+                                  className="w-full border border-neutral-200 bg-white rounded-xl p-3 text-xs outline-none focus:ring-2 focus:ring-black transition-all appearance-none cursor-pointer"
+                                  value={offerProductPicker[idx] || ""}
+                                  onChange={(e) =>
+                                    setOfferProductPicker((prev) => ({ ...prev, [idx]: e.target.value }))
+                                  }
+                                >
+                                  <option value="">Select product...</option>
+                                  {sortedProducts.map((prod) => (
+                                    <option
+                                      key={prod.id}
+                                      value={prod.slug}
+                                      disabled={selectedProductSlugs.has(slugify(prod.slug))}
+                                    >
+                                      {prod.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => addOfferProduct(idx)}
+                                  disabled={!offerProductPicker[idx] || isDuplicateSelection}
+                                  className="rounded-xl border border-neutral-300 bg-white px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-700 hover:border-black hover:text-black disabled:opacity-40"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {getOfferProductSlugs(offer).map((slug) => (
+                                  <span
+                                    key={`${idx}-${slug}`}
+                                    className="inline-flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-[10px] font-medium text-neutral-700"
+                                  >
+                                    {productNameBySlug[slug] || slug}
+                                    <button
+                                      type="button"
+                                      className="text-neutral-500 hover:text-red-500"
+                                      onClick={() => removeOfferProduct(idx, slug)}
+                                      aria-label="Remove bundle product"
+                                    >
+                                      ×
+                                    </button>
+                                  </span>
+                                ))}
+                                {getOfferProductSlugs(offer).length === 0 && (
+                                  <p className="text-[10px] text-neutral-500">No products selected.</p>
+                                )}
+                              </div>
+                            </>
+                          )
+                        })()}
                       </div>
+
+	                      <div className="space-y-1">
+	                        <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest px-1">Manual Deep Link</label>
+	                        <input className="w-full border border-neutral-200 bg-white rounded-xl px-3 py-2 text-[10px] font-mono" value={offer.href} onChange={(e) => updateOffer(idx, 'href', e.target.value)} />
+	                      </div>
                    </div>
                 </div>
               </div>

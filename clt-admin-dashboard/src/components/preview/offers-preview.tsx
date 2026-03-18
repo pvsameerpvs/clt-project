@@ -3,14 +3,23 @@
 import { Edit3, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+interface PromoOffer {
+  title: string
+  description: string
+  action: string
+  href: string
+  badge?: string
+  bgColor?: string
+  product_slugs?: string[]
+  discount_percentage?: number
+}
+
 interface OffersPreviewProps {
-  offers: any[]
+  offers: PromoOffer[]
   onEditClick: () => void
 }
 
 export function OffersPreview({ offers, onEditClick }: OffersPreviewProps) {
-  const bgColors = ["bg-[#F3F0EA]", "bg-[#EBEFF5]", "bg-[#F5EBEB]"]
-
   return (
     <div className="group relative">
       <section className="py-12 bg-white rounded-3xl border border-neutral-100 px-6">
@@ -38,6 +47,17 @@ export function OffersPreview({ offers, onEditClick }: OffersPreviewProps) {
                   </div>
                   <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-black border-b border-black/20 w-fit pb-1 group-hover/card:border-black transition-colors">
                     {card.action || "Discover"} <ArrowRight className="w-3 h-3 group-hover/card:translate-x-1 transition-transform" />
+                  </div>
+                  <div className="pt-4 space-y-1 text-[10px] text-neutral-600">
+                    <p className="font-mono truncate">{card.href || "/offers/your-offer-slug"}</p>
+                    {typeof card.discount_percentage === "number" && card.discount_percentage > 0 && (
+                      <p className="font-semibold uppercase tracking-[0.12em] text-neutral-700">
+                        {card.discount_percentage}% bundle discount
+                      </p>
+                    )}
+                    {Array.isArray(card.product_slugs) && card.product_slugs.length > 0 && (
+                      <p className="uppercase tracking-[0.12em]">{card.product_slugs.length} selected products</p>
+                    )}
                   </div>
                 </div>
               )

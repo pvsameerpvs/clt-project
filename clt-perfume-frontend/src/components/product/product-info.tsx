@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Product, getCategoryLabel } from "@/lib/products"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -16,17 +16,83 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
+import Link from "next/link"
+import { getSiteSettings } from "@/lib/api"
 
 import { useCart } from "@/contexts/cart-context"
+
+interface PromoOffer {
+  title: string
+  href: string
+  product_slugs?: string[]
+  discount_percentage?: number
+}
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+}
+
+function normalizeProductSlugs(input: unknown) {
+  if (!Array.isArray(input)) return []
+  const seen = new Set<string>()
+  const values: string[] = []
+  for (const token of input) {
+    if (typeof token !== "string") continue
+    const value = slugify(token)
+    if (!value || seen.has(value)) continue
+    seen.add(value)
+    values.push(value)
+  }
+  return values
+}
+
+function resolveOfferHref(offer: PromoOffer) {
+  const href = typeof offer.href === "string" ? offer.href.trim() : ""
+  if (/^\/offers\/[^/?#]+/i.test(href)) return href
+  const fallbackSlug = slugify(offer.title)
+  return fallbackSlug ? `/offers/${fallbackSlug}` : "/offers"
+}
 
 export function ProductInfo({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1)
   const [engraving, setEngraving] = useState("")
   const [engravingFont, setEngravingFont] = useState("serif")
+  const [matchingBundleOffer, setMatchingBundleOffer] = useState<PromoOffer | null>(null)
   const { addToCart } = useCart()
 
   const engravingPrice = engraving ? 25 : 0
   const categoryLabel = getCategoryLabel(product.category)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadBundleOffer() {
+      try {
+        const settings = await getSiteSettings()
+        const offers = Array.isArray(settings?.offers) ? (settings.offers as PromoOffer[]) : []
+        const productSlug = slugify(product.slug)
+        const matchingOffers = offers
+          .filter((offer) => normalizeProductSlugs(offer.product_slugs).includes(productSlug))
+          .sort((a, b) => (b.discount_percentage || 0) - (a.discount_percentage || 0))
+
+        if (!active) return
+        setMatchingBundleOffer(matchingOffers[0] || null)
+      } catch {
+        if (!active) return
+        setMatchingBundleOffer(null)
+      }
+    }
+
+    loadBundleOffer()
+    return () => {
+      active = false
+    }
+  }, [product.slug])
 
   return (
     <div className="flex flex-col h-full">
@@ -58,6 +124,22 @@ export function ProductInfo({ product }: { product: Product }) {
         <div className="prose prose-neutral text-neutral-600 font-light mb-8">
           <p>{product.description}</p>
         </div>
+
+        {matchingBundleOffer && (
+          <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700">Bundle Offer</p>
+            <p className="mt-1 text-sm text-amber-900">
+              {matchingBundleOffer.discount_percentage ? `${matchingBundleOffer.discount_percentage}% OFF` : "Special pricing"} in{" "}
+              <span className="font-semibold">{matchingBundleOffer.title}</span>
+            </p>
+            <Link
+              href={resolveOfferHref(matchingBundleOffer)}
+              className="mt-2 inline-flex text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800 hover:text-black"
+            >
+              View Bundle Details
+            </Link>
+          </div>
+        )}
 
         {/* Fragrance Notes Section */}
         {(product.top_notes || product.notes?.top) && (

@@ -1,13 +1,25 @@
 "use client"
 
+import { Suspense } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
 import { CartItem } from "@/components/cart/cart-item"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, ShoppingBag } from "lucide-react"
 
 export default function CartPage() {
+  return (
+    <Suspense fallback={null}>
+      <CartPageContent />
+    </Suspense>
+  )
+}
+
+function CartPageContent() {
   const { items, totalPrice, totalItems } = useCart()
+  const searchParams = useSearchParams()
+  const bundleName = searchParams.get("bundle")?.trim() || ""
 
   if (items.length === 0) {
     return (
@@ -40,6 +52,12 @@ export default function CartPage() {
             ({totalItems} {totalItems === 1 ? 'item' : 'items'})
           </span>
         </div>
+
+        {bundleName && (
+          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span className="font-semibold">Bundle:</span> {bundleName}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Cart Items */}

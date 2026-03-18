@@ -32,7 +32,16 @@ interface SiteSettingsData {
     image: string
     features: Array<{ title: string; text: string }>
   }
-  offers: Array<{ title: string; description: string; action: string; href: string }>
+  offers: Array<{
+    title: string
+    description: string
+    action: string
+    href: string
+    badge?: string
+    bgColor?: string
+    product_slugs?: string[]
+    discount_percentage?: number
+  }>
   navigation: Record<string, NavSectionData>
   global_store_info: {
     name: string
