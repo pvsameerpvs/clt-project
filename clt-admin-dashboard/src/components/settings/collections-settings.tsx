@@ -32,6 +32,9 @@ interface PromoOffer {
   bgColor?: string
   product_slugs?: string[]
   discount_percentage?: number
+  is_active?: boolean
+  bundle_sizes?: number[]
+  bundle_discounts?: Record<string, number>
 }
 
 interface CollectionsSettingsProps {
@@ -48,6 +51,9 @@ const PRESET_COLORS = [
   { name: 'Sage Leaf', class: 'bg-[#F0F4F2]' },
   { name: 'Noir', class: 'bg-[#1A1A1A] text-white' },
 ]
+
+const OFFER_BUNDLE_SIZES = [2, 3, 4, 5] as const
+type OfferBundleSize = typeof OFFER_BUNDLE_SIZES[number]
 
 function slugify(value: string) {
   return value
@@ -139,6 +145,23 @@ function toOfferHref(value: string) {
 
 function getOfferProductSlugs(offer: PromoOffer) {
   return normalizeProductSlugs(offer.product_slugs)
+}
+
+function getOfferBundleSizes(offer: PromoOffer) {
+  const source = Array.isArray(offer.bundle_sizes) ? offer.bundle_sizes : []
+  const normalized = source
+    .map((item) => Number(item))
+    .filter((item): item is OfferBundleSize => OFFER_BUNDLE_SIZES.includes(item as OfferBundleSize))
+  if (normalized.length === 0) return [...OFFER_BUNDLE_SIZES]
+  return OFFER_BUNDLE_SIZES.filter((size) => normalized.includes(size))
+}
+
+function getOfferBundleDiscount(offer: PromoOffer, size: OfferBundleSize) {
+  const source = offer.bundle_discounts
+  if (!source || typeof source !== "object") return undefined
+  const candidate = source[String(size)]
+  if (typeof candidate !== "number" || !Number.isFinite(candidate)) return undefined
+  return Math.min(100, Math.max(0, Math.round(candidate)))
 }
 
 export function CollectionsSettings({ collections, offers, onCollectionsChange, onOffersChange }: CollectionsSettingsProps) {
@@ -260,6 +283,40 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
     })
   }
 
+  const toggleOfferActive = (idx: number) => {
+    const current = offers[idx]
+    patchOffer(idx, { is_active: !(current?.is_active ?? true) })
+  }
+
+  const toggleOfferBundleSize = (idx: number, size: OfferBundleSize) => {
+    const currentSizes = getOfferBundleSizes(offers[idx])
+    const hasSize = currentSizes.includes(size)
+    if (hasSize && currentSizes.length === 1) return
+
+    const nextSizes = hasSize
+      ? currentSizes.filter((item) => item !== size)
+      : [...currentSizes, size].sort((a, b) => a - b)
+    patchOffer(idx, { bundle_sizes: nextSizes })
+  }
+
+  const updateOfferBundleDiscount = (idx: number, size: OfferBundleSize, rawValue: string) => {
+    const current = offers[idx]
+    const nextDiscounts: Record<string, number> = {
+      ...(current.bundle_discounts || {}),
+    }
+    const trimmed = rawValue.trim()
+    if (!trimmed) {
+      delete nextDiscounts[String(size)]
+      patchOffer(idx, { bundle_discounts: nextDiscounts })
+      return
+    }
+
+    const parsed = Number(trimmed)
+    if (!Number.isFinite(parsed)) return
+    nextDiscounts[String(size)] = Math.min(100, Math.max(0, Math.round(parsed)))
+    patchOffer(idx, { bundle_discounts: nextDiscounts })
+  }
+
   const addOffer = () => {
     const title = "New Offer"
     onOffersChange([
@@ -272,7 +329,9 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
         badge: "",
         bgColor: "bg-[#F3F0EA]",
         product_slugs: [],
-        discount_percentage: 0,
+        is_active: true,
+        bundle_sizes: [...OFFER_BUNDLE_SIZES],
+        bundle_discounts: {},
       },
     ])
   }
@@ -560,6 +619,17 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
 	                     <span className="bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">{idx + 1}</span>
 	                     <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.1em]">Card Configuration</span>
 	                   </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleOfferActive(idx)}
+                      className={`rounded-full border px-3 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${
+                        offer.is_active === false
+                          ? "border-neutral-300 bg-neutral-100 text-neutral-500"
+                          : "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
+                      {offer.is_active === false ? "Inactive" : "Active"}
+                    </button>
 	                 </div>
 	                
 	                <div className="space-y-4">
@@ -592,7 +662,7 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
 	                      </div>
 	                   </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
                       <div className="space-y-1">
                         <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest px-1">Offer Slug</label>
                         <input
@@ -600,28 +670,6 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
                           value={extractOfferSlug(offer.href)}
                           onChange={(e) => patchOffer(idx, { href: toOfferHref(e.target.value) })}
                           placeholder="signature-sets"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Discount %</label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          className="w-full border border-neutral-200 bg-white rounded-xl p-2.5 text-xs text-center font-semibold"
-                          value={typeof offer.discount_percentage === "number" ? offer.discount_percentage : ""}
-                          onChange={(e) => {
-                            const raw = e.target.value.trim()
-                            if (!raw) {
-                              patchOffer(idx, { discount_percentage: undefined })
-                              return
-                            }
-                            const parsed = Number(raw)
-                            if (!Number.isFinite(parsed)) return
-                            patchOffer(idx, {
-                              discount_percentage: Math.min(100, Math.max(0, Math.round(parsed))),
-                            })
-                          }}
                         />
                       </div>
                     </div>
@@ -645,6 +693,54 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
                           ))}
 	                        </div>
 	                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Bundle Size Options</label>
+                        <div className="flex flex-wrap gap-2 px-1">
+                          {OFFER_BUNDLE_SIZES.map((size) => {
+                            const selected = getOfferBundleSizes(offer).includes(size)
+                            return (
+                              <button
+                                key={`${idx}-bundle-size-${size}`}
+                                type="button"
+                                onClick={() => toggleOfferBundleSize(idx, size)}
+                                className={`rounded-lg border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                                  selected
+                                    ? "border-black bg-black text-white"
+                                    : "border-neutral-300 bg-white text-neutral-700 hover:border-black"
+                                }`}
+                              >
+                                {size} Items
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <p className="px-1 text-[10px] text-neutral-500">At least one size must stay selected.</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1">Discount Per Bundle Size %</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {OFFER_BUNDLE_SIZES.map((size) => {
+                            const selected = getOfferBundleSizes(offer).includes(size)
+                            return (
+                              <div key={`${idx}-bundle-discount-${size}`} className="space-y-1">
+                                <label className="px-1 text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">{size} Items</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  disabled={!selected}
+                                  className="w-full border border-neutral-200 bg-white rounded-xl px-3 py-2 text-[10px] text-center font-semibold disabled:bg-neutral-100 disabled:text-neutral-400"
+                                  value={selected ? (getOfferBundleDiscount(offer, size) ?? "") : ""}
+                                  onChange={(e) => updateOfferBundleDiscount(idx, size, e.target.value)}
+                                  placeholder="0"
+                                />
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
 
                       <div className="space-y-1">
                         <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest px-1 flex items-center gap-1">

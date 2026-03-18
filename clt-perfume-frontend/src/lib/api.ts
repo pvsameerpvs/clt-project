@@ -41,6 +41,9 @@ interface SiteSettingsData {
     bgColor?: string
     product_slugs?: string[]
     discount_percentage?: number
+    is_active?: boolean
+    bundle_sizes?: number[]
+    bundle_discounts?: Record<string, number>
   }>
   navigation: Record<string, NavSectionData>
   global_store_info: {

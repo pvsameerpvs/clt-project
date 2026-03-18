@@ -1,4 +1,3 @@
-import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -18,7 +17,13 @@ interface PromoOffer {
   bgColor?: string
   product_slugs?: string[]
   discount_percentage?: number
+  is_active?: boolean
+  bundle_sizes?: number[]
+  bundle_discounts?: Record<string, number>
 }
+
+const OFFER_BUNDLE_SIZES = [2, 3, 4, 5] as const
+type OfferBundleSize = typeof OFFER_BUNDLE_SIZES[number]
 
 function normalizeToken(value: string) {
   return value
@@ -59,12 +64,46 @@ function resolveOfferSlug(offer: PromoOffer) {
   return normalizeToken(offer.title)
 }
 
+function isOfferActive(offer: PromoOffer) {
+  return offer.is_active !== false
+}
+
+function getOfferBundleSizes(offer: PromoOffer) {
+  const source = Array.isArray(offer.bundle_sizes) ? offer.bundle_sizes : []
+  const normalized = source
+    .map((item) => Number(item))
+    .filter((item): item is OfferBundleSize => OFFER_BUNDLE_SIZES.includes(item as OfferBundleSize))
+  if (normalized.length === 0) return [...OFFER_BUNDLE_SIZES]
+  return OFFER_BUNDLE_SIZES.filter((size) => normalized.includes(size))
+}
+
+function getOfferBundleDiscounts(offer: PromoOffer) {
+  const source = offer.bundle_discounts || {}
+  const normalized: Record<string, number> = {}
+  for (const size of OFFER_BUNDLE_SIZES) {
+    const candidate = source[String(size)]
+    if (typeof candidate !== "number" || !Number.isFinite(candidate)) continue
+    normalized[String(size)] = Math.min(100, Math.max(0, Math.round(candidate)))
+  }
+  return normalized
+}
+
 function buildDetails(offer: PromoOffer, selectedCount: number) {
   const cleanedDescription = stripHtml(offer.description)
   const details = [cleanedDescription || "Discover this curated offer from CLE Perfumes."]
+  const bundleSizes = getOfferBundleSizes(offer)
+  const bundleDiscounts = getOfferBundleDiscounts(offer)
 
-  if (typeof offer.discount_percentage === "number" && offer.discount_percentage > 0) {
-    details.push(`Save ${offer.discount_percentage}% when you complete the recommended bundle size.`)
+  const discountEntries = bundleSizes
+    .map((size) => {
+      const sizeDiscount = bundleDiscounts[String(size)]
+      if (typeof sizeDiscount === "number") return `${size} items: ${sizeDiscount}%`
+      return ""
+    })
+    .filter(Boolean)
+
+  if (discountEntries.length > 0) {
+    details.push(`Bundle discounts: ${discountEntries.join(" • ")}.`)
   } else {
     details.push("Complete your curated bundle and enjoy exclusive offer pricing at checkout.")
   }
@@ -97,15 +136,18 @@ export default async function OfferPage({ params }: { params: Promise<{ slug: st
 
   const [settings, allProductsRaw] = await Promise.all([getSiteSettings(), getProducts()])
   const offers = Array.isArray(settings?.offers) ? (settings.offers as PromoOffer[]) : []
+  const activeOffers = offers.filter(isOfferActive)
   const allProducts = Array.isArray(allProductsRaw) ? (allProductsRaw as Product[]) : []
 
-  const offerIndex = offers.findIndex((offer) => resolveOfferSlug(offer) === normalizedSlug)
+  const offerIndex = activeOffers.findIndex((offer) => resolveOfferSlug(offer) === normalizedSlug)
   if (offerIndex < 0) {
     notFound()
   }
 
-  const offer = offers[offerIndex]
+  const offer = activeOffers[offerIndex]
   const selectedProductSlugs = new Set(normalizeProductSlugs(offer.product_slugs))
+  const bundleSizes = getOfferBundleSizes(offer)
+  const bundleDiscounts = getOfferBundleDiscounts(offer)
   const eligibleProductsRaw =
     selectedProductSlugs.size > 0
       ? allProducts.filter((product) => selectedProductSlugs.has(normalizeToken(product.slug)))
@@ -114,7 +156,6 @@ export default async function OfferPage({ params }: { params: Promise<{ slug: st
 
   const details = buildDetails(offer, selectedProductSlugs.size)
   const bgColor = offer.bgColor || ["bg-[#F3F0EA]", "bg-[#EBEFF5]", "bg-[#F5EBEB]"][offerIndex % 3]
-  const heroImage = eligibleProducts[0]?.images?.[0] || "/prfume-bannar5.jpg"
 
   return (
     <div className="min-h-screen bg-white">
@@ -138,55 +179,20 @@ export default async function OfferPage({ params }: { params: Promise<{ slug: st
             <p className="text-xl md:text-2xl font-light text-neutral-600 leading-relaxed max-w-xl">
               {offer.description}
             </p>
+            <ul className="mt-6 space-y-1 text-sm text-neutral-700 max-w-2xl">
+              {details.map((detail, detailIndex) => (
+                <li key={`offer-detail-${detailIndex}`}>• {detail}</li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
-
-      {/* <div className="container mx-auto px-4 md:px-6 py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-          <div className="relative aspect-[4/5] w-full max-h-[800px] overflow-hidden shadow-2xl bg-neutral-100">
-            <Image
-              src={heroImage}
-              alt={offer.title}
-              fill
-              className="object-cover scale-105 hover:scale-110 transition-transform duration-1000"
-              priority
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent"></div>
-          </div>
-
-          <div className="space-y-12">
-            <div className="space-y-4">
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-400">The Details</span>
-              <h2 className="text-3xl md:text-4xl font-serif text-neutral-900 leading-tight">Exclusive Perks & Specifications</h2>
-            </div>
-
-            <ul className="space-y-8">
-              {details.map((detail, idx) => (
-                <li key={idx} className="flex items-start gap-6">
-                  <span className="text-sm font-serif italic text-neutral-400 shrink-0 mt-1">0{idx + 1}</span>
-                  <p className="text-neutral-600 font-light leading-relaxed text-lg">{detail}</p>
-                </li>
-              ))}
-            </ul>
-
-            <div className="pt-8 border-t border-neutral-100">
-              <Button
-                asChild
-                className="h-16 px-10 rounded-none bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-sm font-medium transition-all w-full sm:w-auto"
-              >
-                <a href="#bundle-builder">{offer.action || "Build Bundle"}</a>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div> */}
-
       {eligibleProducts.length > 0 && (
         <div className="container mx-auto px-4 md:px-6 pb-20 pt-10">
           <OfferBundleBuilder
             offerTitle={offer.title}
-            discountPercentage={offer.discount_percentage}
+            availableBundleSizes={bundleSizes}
+            bundleDiscounts={bundleDiscounts}
             products={eligibleProducts}
           />
         </div>

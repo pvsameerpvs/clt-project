@@ -10,20 +10,43 @@ import { toast } from "sonner"
 
 interface OfferBundleBuilderProps {
   offerTitle: string
-  discountPercentage?: number
+  availableBundleSizes?: number[]
+  bundleDiscounts?: Record<string, number>
   products: Product[]
 }
 
-const BUNDLE_SIZES = [2, 3, 4, 5]
+const BUNDLE_SIZES = [2, 3, 4, 5] as const
+type BundleSize = typeof BUNDLE_SIZES[number]
 
 function formatPrice(value: number) {
   return `AED ${Math.max(0, Math.round(value))}`
 }
 
-export function OfferBundleBuilder({ offerTitle, discountPercentage, products }: OfferBundleBuilderProps) {
+function normalizeBundleSizes(input?: number[]) {
+  const source = Array.isArray(input) ? input : []
+  const normalized = source
+    .map((item) => Number(item))
+    .filter((item): item is BundleSize => BUNDLE_SIZES.includes(item as BundleSize))
+  if (normalized.length === 0) return [...BUNDLE_SIZES]
+  return BUNDLE_SIZES.filter((size) => normalized.includes(size))
+}
+
+function getSizeDiscount(bundleDiscounts: Record<string, number> | undefined, size: BundleSize) {
+  const candidate = bundleDiscounts?.[String(size)]
+  if (typeof candidate !== "number" || !Number.isFinite(candidate)) return undefined
+  return Math.min(100, Math.max(0, Math.round(candidate)))
+}
+
+export function OfferBundleBuilder({
+  offerTitle,
+  availableBundleSizes,
+  bundleDiscounts,
+  products,
+}: OfferBundleBuilderProps) {
   const router = useRouter()
   const { addToCart } = useCart()
-  const [bundleSize, setBundleSize] = useState<number>(2)
+  const bundleSizes = normalizeBundleSizes(availableBundleSizes)
+  const [bundleSize, setBundleSize] = useState<BundleSize>(bundleSizes[0] || 2)
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([])
 
   const selectedProducts = useMemo(() => {
@@ -32,12 +55,13 @@ export function OfferBundleBuilder({ offerTitle, discountPercentage, products }:
   }, [products, selectedSlugs])
 
   const subtotal = selectedProducts.reduce((sum, product) => sum + Number(product.price || 0), 0)
-  const discount = discountPercentage && discountPercentage > 0 ? discountPercentage : 0
+  const perSizeDiscount = getSizeDiscount(bundleDiscounts, bundleSize)
+  const discount = typeof perSizeDiscount === "number" ? perSizeDiscount : 0
   const discountAmount = (subtotal * discount) / 100
   const total = subtotal - discountAmount
   const remaining = Math.max(0, bundleSize - selectedProducts.length)
 
-  const selectBundleSize = (size: number) => {
+  const selectBundleSize = (size: BundleSize) => {
     setBundleSize(size)
     setSelectedSlugs((prev) => prev.slice(0, size))
   }
@@ -73,7 +97,7 @@ export function OfferBundleBuilder({ offerTitle, discountPercentage, products }:
           <p className="text-sm text-neutral-500 mt-2">Choose a box size and select products from this offer list.</p>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            {BUNDLE_SIZES.map((size) => (
+            {bundleSizes.map((size) => (
               <button
                 key={size}
                 type="button"
@@ -94,6 +118,9 @@ export function OfferBundleBuilder({ offerTitle, discountPercentage, products }:
               ? `Add ${remaining} more item(s) to fill your ${bundleSize}-item bundle.`
               : `Bundle complete. You can proceed to checkout.`}
           </div>
+          <p className="mt-2 text-[11px] text-neutral-600">
+            Active discount for {bundleSize} items: <span className="font-semibold">{discount}%</span>
+          </p>
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {products.map((product) => {

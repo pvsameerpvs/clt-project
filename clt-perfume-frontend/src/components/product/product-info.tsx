@@ -26,6 +26,9 @@ interface PromoOffer {
   href: string
   product_slugs?: string[]
   discount_percentage?: number
+  is_active?: boolean
+  bundle_sizes?: number[]
+  bundle_discounts?: Record<string, number>
 }
 
 function slugify(value: string) {
@@ -58,6 +61,17 @@ function resolveOfferHref(offer: PromoOffer) {
   return fallbackSlug ? `/offers/${fallbackSlug}` : "/offers"
 }
 
+function isOfferActive(offer: PromoOffer) {
+  return offer.is_active !== false
+}
+
+function getOfferBestDiscount(offer: PromoOffer) {
+  const discounts = Object.values(offer.bundle_discounts || {})
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+  return discounts.length > 0 ? Math.max(...discounts) : 0
+}
+
 export function ProductInfo({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1)
   const [engraving, setEngraving] = useState("")
@@ -77,8 +91,9 @@ export function ProductInfo({ product }: { product: Product }) {
         const offers = Array.isArray(settings?.offers) ? (settings.offers as PromoOffer[]) : []
         const productSlug = slugify(product.slug)
         const matchingOffers = offers
+          .filter(isOfferActive)
           .filter((offer) => normalizeProductSlugs(offer.product_slugs).includes(productSlug))
-          .sort((a, b) => (b.discount_percentage || 0) - (a.discount_percentage || 0))
+          .sort((a, b) => getOfferBestDiscount(b) - getOfferBestDiscount(a))
 
         if (!active) return
         setMatchingBundleOffer(matchingOffers[0] || null)
@@ -129,7 +144,7 @@ export function ProductInfo({ product }: { product: Product }) {
           <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700">Bundle Offer</p>
             <p className="mt-1 text-sm text-amber-900">
-              {matchingBundleOffer.discount_percentage ? `${matchingBundleOffer.discount_percentage}% OFF` : "Special pricing"} in{" "}
+              {getOfferBestDiscount(matchingBundleOffer) ? `${getOfferBestDiscount(matchingBundleOffer)}% OFF` : "Special pricing"} in{" "}
               <span className="font-semibold">{matchingBundleOffer.title}</span>
             </p>
             <Link

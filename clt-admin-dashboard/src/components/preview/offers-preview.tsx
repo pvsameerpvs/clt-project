@@ -12,6 +12,9 @@ interface PromoOffer {
   bgColor?: string
   product_slugs?: string[]
   discount_percentage?: number
+  is_active?: boolean
+  bundle_sizes?: number[]
+  bundle_discounts?: Record<string, number>
 }
 
 interface OffersPreviewProps {
@@ -20,6 +23,14 @@ interface OffersPreviewProps {
 }
 
 export function OffersPreview({ offers, onEditClick }: OffersPreviewProps) {
+  const getMaxBundleDiscount = (card: PromoOffer) => {
+    const values = Object.values(card.bundle_discounts || {})
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0)
+    if (values.length === 0) return 0
+    return Math.max(...values)
+  }
+
   return (
     <div className="group relative">
       <section className="py-12 bg-white rounded-3xl border border-neutral-100 px-6">
@@ -38,6 +49,11 @@ export function OffersPreview({ offers, onEditClick }: OffersPreviewProps) {
                       <span className="text-[8px] font-bold uppercase tracking-wider text-black">{card.badge}</span>
                     </div>
                   )}
+                  {card.is_active === false && (
+                    <div className="absolute top-4 left-4 rounded-full border border-neutral-300 bg-white/90 px-3 py-1">
+                      <span className="text-[8px] font-bold uppercase tracking-wider text-neutral-500">Inactive</span>
+                    </div>
+                  )}
                   
                   <div>
                     <h3 className="text-2xl font-serif mb-3 text-neutral-900 leading-tight">{card.title}</h3>
@@ -50,13 +66,16 @@ export function OffersPreview({ offers, onEditClick }: OffersPreviewProps) {
                   </div>
                   <div className="pt-4 space-y-1 text-[10px] text-neutral-600">
                     <p className="font-mono truncate">{card.href || "/offers/your-offer-slug"}</p>
-                    {typeof card.discount_percentage === "number" && card.discount_percentage > 0 && (
+                    {getMaxBundleDiscount(card) > 0 && (
                       <p className="font-semibold uppercase tracking-[0.12em] text-neutral-700">
-                        {card.discount_percentage}% bundle discount
+                        up to {getMaxBundleDiscount(card)}% bundle discount
                       </p>
                     )}
                     {Array.isArray(card.product_slugs) && card.product_slugs.length > 0 && (
                       <p className="uppercase tracking-[0.12em]">{card.product_slugs.length} selected products</p>
+                    )}
+                    {Array.isArray(card.bundle_sizes) && card.bundle_sizes.length > 0 && (
+                      <p className="uppercase tracking-[0.12em]">sizes: {card.bundle_sizes.join("/")}</p>
                     )}
                   </div>
                 </div>

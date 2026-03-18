@@ -12,6 +12,7 @@ interface PromoOffer {
   href: string
   badge?: string
   bgColor?: string
+  is_active?: boolean
 }
 
 function slugify(value: string) {
@@ -30,6 +31,10 @@ function resolveOfferHref(offer: PromoOffer) {
   return fallbackSlug ? `/offers/${fallbackSlug}` : "/offers"
 }
 
+function isOfferActive(offer: PromoOffer) {
+  return offer.is_active !== false
+}
+
 export function OfferCards() {
   const [offers, setOffers] = useState<PromoOffer[]>([])
 
@@ -37,7 +42,7 @@ export function OfferCards() {
     async function load() {
       const settings = await getSiteSettings()
       if (settings?.offers) {
-        setOffers(settings.offers)
+        setOffers(settings.offers.filter(isOfferActive))
       }
     }
     load()
