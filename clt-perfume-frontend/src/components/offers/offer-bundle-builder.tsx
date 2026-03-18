@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Product } from "@/lib/products"
 import { useCart } from "@/contexts/cart-context"
@@ -18,8 +19,24 @@ interface OfferBundleBuilderProps {
 const BUNDLE_SIZES = [2, 3, 4, 5] as const
 type BundleSize = typeof BUNDLE_SIZES[number]
 
+function toNumber(value: unknown) {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : 0
+}
+
 function formatPrice(value: number) {
   return `AED ${Math.max(0, Math.round(value))}`
+}
+
+function calculateOfferPrice(originalPrice: number, discountPercent: number) {
+  const safeDiscount = Math.min(100, Math.max(0, discountPercent))
+  const discountAmount = (originalPrice * safeDiscount) / 100
+  return {
+    originalPrice,
+    discountPercent: safeDiscount,
+    discountAmount,
+    offerPrice: Math.max(0, originalPrice - discountAmount),
+  }
 }
 
 function normalizeBundleSizes(input?: number[]) {
@@ -33,7 +50,7 @@ function normalizeBundleSizes(input?: number[]) {
 
 function getSizeDiscount(bundleDiscounts: Record<string, number> | undefined, size: BundleSize) {
   const candidate = bundleDiscounts?.[String(size)]
-  if (typeof candidate !== "number" || !Number.isFinite(candidate)) return undefined
+  if (typeof candidate !== "number" || !Number.isFinite(candidate)) return 0
   return Math.min(100, Math.max(0, Math.round(candidate)))
 }
 
@@ -49,17 +66,34 @@ export function OfferBundleBuilder({
   const [bundleSize, setBundleSize] = useState<BundleSize>(bundleSizes[0] || 2)
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([])
 
-  const selectedProducts = useMemo(() => {
-    const selectedSet = new Set(selectedSlugs)
-    return products.filter((product) => selectedSet.has(product.slug))
-  }, [products, selectedSlugs])
+  const productsBySlug = useMemo(() => {
+    const map = new Map<string, Product>()
+    for (const product of products) {
+      map.set(product.slug, product)
+    }
+    return map
+  }, [products])
 
-  const subtotal = selectedProducts.reduce((sum, product) => sum + Number(product.price || 0), 0)
-  const perSizeDiscount = getSizeDiscount(bundleDiscounts, bundleSize)
-  const discount = typeof perSizeDiscount === "number" ? perSizeDiscount : 0
-  const discountAmount = (subtotal * discount) / 100
-  const total = subtotal - discountAmount
-  const remaining = Math.max(0, bundleSize - selectedProducts.length)
+  const selectedProducts = useMemo(
+    () => selectedSlugs.map((slug) => productsBySlug.get(slug)).filter((item): item is Product => Boolean(item)),
+    [selectedSlugs, productsBySlug]
+  )
+
+  const removeSelectedProduct = (slug: string) => {
+    setSelectedSlugs((prev) => prev.filter((item) => item !== slug))
+  }
+
+  const getSelectedSubtotalForSize = (size: BundleSize) => {
+    const selectedForSize = selectedProducts.slice(0, size)
+    return selectedForSize.reduce((sum, product) => sum + toNumber(product.price), 0)
+  }
+
+  const currentSelectedSubtotal = selectedProducts.reduce((sum, product) => sum + toNumber(product.price), 0)
+  const selectedCount = selectedProducts.length
+  const currentDiscount = getSizeDiscount(bundleDiscounts, bundleSize)
+  const pricingBase = currentSelectedSubtotal
+  const pricing = calculateOfferPrice(pricingBase, currentDiscount)
+  const remaining = Math.max(0, bundleSize - selectedCount)
 
   const selectBundleSize = (size: BundleSize) => {
     setBundleSize(size)
@@ -94,23 +128,49 @@ export function OfferBundleBuilder({
       <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
         <div className="p-6 md:p-8 border-b lg:border-b-0 lg:border-r border-neutral-200">
           <h3 className="text-2xl font-serif text-neutral-900">Build Your Bundle</h3>
-          <p className="text-sm text-neutral-500 mt-2">Choose a box size and select products from this offer list.</p>
+          <p className="text-sm text-neutral-500 mt-2">Select a bundle plan, compare original vs offer price, then choose products.</p>
 
-          <div className="mt-5 flex flex-wrap gap-3">
-            {bundleSizes.map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => selectBundleSize(size)}
-                className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
-                  bundleSize === size
-                    ? "border-black bg-black text-white"
-                    : "border-neutral-300 bg-white text-neutral-700 hover:border-black"
-                }`}
-              >
-                {size} Items
-              </button>
-            ))}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {bundleSizes.map((size) => {
+              const sizeDiscount = getSizeDiscount(bundleDiscounts, size)
+              const selectedSubtotalForSize = getSelectedSubtotalForSize(size)
+              const selectedPricingForSize = calculateOfferPrice(selectedSubtotalForSize, sizeDiscount)
+              const isActive = bundleSize === size
+              const showTabPrice = selectedCount > 0
+
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => selectBundleSize(size)}
+                  className={`rounded-2xl border p-4 text-left transition-all ${
+                    isActive
+                      ? "border-black bg-black text-white shadow-lg"
+                      : "border-neutral-300 bg-white text-neutral-900 hover:border-black"
+                  }`}
+                >
+                  <p className="text-[10px] uppercase tracking-[0.16em] font-semibold opacity-80">Bundle Plan</p>
+                  <p className="mt-1 text-2xl font-serif">{size} Items</p>
+                  {showTabPrice ? (
+                    <>
+                      <p className={`mt-3 text-xs ${isActive ? "text-white/70" : "text-neutral-500"}`}>Original Price</p>
+                      <p className={`text-sm line-through ${isActive ? "text-white/75" : "text-neutral-500"}`}>
+                        {formatPrice(selectedPricingForSize.originalPrice)}
+                      </p>
+                      <p className={`mt-2 text-xs ${isActive ? "text-white/70" : "text-neutral-500"}`}>Offer Price</p>
+                      <p className="text-lg font-semibold">{formatPrice(selectedPricingForSize.offerPrice)}</p>
+                    </>
+                  ) : (
+                    <p className={`mt-3 text-xs ${isActive ? "text-white/75" : "text-neutral-500"}`}>
+                      Select items to see price
+                    </p>
+                  )}
+                  <p className={`mt-2 text-[10px] uppercase tracking-[0.14em] font-bold ${isActive ? "text-amber-200" : "text-amber-700"}`}>
+                    {sizeDiscount}% OFF
+                  </p>
+                </button>
+              )
+            })}
           </div>
 
           <div className="mt-5 rounded-xl bg-black px-4 py-3 text-white text-sm font-medium">
@@ -118,19 +178,35 @@ export function OfferBundleBuilder({
               ? `Add ${remaining} more item(s) to fill your ${bundleSize}-item bundle.`
               : `Bundle complete. You can proceed to checkout.`}
           </div>
-          <p className="mt-2 text-[11px] text-neutral-600">
-            Active discount for {bundleSize} items: <span className="font-semibold">{discount}%</span>
-          </p>
+
+          {selectedProducts.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {selectedProducts.map((product) => (
+                <span
+                  key={`selected-chip-${product.id}`}
+                  className="inline-flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs text-neutral-700"
+                >
+                  {product.name}
+                  <button
+                    type="button"
+                    onClick={() => removeSelectedProduct(product.slug)}
+                    className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-neutral-300 text-neutral-500 hover:border-red-400 hover:text-red-600"
+                    aria-label={`Remove ${product.name}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {products.map((product) => {
               const selected = selectedSlugs.includes(product.slug)
               return (
-                <button
+                <div
                   key={product.id}
-                  type="button"
-                  onClick={() => toggleProduct(product.slug)}
-                  className={`text-left rounded-2xl border p-3 transition-colors ${
+                  className={`rounded-2xl border p-3 transition-colors ${
                     selected ? "border-black bg-neutral-50" : "border-neutral-200 bg-white hover:border-neutral-400"
                   }`}
                 >
@@ -143,11 +219,32 @@ export function OfferBundleBuilder({
                     />
                   </div>
                   <p className="mt-3 text-sm font-serif text-neutral-900 line-clamp-1">{product.name}</p>
-                  <p className="text-xs text-neutral-500">{formatPrice(product.price || 0)}</p>
-                  <p className="mt-2 text-[10px] uppercase tracking-[0.14em] font-semibold text-neutral-700">
-                    {selected ? "Selected" : "Tap to Select"}
-                  </p>
-                </button>
+                  <p className="text-xs text-neutral-500">{formatPrice(toNumber(product.price))}</p>
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleProduct(product.slug)}
+                      className={`flex-1 rounded-lg px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                        selected
+                          ? "bg-black text-white hover:bg-neutral-800"
+                          : "border border-neutral-300 bg-white text-neutral-700 hover:border-black hover:text-black"
+                      }`}
+                    >
+                      {selected ? "Selected" : "Select"}
+                    </button>
+                    {selected && (
+                      <button
+                        type="button"
+                        onClick={() => removeSelectedProduct(product.slug)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-300 bg-white text-neutral-500 hover:border-red-400 hover:text-red-600"
+                        aria-label={`Unselect ${product.name}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               )
             })}
           </div>
@@ -167,16 +264,26 @@ export function OfferBundleBuilder({
             {Array.from({ length: bundleSize }).map((_, index) => {
               const item = selectedProducts[index]
               return (
-                <div key={`slot-${index}`} className="aspect-square rounded-xl border border-dashed border-neutral-300 bg-white overflow-hidden">
+                <div key={`slot-${index}`} className="relative aspect-square rounded-xl border border-dashed border-neutral-300 bg-white overflow-hidden">
                   {item ? (
-                    <div className="relative h-full w-full">
-                      <Image
-                        src={item.images?.[0] || "/placeholder-perfume.png"}
-                        alt={item.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
+                    <>
+                      <div className="relative h-full w-full">
+                        <Image
+                          src={item.images?.[0] || "/placeholder-perfume.png"}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeSelectedProduct(item.slug)}
+                        className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-neutral-700 shadow hover:text-red-600"
+                        aria-label={`Remove ${item.name} from bundle`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </>
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-3xl text-neutral-300">+</div>
                   )}
@@ -187,16 +294,18 @@ export function OfferBundleBuilder({
 
           <div className="mt-6 space-y-3 text-sm text-neutral-700">
             <div className="flex items-center justify-between">
-              <span className="uppercase tracking-[0.18em] text-[10px]">Subtotal</span>
-              <span>{formatPrice(subtotal)}</span>
+              <span className="uppercase tracking-[0.18em] text-[10px]">Original Price</span>
+              <span className="line-through text-neutral-500">
+                {selectedCount > 0 ? formatPrice(pricing.originalPrice) : "--"}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="uppercase tracking-[0.18em] text-[10px]">Discount</span>
-              <span>{formatPrice(discountAmount)}</span>
+              <span className="uppercase tracking-[0.18em] text-[10px]">Offer Discount ({pricing.discountPercent}%)</span>
+              <span>{selectedCount > 0 ? `- ${formatPrice(pricing.discountAmount)}` : "--"}</span>
             </div>
             <div className="flex items-center justify-between border-t border-neutral-300 pt-3 text-base text-neutral-900 font-semibold">
-              <span className="uppercase tracking-[0.18em] text-[10px]">Total</span>
-              <span>{formatPrice(total)}</span>
+              <span className="uppercase tracking-[0.18em] text-[10px]">Offer Price</span>
+              <span>{selectedCount > 0 ? formatPrice(pricing.offerPrice) : "--"}</span>
             </div>
           </div>
 
