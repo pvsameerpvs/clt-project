@@ -49,7 +49,8 @@ export function CartItem({ item }: { item: CartLineItem }) {
           <div className="flex items-center border border-neutral-200 rounded-full">
             <button 
               onClick={() => updateQuantity(lineKey, item.quantity - 1)}
-              className="h-8 w-8 flex items-center justify-center hover:bg-neutral-50 rounded-l-full transition-colors"
+              disabled={item.quantity <= 1}
+              className="h-8 w-8 flex items-center justify-center hover:bg-neutral-50 rounded-l-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Minus className="h-3 w-3" />
             </button>

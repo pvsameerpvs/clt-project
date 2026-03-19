@@ -7,7 +7,11 @@ import { useSearchParams } from "next/navigation"
 import { CartItem as CartLineItem, getCartLineKey, useCart } from "@/contexts/cart-context"
 import { CartItem } from "@/components/cart/cart-item"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ShoppingBag, X } from "lucide-react"
+import { ArrowLeft, Minus, Plus, ShoppingBag, X } from "lucide-react"
+
+function formatPrice(value: number) {
+  return `AED ${Math.round(Number(value) || 0)}`
+}
 
 export default function CartPage() {
   return (
@@ -18,7 +22,7 @@ export default function CartPage() {
 }
 
 function CartPageContent() {
-  const { items, totalPrice, totalItems, removeFromCart } = useCart()
+  const { items, totalPrice, totalItems, removeFromCart, updateQuantity } = useCart()
   const searchParams = useSearchParams()
   const bundleName = searchParams.get("bundle")?.trim() || ""
 
@@ -72,6 +76,47 @@ function CartPageContent() {
       bundleGroups: Array.from(bundleMap.values()),
     }
   }, [items])
+  const hasBundleFromQueryInCart = useMemo(() => {
+    if (!bundleName) return false
+    return items.some((item) => item.bundle?.name === bundleName)
+  }, [items, bundleName])
+
+  const getBundleSetQuantity = (bundleGroup: (typeof bundleGroups)[number]) =>
+    Math.max(
+      1,
+      Math.min(...bundleGroup.items.map((item) => Math.max(1, Number(item.quantity) || 1)))
+    )
+
+  const updateBundleSetQuantity = (bundleGroup: (typeof bundleGroups)[number], nextSetQuantity: number) => {
+    const currentSetQuantity = getBundleSetQuantity(bundleGroup)
+    const safeNext = Math.max(1, nextSetQuantity)
+    const delta = safeNext - currentSetQuantity
+    if (delta === 0) return
+
+    bundleGroup.items.forEach((item) => {
+      const lineKey = getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)
+      const currentItemQty = Math.max(1, Number(item.quantity) || 1)
+      updateQuantity(lineKey, currentItemQty + delta)
+    })
+  }
+
+  const orderSummaryLines = useMemo(() => {
+    const bundleLines = bundleGroups.map((bundleGroup) => ({
+      key: `bundle-line-${bundleGroup.id}`,
+      label: `${bundleGroup.size} Bundle`,
+      quantity: Math.max(1, Math.min(...bundleGroup.items.map((item) => Math.max(1, Number(item.quantity) || 1)))),
+      value: bundleGroup.offerTotal,
+    }))
+
+    const singleLines = standaloneItems.map((item) => ({
+      key: `single-line-${getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)}`,
+      label: item.product.name,
+      quantity: item.quantity,
+      value: Number(item.product.price) * item.quantity,
+    }))
+
+    return [...bundleLines, ...singleLines]
+  }, [bundleGroups, standaloneItems])
 
   if (items.length === 0) {
     return (
@@ -105,7 +150,7 @@ function CartPageContent() {
           </span>
         </div>
 
-        {bundleName && (
+        {bundleName && hasBundleFromQueryInCart && (
           <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <span className="font-semibold">Bundle:</span> {bundleName}
           </div>
@@ -118,6 +163,7 @@ function CartPageContent() {
               {bundleGroups.map((bundleGroup) => {
                 const itemCount = bundleGroup.items.reduce((sum, item) => sum + item.quantity, 0)
                 const savings = Math.max(0, bundleGroup.originalTotal - bundleGroup.offerTotal)
+                const bundleSetQty = getBundleSetQuantity(bundleGroup)
 
                 return (
                   <div key={bundleGroup.id} className="border border-neutral-200 rounded-2xl p-5 md:p-6 mb-4">
@@ -144,6 +190,8 @@ function CartPageContent() {
                       </button>
                     </div>
 
+                  
+
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {bundleGroup.items.map((item) => (
                         <div key={getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)} className="rounded-xl border border-neutral-100 bg-neutral-50 p-2">
@@ -159,7 +207,28 @@ function CartPageContent() {
                         </div>
                       ))}
                     </div>
-
+  <div className="mt-3 inline-flex items-center rounded-full border border-neutral-300 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => updateBundleSetQuantity(bundleGroup, bundleSetQty - 1)}
+                        disabled={bundleSetQty <= 1}
+                        className="h-8 w-8 inline-flex items-center justify-center hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        aria-label={`Decrease ${bundleGroup.name} quantity`}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="h-8 min-w-8 px-2 inline-flex items-center justify-center text-sm font-medium border-x border-neutral-300">
+                        {bundleSetQty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateBundleSetQuantity(bundleGroup, bundleSetQty + 1)}
+                        className="h-8 w-8 inline-flex items-center justify-center hover:bg-neutral-50 transition-colors"
+                        aria-label={`Increase ${bundleGroup.name} quantity`}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
                     <div className="mt-4 pt-4 border-t border-neutral-100 flex items-center justify-between text-sm">
                       <div>
                         <span className="text-neutral-500 line-through mr-2">AED {Math.round(bundleGroup.originalTotal)}</span>
@@ -167,6 +236,7 @@ function CartPageContent() {
                       </div>
                       <span className="text-green-700 font-medium">You save AED {Math.round(savings)}</span>
                     </div>
+                    
                   </div>
                 )
               })}
@@ -184,11 +254,23 @@ function CartPageContent() {
           <div className="lg:col-span-1">
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-neutral-100 sticky top-24">
               <h2 className="text-xl font-serif mb-6 border-b border-neutral-100 pb-4">Order Summary</h2>
+
+              <div className="space-y-2 mb-6">
+                {orderSummaryLines.map((line) => (
+                  <div key={line.key} className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-700">
+                      {line.label}
+                      <span className="text-neutral-500"> x{line.quantity}</span>
+                    </span>
+                    <span className="font-medium text-neutral-900">{formatPrice(line.value)}</span>
+                  </div>
+                ))}
+              </div>
               
               <div className="space-y-4 text-sm font-light text-neutral-600 mb-6">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span className="font-medium text-black">AED {totalPrice}</span>
+                  <span className="font-medium text-black">{formatPrice(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
@@ -202,7 +284,7 @@ function CartPageContent() {
 
               <div className="flex justify-between items-end border-t border-neutral-100 pt-6 mb-8 text-neutral-900">
                 <span className="font-serif">Total</span>
-                <span className="text-2xl font-serif">AED {totalPrice}</span>
+                <span className="text-2xl font-serif">{formatPrice(totalPrice)}</span>
               </div>
 
               <Button className="w-full h-14 rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-xs font-medium transition-all shadow-lg shadow-black/10">
