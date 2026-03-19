@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { getSiteSettings } from "@/lib/api"
+import { isOfferActive } from "@/lib/offers"
 
 import { useCart } from "@/contexts/cart-context"
 
@@ -59,10 +60,6 @@ function resolveOfferHref(offer: PromoOffer) {
   if (/^\/offers\/[^/?#]+/i.test(href)) return href
   const fallbackSlug = slugify(offer.title)
   return fallbackSlug ? `/offers/${fallbackSlug}` : "/offers"
-}
-
-function isOfferActive(offer: PromoOffer) {
-  return offer.is_active !== false
 }
 
 function getOfferBestDiscount(offer: PromoOffer) {

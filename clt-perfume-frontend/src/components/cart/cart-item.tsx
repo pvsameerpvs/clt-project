@@ -13,7 +13,7 @@ interface CartLineItem {
 
 export function CartItem({ item }: { item: CartLineItem }) {
   const { updateQuantity, removeFromCart } = useCart()
-  const lineKey = getCartLineKey(item.product.id, Number(item.product.price))
+  const lineKey = getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)
   const categoryLabel = getCategoryLabel(item.product.category)
 
   return (

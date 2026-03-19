@@ -3,9 +3,23 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from "react"
 import { Product } from "@/lib/products"
 
-interface CartItem {
+export interface CartBundleMeta {
+  id: string
+  name: string
+  size: number
+  discountPercent: number
+}
+
+export interface AddToCartOptions {
+  bundle?: CartBundleMeta
+  originalUnitPrice?: number
+}
+
+export interface CartItem {
   product: Product
   quantity: number
+  bundle?: CartBundleMeta
+  originalUnitPrice?: number
 }
 
 function toPriceNumber(value: unknown) {
@@ -13,17 +27,18 @@ function toPriceNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-export function getCartLineKey(productId: string, unitPrice: number) {
-  return `${productId}::${Math.round(toPriceNumber(unitPrice) * 100)}`
+export function getCartLineKey(productId: string, unitPrice: number, bundleId?: string) {
+  const scope = bundleId?.trim() || "single"
+  return `${scope}::${productId}::${Math.round(toPriceNumber(unitPrice) * 100)}`
 }
 
 function getItemLineKey(item: CartItem) {
-  return getCartLineKey(item.product.id, toPriceNumber(item.product.price))
+  return getCartLineKey(item.product.id, toPriceNumber(item.product.price), item.bundle?.id)
 }
 
 interface CartContextType {
   items: CartItem[]
-  addToCart: (product: Product, quantity: number) => void
+  addToCart: (product: Product, quantity: number, options?: AddToCartOptions) => void
   removeFromCart: (lineKey: string) => void
   updateQuantity: (lineKey: string, quantity: number) => void
   totalItems: number
@@ -61,9 +76,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("cle_cart", JSON.stringify(items))
   }, [items])
 
-  const addToCart = (product: Product, quantity: number) => {
+  const addToCart = (product: Product, quantity: number, options?: AddToCartOptions) => {
     setItems(prev => {
-      const targetLineKey = getCartLineKey(product.id, toPriceNumber(product.price))
+      const targetLineKey = getCartLineKey(product.id, toPriceNumber(product.price), options?.bundle?.id)
       const existing = prev.find(item => getItemLineKey(item) === targetLineKey)
       if (existing) {
         return prev.map(item => 
@@ -72,7 +87,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             : item
         )
       }
-      return [...prev, { product, quantity }]
+      return [
+        ...prev,
+        {
+          product,
+          quantity,
+          bundle: options?.bundle,
+          originalUnitPrice:
+            options?.originalUnitPrice === undefined ? undefined : toPriceNumber(options.originalUnitPrice),
+        },
+      ]
     })
   }
 

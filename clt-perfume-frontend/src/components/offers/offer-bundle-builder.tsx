@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
@@ -68,10 +68,11 @@ export function OfferBundleBuilder({
   products,
 }: OfferBundleBuilderProps) {
   const router = useRouter()
-  const { addToCart } = useCart()
+  const { addToCart, totalItems } = useCart()
   const bundleSizes = normalizeBundleSizes(availableBundleSizes)
   const [bundleSize, setBundleSize] = useState<BundleSize>(bundleSizes[0] || 2)
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([])
+  const bundleSequenceRef = useRef(0)
 
   const productsBySlug = useMemo(() => {
     const map = new Map<string, Product>()
@@ -124,16 +125,32 @@ export function OfferBundleBuilder({
       return
     }
 
+    const bundleName = `${bundleSize} Bundle - ${offerTitle}`
+    const nextSequence = bundleSequenceRef.current + 1
+    bundleSequenceRef.current = nextSequence
+    const selectedSignature = selectedProducts.map((item) => item.slug).sort().join("-")
+    const bundleId = `${bundleSize}-${offerTitle.toLowerCase().replace(/\s+/g, "-")}-${selectedSignature}-${totalItems + nextSequence}`
+
     selectedProducts.forEach((product) => {
+      const originalUnitPrice = toNumber(product.price)
       addToCart(
         {
           ...product,
-          price: getDiscountedUnitPrice(toNumber(product.price), currentDiscount),
+          price: getDiscountedUnitPrice(originalUnitPrice, currentDiscount),
         },
-        1
+        1,
+        {
+          bundle: {
+            id: bundleId,
+            name: bundleName,
+            size: bundleSize,
+            discountPercent: currentDiscount,
+          },
+          originalUnitPrice,
+        }
       )
     })
-    const bundleName = `${bundleSize} Bundle - ${offerTitle}`
+
     toast.success(`${bundleName} added to bag`)
     router.push(`/cart?bundle=${encodeURIComponent(bundleName)}`)
   }

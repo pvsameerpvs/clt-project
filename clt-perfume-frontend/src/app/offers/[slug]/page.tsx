@@ -7,6 +7,7 @@ import { getProducts, getSiteSettings } from "@/lib/api"
 import { Product } from "@/lib/products"
 import { ProductCard } from "@/components/product/product-card"
 import { OfferBundleBuilder } from "@/components/offers/offer-bundle-builder"
+import { isOfferActive } from "@/lib/offers"
 
 interface PromoOffer {
   title: string
@@ -62,10 +63,6 @@ function resolveOfferSlug(offer: PromoOffer) {
   const fromHref = extractOfferSlug(offer.href)
   if (fromHref) return fromHref
   return normalizeToken(offer.title)
-}
-
-function isOfferActive(offer: PromoOffer) {
-  return offer.is_active !== false
 }
 
 function getOfferBundleSizes(offer: PromoOffer) {

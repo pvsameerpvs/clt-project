@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { getSiteSettings } from "@/lib/api"
+import { isOfferActive } from "@/lib/offers"
 
 interface PromoOffer {
   title: string
@@ -29,10 +30,6 @@ function resolveOfferHref(offer: PromoOffer) {
   if (/^\/offers\/[^/?#]+/i.test(href)) return href
   const fallbackSlug = slugify(offer.title)
   return fallbackSlug ? `/offers/${fallbackSlug}` : "/offers"
-}
-
-function isOfferActive(offer: PromoOffer) {
-  return offer.is_active !== false
 }
 
 export function OfferCards() {

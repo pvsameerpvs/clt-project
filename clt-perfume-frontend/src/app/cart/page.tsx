@@ -1,12 +1,13 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useMemo } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { getCartLineKey, useCart } from "@/contexts/cart-context"
+import { CartItem as CartLineItem, getCartLineKey, useCart } from "@/contexts/cart-context"
 import { CartItem } from "@/components/cart/cart-item"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ShoppingBag } from "lucide-react"
+import { ArrowLeft, ShoppingBag, X } from "lucide-react"
 
 export default function CartPage() {
   return (
@@ -17,9 +18,60 @@ export default function CartPage() {
 }
 
 function CartPageContent() {
-  const { items, totalPrice, totalItems } = useCart()
+  const { items, totalPrice, totalItems, removeFromCart } = useCart()
   const searchParams = useSearchParams()
   const bundleName = searchParams.get("bundle")?.trim() || ""
+
+  const { standaloneItems, bundleGroups } = useMemo(() => {
+    const bundleMap = new Map<
+      string,
+      {
+        id: string
+        name: string
+        discountPercent: number
+        size: number
+        items: CartLineItem[]
+        originalTotal: number
+        offerTotal: number
+      }
+    >()
+
+    const singles: CartLineItem[] = []
+
+    for (const item of items) {
+      const bundle = item.bundle
+      if (!bundle?.id) {
+        singles.push(item)
+        continue
+      }
+
+      const existing = bundleMap.get(bundle.id)
+      const originalUnitPrice = Number(item.originalUnitPrice || item.product.price)
+      const offerUnitPrice = Number(item.product.price)
+
+      if (!existing) {
+        bundleMap.set(bundle.id, {
+          id: bundle.id,
+          name: bundle.name,
+          discountPercent: bundle.discountPercent,
+          size: bundle.size,
+          items: [item],
+          originalTotal: originalUnitPrice * item.quantity,
+          offerTotal: offerUnitPrice * item.quantity,
+        })
+        continue
+      }
+
+      existing.items.push(item)
+      existing.originalTotal += originalUnitPrice * item.quantity
+      existing.offerTotal += offerUnitPrice * item.quantity
+    }
+
+    return {
+      standaloneItems: singles,
+      bundleGroups: Array.from(bundleMap.values()),
+    }
+  }, [items])
 
   if (items.length === 0) {
     return (
@@ -63,8 +115,67 @@ function CartPageContent() {
           {/* Cart Items */}
           <div className="lg:col-span-2 bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-neutral-100 h-fit">
             <div className="space-y-2">
-              {items.map(item => (
-                <CartItem key={getCartLineKey(item.product.id, Number(item.product.price))} item={item} />
+              {bundleGroups.map((bundleGroup) => {
+                const itemCount = bundleGroup.items.reduce((sum, item) => sum + item.quantity, 0)
+                const savings = Math.max(0, bundleGroup.originalTotal - bundleGroup.offerTotal)
+
+                return (
+                  <div key={bundleGroup.id} className="border border-neutral-200 rounded-2xl p-5 md:p-6 mb-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-amber-700 font-semibold">Bundle Offer</p>
+                        <h3 className="text-xl font-serif text-neutral-900 mt-1">{bundleGroup.name}</h3>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          {itemCount} items selected • {bundleGroup.discountPercent}% OFF
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          bundleGroup.items.forEach((item) =>
+                            removeFromCart(
+                              getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)
+                            )
+                          )
+                        }
+                        className="text-neutral-400 hover:text-black transition-colors"
+                        aria-label={`Remove ${bundleGroup.name}`}
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {bundleGroup.items.map((item) => (
+                        <div key={getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)} className="rounded-xl border border-neutral-100 bg-neutral-50 p-2">
+                          <div className="relative h-20 w-full rounded-lg overflow-hidden bg-white">
+                            <Image
+                              src={item.product.images[0]}
+                              alt={item.product.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <p className="text-xs text-neutral-700 mt-2 line-clamp-1">{item.product.name}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-neutral-100 flex items-center justify-between text-sm">
+                      <div>
+                        <span className="text-neutral-500 line-through mr-2">AED {Math.round(bundleGroup.originalTotal)}</span>
+                        <span className="font-semibold text-neutral-900">AED {Math.round(bundleGroup.offerTotal)}</span>
+                      </div>
+                      <span className="text-green-700 font-medium">You save AED {Math.round(savings)}</span>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {standaloneItems.map((item) => (
+                <CartItem
+                  key={getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)}
+                  item={item}
+                />
               ))}
             </div>
           </div>

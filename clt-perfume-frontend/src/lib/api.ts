@@ -138,7 +138,6 @@ const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
   },
 }
 
-let settingsCache: SiteSettingsData | null = null
 let settingsRequest: Promise<SiteSettingsData> | null = null
 let hasLoggedSettingsWarning = false
 
@@ -207,7 +206,6 @@ function mergeSettings(data: unknown): SiteSettingsData {
 }
 
 export async function getSiteSettings() {
-  if (settingsCache) return settingsCache
   if (settingsRequest) return settingsRequest
 
   settingsRequest = (async () => {
@@ -218,20 +216,17 @@ export async function getSiteSettings() {
           console.warn(`[settings] backend responded with status ${res.status}; using fallback settings.`)
           hasLoggedSettingsWarning = true
         }
-        settingsCache = DEFAULT_SITE_SETTINGS
-        return settingsCache
+        return DEFAULT_SITE_SETTINGS
       }
 
       const data = await res.json()
-      settingsCache = mergeSettings(data)
-      return settingsCache
+      return mergeSettings(data)
     } catch {
       if (!hasLoggedSettingsWarning) {
         console.warn("[settings] failed to fetch from backend; using fallback settings.")
         hasLoggedSettingsWarning = true
       }
-      settingsCache = DEFAULT_SITE_SETTINGS
-      return settingsCache
+      return DEFAULT_SITE_SETTINGS
     } finally {
       settingsRequest = null
     }
@@ -241,7 +236,6 @@ export async function getSiteSettings() {
 }
 
 export function clearSiteSettingsCache() {
-  settingsCache = null
   settingsRequest = null
   hasLoggedSettingsWarning = false
 }
