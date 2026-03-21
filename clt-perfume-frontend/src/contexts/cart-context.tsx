@@ -22,9 +22,28 @@ export interface CartItem {
   originalUnitPrice?: number
 }
 
+export type PromoDiscountType = "percentage" | "fixed"
+
+export interface AppliedPromo {
+  code: string
+  discountType: PromoDiscountType
+  discountValue: number
+}
+
 function toPriceNumber(value: unknown) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function calculatePromoDiscount(subtotal: number, promo: AppliedPromo | null) {
+  const safeSubtotal = Math.max(0, toPriceNumber(subtotal))
+  if (!promo) return 0
+
+  const safeValue = Math.max(0, toPriceNumber(promo.discountValue))
+  if (promo.discountType === "fixed") return Math.min(safeSubtotal, safeValue)
+
+  const percent = Math.min(100, safeValue)
+  return (safeSubtotal * percent) / 100
 }
 
 export function getCartLineKey(productId: string, unitPrice: number, bundleId?: string) {
@@ -41,6 +60,10 @@ interface CartContextType {
   addToCart: (product: Product, quantity: number, options?: AddToCartOptions) => void
   removeFromCart: (lineKey: string) => void
   updateQuantity: (lineKey: string, quantity: number) => void
+  promo: AppliedPromo | null
+  setPromo: (promo: AppliedPromo | null) => void
+  promoDiscountAmount: number
+  discountedTotal: number
   totalItems: number
   totalPrice: number
 }
@@ -49,6 +72,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
+  const [promo, setPromo] = useState<AppliedPromo | null>(null)
   const hasLoadedFromStorage = useRef(false)
 
   // Load from LocalStorage after first mount to avoid SSR hydration mismatches.
@@ -57,8 +81,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem("cle_cart")
       if (saved) {
         const parsed = JSON.parse(saved) as CartItem[]
+        const savedPromo = localStorage.getItem("cle_cart_promo")
+        const parsedPromo = savedPromo ? (JSON.parse(savedPromo) as AppliedPromo) : null
         queueMicrotask(() => {
           setItems(parsed)
+          if (parsed.length === 0) {
+            setPromo(null)
+          } else if (parsedPromo && parsedPromo.code && parsedPromo.discountType) {
+            setPromo({
+              code: String(parsedPromo.code).toUpperCase(),
+              discountType: parsedPromo.discountType === "fixed" ? "fixed" : "percentage",
+              discountValue: Math.max(0, toPriceNumber(parsedPromo.discountValue)),
+            })
+          } else {
+            setPromo(null)
+          }
           hasLoadedFromStorage.current = true
         })
         return
@@ -75,6 +112,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!hasLoadedFromStorage.current) return
     localStorage.setItem("cle_cart", JSON.stringify(items))
   }, [items])
+
+  useEffect(() => {
+    if (!hasLoadedFromStorage.current) return
+    if (promo) {
+      localStorage.setItem("cle_cart_promo", JSON.stringify(promo))
+      return
+    }
+    localStorage.removeItem("cle_cart_promo")
+  }, [promo])
 
   const addToCart = (product: Product, quantity: number, options?: AddToCartOptions) => {
     setItems(prev => {
@@ -101,7 +147,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   const removeFromCart = (lineKey: string) => {
-    setItems(prev => prev.filter(item => getItemLineKey(item) !== lineKey))
+    setItems(prev => {
+      const next = prev.filter(item => getItemLineKey(item) !== lineKey)
+      if (next.length === 0) setPromo(null)
+      return next
+    })
   }
 
   const updateQuantity = (lineKey: string, quantity: number) => {
@@ -116,9 +166,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
   const totalPrice = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
+  const promoDiscountAmount = calculatePromoDiscount(totalPrice, promo)
+  const discountedTotal = Math.max(0, totalPrice - promoDiscountAmount)
 
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, totalItems, totalPrice }}>
+    <CartContext.Provider
+      value={{
+        items,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        promo,
+        setPromo,
+        promoDiscountAmount,
+        discountedTotal,
+        totalItems,
+        totalPrice,
+      }}
+    >
       {children}
     </CartContext.Provider>
   )

@@ -1,5 +1,17 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
 
+export type PromoDiscountType = "percentage" | "fixed"
+
+export interface PromoValidationResponse {
+  valid: boolean
+  code?: string
+  discountType?: PromoDiscountType
+  discountValue?: number
+  discountAmount?: number
+  finalTotal?: number
+  message?: string
+}
+
 export interface NavMenuCategory {
   name: string
   slug: string
@@ -308,5 +320,21 @@ export async function subscribeNewsletter(email: string) {
   } catch (error) {
     console.error(error)
     return { error: "Failed to subscribe" }
+  }
+}
+
+export async function validatePromoCode(code: string, subtotal: number): Promise<PromoValidationResponse> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/promo-codes/validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, subtotal }),
+    })
+
+    const data = (await res.json()) as PromoValidationResponse
+    if (!res.ok) return { ...data, valid: false }
+    return data
+  } catch {
+    return { valid: false, message: "Failed to validate promo code" }
   }
 }

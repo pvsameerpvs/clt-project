@@ -13,6 +13,7 @@ import { newsletterRoutes } from './routes/newsletter.routes'
 import { adminRoutes } from './routes/admin.routes'
 import { settingsRoutes } from './routes/settings.routes'
 import { productRoutes } from './routes/product.routes'
+import { promoCodeRoutes } from './routes/promo-codes.routes'
 
 
 const app = express()
@@ -57,6 +58,7 @@ app.use(express.json())
 app.use('/api/payments', paymentRoutes)
 app.use('/api/orders', orderRoutes)
 app.use('/api/newsletter', newsletterRoutes)
+app.use('/api/promo-codes', promoCodeRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api/products', productRoutes)

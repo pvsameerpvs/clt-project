@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useMemo } from "react"
+import { Suspense, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
@@ -8,6 +8,7 @@ import { CartItem as CartLineItem, getCartLineKey, useCart } from "@/contexts/ca
 import { CartItem } from "@/components/cart/cart-item"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Minus, Plus, ShoppingBag, X } from "lucide-react"
+import { validatePromoCode } from "@/lib/api"
 
 function formatPrice(value: number) {
   return `AED ${Math.round(Number(value) || 0)}`
@@ -22,9 +23,24 @@ export default function CartPage() {
 }
 
 function CartPageContent() {
-  const { items, totalPrice, totalItems, removeFromCart, updateQuantity } = useCart()
+  const {
+    items,
+    totalPrice,
+    totalItems,
+    removeFromCart,
+    updateQuantity,
+    promo,
+    setPromo,
+    promoDiscountAmount,
+    discountedTotal,
+  } = useCart()
   const searchParams = useSearchParams()
   const bundleName = searchParams.get("bundle")?.trim() || ""
+  const [promoInput, setPromoInput] = useState("")
+  const [promoMessage, setPromoMessage] = useState("")
+  const [promoError, setPromoError] = useState(false)
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false)
+  const promoInputValue = promo ? promo.code : promoInput
 
   const { standaloneItems, bundleGroups } = useMemo(() => {
     const bundleMap = new Map<
@@ -117,6 +133,49 @@ function CartPageContent() {
 
     return [...bundleLines, ...singleLines]
   }, [bundleGroups, standaloneItems])
+
+  const applyPromo = async () => {
+    const code = promoInput.trim()
+    if (!code) {
+      setPromoError(true)
+      setPromoMessage("Enter promo code")
+      return
+    }
+    if (totalPrice <= 0) {
+      setPromoError(true)
+      setPromoMessage("Add items before applying promo")
+      return
+    }
+
+    setIsApplyingPromo(true)
+    setPromoMessage("")
+    setPromoError(false)
+
+    const result = await validatePromoCode(code, totalPrice)
+    if (!result.valid || !result.discountType) {
+      setPromoError(true)
+      setPromoMessage(result.message || "Invalid promo code")
+      setIsApplyingPromo(false)
+      return
+    }
+
+    setPromo({
+      code: (result.code || code).toUpperCase(),
+      discountType: result.discountType === "fixed" ? "fixed" : "percentage",
+      discountValue: Number(result.discountValue || 0),
+    })
+    setPromoInput("")
+    setPromoError(false)
+    setPromoMessage(result.message || "Promo applied")
+    setIsApplyingPromo(false)
+  }
+
+  const removePromo = () => {
+    setPromo(null)
+    setPromoInput("")
+    setPromoError(false)
+    setPromoMessage("Promo removed")
+  }
 
   if (items.length === 0) {
     return (
@@ -266,12 +325,62 @@ function CartPageContent() {
                   </div>
                 ))}
               </div>
+
+              <div className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 p-3 sm:p-4">
+                <p className="mb-2 text-[10px] uppercase tracking-[0.12em] text-neutral-500 sm:text-[11px]">
+                  Promo Code
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    value={promoInputValue}
+                    onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                    placeholder="ENTER CODE"
+                    disabled={Boolean(promo)}
+                    className="h-10 min-w-0 flex-1 rounded-lg border border-neutral-300 bg-white px-3 text-sm outline-none transition-colors focus:border-black sm:h-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyPromo}
+                    disabled={isApplyingPromo || Boolean(promo)}
+                    className="h-10 w-full rounded-lg bg-black px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 sm:h-11 sm:w-auto sm:min-w-[110px]"
+                  >
+                    {promo ? "Applied" : isApplyingPromo ? "Applying" : "Apply"}
+                  </button>
+                </div>
+                {promo && (
+                  <div className="mt-2 flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-800 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="break-all">
+                      {promo.code} ({promo.discountType === "percentage" ? `${promo.discountValue}%` : `AED ${promo.discountValue}`})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={removePromo}
+                      className="self-start font-semibold hover:text-black sm:self-auto"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+                {promoMessage && (
+                  <p
+                    className={`mt-2 text-xs leading-relaxed ${promoError ? "text-red-600" : "text-emerald-700"}`}
+                  >
+                    {promoMessage}
+                  </p>
+                )}
+              </div>
               
               <div className="space-y-4 text-sm font-light text-neutral-600 mb-6">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span className="font-medium text-black">{formatPrice(totalPrice)}</span>
                 </div>
+                {promo && promoDiscountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-700">
+                    <span>Promo Discount</span>
+                    <span>- {formatPrice(promoDiscountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Shipping</span>
                   <span className="text-green-600 font-medium tracking-wide">FREE</span>
@@ -284,7 +393,7 @@ function CartPageContent() {
 
               <div className="flex justify-between items-end border-t border-neutral-100 pt-6 mb-8 text-neutral-900">
                 <span className="font-serif">Total</span>
-                <span className="text-2xl font-serif">{formatPrice(totalPrice)}</span>
+                <span className="text-2xl font-serif">{formatPrice(discountedTotal)}</span>
               </div>
 
               <Button className="w-full h-14 rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-xs font-medium transition-all shadow-lg shadow-black/10">
