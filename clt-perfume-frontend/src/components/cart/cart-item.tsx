@@ -3,13 +3,8 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Plus, Minus, X } from "lucide-react"
-import { getCartLineKey, useCart } from "@/contexts/cart-context"
-import { Product, getCategoryLabel } from "@/lib/products"
-
-interface CartLineItem {
-  product: Product
-  quantity: number
-}
+import { CartItem as CartLineItem, getCartLineKey, useCart } from "@/contexts/cart-context"
+import { getCategoryLabel } from "@/lib/products"
 
 export function CartItem({ item }: { item: CartLineItem }) {
   const { updateQuantity, removeFromCart } = useCart()

@@ -105,11 +105,16 @@ export function Footer() {
           {/* Company */}
           <div className="space-y-6">
             <h4 className="font-semibold text-white uppercase tracking-widest text-xs">Company</h4>
-            <ul className="space-y-4">
-              <li><Link href="#" className="hover:text-white transition-colors">Our Story</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Ingredients</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Sustainability</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Contact Us</Link></li>
+            <ul className="space-y-3">
+              <li><Link href="/about" className="hover:text-white transition-colors">About Cle DXB</Link></li>
+              <li><Link href="/our-story" className="hover:text-white transition-colors">Our Story</Link></li>
+              <li><Link href="/why-cle-dxb" className="hover:text-white transition-colors">Why Cle DXB</Link></li>
+              <li><Link href="/bottle-design" className="hover:text-white transition-colors">Bottle Design</Link></li>
+              <li><Link href="/clean-eau-de-parfum" className="hover:text-white transition-colors">Clean Eau De Parfum</Link></li>
+              <li><Link href="/sustainability" className="hover:text-white transition-colors">Sustainability</Link></li>
+              <li><Link href="/ingredients" className="hover:text-white transition-colors">Ingredients</Link></li>
+              <li><Link href="/returns-refund-policy" className="hover:text-white transition-colors">Returns &amp; Refund Policy</Link></li>
+              <li><Link href="/contact-us" className="hover:text-white transition-colors">Contact Us</Link></li>
             </ul>
           </div>
 
@@ -118,7 +123,12 @@ export function Footer() {
             <h4 className="font-semibold text-white uppercase tracking-widest text-xs">Download Our App</h4>
             <p className="text-xs font-light leading-relaxed mb-4">Shop anytime, anywhere with the {info?.name || ""} app. Available on iOS and Android.</p>
             <div className="flex flex-col gap-3">
-              <a href="#" className="inline-block hover:scale-105 transition-transform origin-left">
+              <a
+                href="https://www.apple.com/app-store/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block hover:scale-105 transition-transform origin-left"
+              >
                 <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 w-[160px] shadow-sm">
                   <svg viewBox="0 0 384 512" className="w-6 h-6 fill-white"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
                   <div className="flex flex-col">
@@ -127,7 +137,12 @@ export function Footer() {
                   </div>
                 </div>
               </a>
-              <a href="#" className="inline-block hover:scale-105 transition-transform origin-left">
+              <a
+                href="https://play.google.com/store"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block hover:scale-105 transition-transform origin-left"
+              >
                 <div className="flex items-center gap-3 bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 w-[160px] shadow-sm">
                   <svg viewBox="0 0 512 512" className="w-6 h-6 fill-white"><path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/></svg>
                   <div className="flex flex-col">
@@ -144,9 +159,9 @@ export function Footer() {
         <div className="border-t border-neutral-900 mt-16 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
           <p>&copy; {new Date().getFullYear()} {info?.name || ""}. All rights reserved.</p>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-white transition-colors">Shipping & Returns</a>
+            <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/returns-refund-policy" className="hover:text-white transition-colors">Shipping &amp; Returns</Link>
           </div>
         </div>
       </div>
