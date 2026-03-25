@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import {
   AdminOrder,
@@ -199,6 +200,9 @@ export default function OrdersPage() {
                     <td>
                       <div className="name">#{order.order_number || order.id.slice(0, 8)}</div>
                       <div className="sub">{order.id}</div>
+                      <Link href={`/dashboard/orders/${encodeURIComponent(order.id)}`} className="detail-link">
+                        Open details
+                      </Link>
                     </td>
                     <td>
                       <div className="name">{getProfileName(order)}</div>
@@ -341,6 +345,23 @@ export default function OrdersPage() {
           font-size: 12px;
           margin-top: 2px;
           word-break: break-word;
+        }
+        .detail-link {
+          display: inline-flex;
+          margin-top: 8px;
+          text-decoration: none;
+          border: 1px solid #d1d5db;
+          border-radius: 999px;
+          padding: 3px 8px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #111827;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          background: #fff;
+        }
+        .detail-link:hover {
+          border-color: #111827;
         }
         .status {
           display: inline-block;

@@ -146,8 +146,17 @@ export interface AdminOrder {
   status: string
   created_at: string
   shipping_address?: Record<string, unknown>
-  profile?: { first_name?: string | null; last_name?: string | null; email?: string | null } | Array<{ first_name?: string | null; last_name?: string | null; email?: string | null }> | null
-  items?: Array<{ product_name: string; quantity: number; price: number }>
+  profile?:
+    | { first_name?: string | null; last_name?: string | null; email?: string | null; phone?: string | null }
+    | Array<{ first_name?: string | null; last_name?: string | null; email?: string | null; phone?: string | null }>
+    | null
+  items?: Array<{
+    product_name: string
+    quantity: number
+    price: number
+    product_image?: string | null
+    product_slug?: string | null
+  }>
 }
 
 export interface InvoiceData {
