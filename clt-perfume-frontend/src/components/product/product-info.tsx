@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Product, getCategoryLabel } from "@/lib/products"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,6 +22,7 @@ import { getSiteSettings } from "@/lib/api"
 import { isOfferActive } from "@/lib/offers"
 
 import { useCart } from "@/contexts/cart-context"
+import { useAuth } from "@/contexts/auth-context"
 
 interface PromoOffer {
   title: string
@@ -75,6 +77,8 @@ export function ProductInfo({ product }: { product: Product }) {
   const [engravingFont, setEngravingFont] = useState("serif")
   const [matchingBundleOffer, setMatchingBundleOffer] = useState<PromoOffer | null>(null)
   const { addToCart } = useCart()
+  const { user, isLoading: isAuthLoading } = useAuth()
+  const router = useRouter()
 
   const engravingPrice = engraving ? 25 : 0
   const categoryLabel = getCategoryLabel(product.category)
@@ -105,6 +109,33 @@ export function ProductInfo({ product }: { product: Product }) {
       active = false
     }
   }, [product.slug])
+
+  const addCurrentProductToCart = () => {
+    addToCart(
+      {
+        ...product,
+        price: product.price + engravingPrice,
+      },
+      quantity
+    )
+  }
+
+  const handleBuyNow = () => {
+    if (isAuthLoading) return
+
+    addCurrentProductToCart()
+
+    if (!user) {
+      router.push(
+        `/login?next=${encodeURIComponent("/checkout")}&message=${encodeURIComponent(
+          "Please login to continue checkout"
+        )}`
+      )
+      return
+    }
+
+    router.push("/checkout")
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -247,10 +278,7 @@ export function ProductInfo({ product }: { product: Product }) {
         <div className="flex flex-col sm:flex-row gap-4">
           <Button 
             onClick={() => {
-              addToCart({
-                ...product,
-                price: product.price + engravingPrice,
-              }, quantity)
+              addCurrentProductToCart()
               toast.success(`${quantity}x ${product.name} added to bag`, {
                 description: engraving ? `Includes custom engraving: "${engraving}"` : "You can view your bag or continue shopping.",
                 action: {
@@ -264,8 +292,12 @@ export function ProductInfo({ product }: { product: Product }) {
           >
             Add to Cart
           </Button>
-          <Button className="h-14 flex-1 rounded-full bg-black hover:bg-neutral-800 text-white uppercase tracking-widest text-xs font-medium">
-            Buy Now
+          <Button
+            onClick={handleBuyNow}
+            disabled={isAuthLoading}
+            className="h-14 flex-1 rounded-full bg-black hover:bg-neutral-800 text-white uppercase tracking-widest text-xs font-medium"
+          >
+            {isAuthLoading ? "Checking..." : "Buy Now"}
           </Button>
         </div>
 

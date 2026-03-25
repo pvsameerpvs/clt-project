@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Briefcase, Check, CreditCard, House, MapPin, PlusCircle, ShoppingBag, Truck } from "lucide-react"
+import { Briefcase, Check, CreditCard, House, Loader2, MapPin, PlusCircle, ShoppingBag, Truck } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
+import { useAuth } from "@/contexts/auth-context"
 import { createBankCheckoutSession, createCashOnDeliveryOrder, validatePromoCode } from "@/lib/api"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -114,6 +115,7 @@ export default function CheckoutPage() {
     promoDiscountAmount,
     discountedTotal,
   } = useCart()
+  const { user, isLoading: isAuthLoading } = useAuth()
   const router = useRouter()
 
   const [promoInput, setPromoInput] = useState("")
@@ -121,7 +123,6 @@ export default function CheckoutPage() {
   const [promoError, setPromoError] = useState(false)
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)
 
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [shippingAddresses, setShippingAddresses] = useState<CheckoutAddress[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState("")
   const [showAddressForm, setShowAddressForm] = useState(false)
@@ -133,7 +134,7 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod")
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
-  const [isAuthResolved, setIsAuthResolved] = useState(false)
+  const currentUserId = user?.id || null
 
   const selectedCheckoutAddress = useMemo(
     () => shippingAddresses.find((address) => address.id === selectedAddressId) || null,
@@ -152,78 +153,74 @@ export default function CheckoutPage() {
   }, [items.length, router])
 
   useEffect(() => {
+    if (isAuthLoading) return
+
     let mounted = true
 
     async function loadCheckoutAddresses() {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!mounted) return
-
-      if (!user) {
-        setCurrentUserId(null)
+      if (!currentUserId) {
         setShippingAddresses([])
         setSelectedAddressId("")
+        setShowAddressForm(false)
+        setAddressFormError("")
         setAddressForm(createAddressFormState("Client Account", "+971 "))
-        setIsAuthResolved(true)
         return
       }
 
-      setCurrentUserId(user.id)
-
+      const supabase = createClient()
       const { data: profileData } = await supabase
         .from("profiles")
         .select("first_name,last_name,phone")
-        .eq("id", user.id)
+        .eq("id", currentUserId)
         .maybeSingle()
 
       const contactName =
         [profileData?.first_name, profileData?.last_name].filter(Boolean).join(" ").trim() ||
-        user.email?.split("@")[0] ||
+        user?.email?.split("@")[0] ||
         "Client Account"
       const phone = profileData?.phone?.trim() || "+971 "
-      let addressData: UserAddressRow[] = []
 
+      let addressData: UserAddressRow[] = []
       const detailedResult = await supabase
         .from("user_addresses")
         .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
-        .eq("user_id", user.id)
+        .eq("user_id", currentUserId)
         .order("created_at", { ascending: true })
 
       if (detailedResult.error) {
         const fallbackResult = await supabase
           .from("user_addresses")
           .select("id,title,address_type,contact_name,phone,line1,line2,city,country,is_primary")
-          .eq("user_id", user.id)
+          .eq("user_id", currentUserId)
           .order("created_at", { ascending: true })
-
         addressData = (fallbackResult.data || []) as UserAddressRow[]
       } else {
         addressData = (detailedResult.data || []) as UserAddressRow[]
       }
 
-      const hydratedAddresses = addressData.map(mapUserAddressRow)
+      if (!mounted) return
 
+      const hydratedAddresses = addressData.map(mapUserAddressRow)
       setShippingAddresses(hydratedAddresses)
       setSelectedAddressId(hydratedAddresses.find((address) => address.isPrimary)?.id || hydratedAddresses[0]?.id || "")
       setAddressForm(createAddressFormState(contactName, phone))
-      setIsAuthResolved(true)
     }
 
     loadCheckoutAddresses().catch(() => {
       if (!mounted) return
-      setCurrentUserId(null)
       setShippingAddresses([])
       setSelectedAddressId("")
-      setAddressForm(createAddressFormState("Client Account", "+971 "))
-      setIsAuthResolved(true)
     })
 
     return () => {
       mounted = false
     }
-  }, [])
+  }, [currentUserId, isAuthLoading, user?.email])
+
+  useEffect(() => {
+    if (isAuthLoading || items.length === 0 || currentUserId) return
+    router.replace(loginToCheckoutHref)
+  }, [currentUserId, isAuthLoading, items.length, loginToCheckoutHref, router])
 
   useEffect(() => {
     if (shippingAddresses.length === 0) return
@@ -441,12 +438,14 @@ export default function CheckoutPage() {
     )
   }
 
-  if (!isAuthResolved) {
+  if (isAuthLoading) {
     return (
       <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center px-4">
-        <div className="h-24 w-24 bg-neutral-100 rounded-full flex items-center justify-center mb-6 animate-pulse" />
-        <h1 className="text-3xl font-serif text-neutral-900 mb-4">Preparing Checkout</h1>
-        <p className="text-neutral-500 font-light max-w-sm text-center">Checking your account before loading delivery details.</p>
+        <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white">
+          <Loader2 className="h-5 w-5 animate-spin text-neutral-600" />
+        </div>
+        <h1 className="text-2xl font-serif text-neutral-900 mb-2">Securing Checkout</h1>
+        <p className="text-neutral-500 font-light max-w-sm text-center">Verifying account access and loading your delivery details.</p>
       </div>
     )
   }
@@ -454,17 +453,17 @@ export default function CheckoutPage() {
   if (!currentUserId) {
     return (
       <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center px-4">
-        <div className="h-24 w-24 bg-neutral-100 rounded-full flex items-center justify-center mb-6">
-          <ShoppingBag className="h-10 w-10 text-neutral-300" />
+        <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white">
+          <Loader2 className="h-5 w-5 animate-spin text-neutral-600" />
         </div>
-        <h1 className="text-3xl font-serif text-neutral-900 mb-4">Login Required</h1>
+        <h1 className="text-2xl font-serif text-neutral-900 mb-2">Redirecting to Login</h1>
         <p className="text-neutral-500 font-light mb-8 max-w-md text-center">
-          Please sign in to continue checkout, choose your address, and place your order securely.
+          Checkout requires sign-in. You will continue to delivery and payment right after login.
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <Link href={loginToCheckoutHref}>
             <Button className="h-12 px-8 rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-xs font-medium">
-              Login to Continue
+              Continue to Login
             </Button>
           </Link>
           <Link href="/cart" className="h-12 inline-flex items-center justify-center rounded-xl border border-neutral-300 px-8 text-xs font-semibold uppercase tracking-[0.12em] text-neutral-700 transition hover:border-black hover:text-black">

@@ -124,7 +124,7 @@ export function ProductCard({ product }: { product: Product }) {
              </Button>
           </div>
 
-          <div className="absolute inset-x-0 bottom-0 z-20 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out bg-gradient-to-t from-black/60 to-transparent">
+          <div className="absolute inset-x-0 bottom-0 z-20 hidden p-4 translate-y-full transition-transform duration-300 ease-out bg-gradient-to-t from-black/60 to-transparent md:block md:group-hover:translate-y-0">
              <Button 
                 onClick={handleAddToCart}
                 className="w-full bg-white text-black hover:bg-neutral-100 backdrop-blur-sm shadow-lg rounded-none h-11 text-xs uppercase tracking-widest font-medium group-hover:delay-75 transition-all"
@@ -141,8 +141,14 @@ export function ProductCard({ product }: { product: Product }) {
                 <h3 className="font-serif text-lg text-neutral-900 leading-none group-hover:text-neutral-600 transition-colors">{product.name}</h3>
                 <p className="text-xs text-neutral-500 mt-1 uppercase tracking-wider">{product.scent}</p>
              </div>
-             <span className="font-medium text-sm text-neutral-900 hidden md:block">AED {product.price}</span>
+             <span className="font-medium text-xs sm:text-sm text-neutral-900">AED {product.price}</span>
           </div>
+          <Button
+            onClick={handleAddToCart}
+            className="mt-2 h-10 w-full rounded-none bg-black text-xs font-medium uppercase tracking-widest text-white transition-all hover:bg-neutral-800 md:hidden"
+          >
+            Add to Bag
+          </Button>
         </CardFooter>
       </Card>
     </Link>
