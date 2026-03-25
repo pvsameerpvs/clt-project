@@ -39,6 +39,12 @@ export interface CodCheckoutResponse {
   payment_method: string
 }
 
+export interface BankCheckoutSessionResponse {
+  url: string
+  sessionId: string
+  orderId?: string
+}
+
 export interface UserOrderItemRecord {
   id: string
   product_id?: string | null
@@ -426,6 +432,31 @@ export async function createCashOnDeliveryOrder(
   const data = (await res.json()) as CodCheckoutResponse & { error?: string }
   if (!res.ok) {
     throw new Error(data.error || "Failed to place cash on delivery order")
+  }
+
+  return data
+}
+
+export async function createBankCheckoutSession(
+  accessToken: string,
+  payload: CodCheckoutPayload
+): Promise<BankCheckoutSessionResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/payments/create-checkout-session`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  const data = (await res.json()) as BankCheckoutSessionResponse & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to start bank payment checkout")
+  }
+
+  if (!data.url) {
+    throw new Error("Payment session URL is missing")
   }
 
   return data

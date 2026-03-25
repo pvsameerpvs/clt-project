@@ -23,8 +23,6 @@ webhookRoutes.post(
 
     switch (event.type) {
       case 'checkout.session.completed': {
-        // The event.data.object already contains the full Stripe.Checkout.Session object
-        // No need to retrieve it again using req.params.sessionId as it's not available here.
         const session = event.data.object as Stripe.Checkout.Session
         await handleCheckoutCompleted(session)
         break
@@ -42,12 +40,73 @@ webhookRoutes.post(
   }
 )
 
+async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
+  const orderId = session.metadata?.order_id
+  if (!orderId) return false
+
+  const { data: order, error: orderError } = await supabaseAdmin
+    .from('orders')
+    .select('id, user_id, status, payment_method')
+    .eq('id', orderId)
+    .maybeSingle()
+
+  if (orderError || !order) {
+    console.error('Direct checkout order not found:', orderError?.message || orderId)
+    return false
+  }
+
+  if (order.status === 'paid' || order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered') {
+    return true
+  }
+
+  const { data: orderItems, error: itemsError } = await supabaseAdmin
+    .from('order_items')
+    .select('product_id, quantity')
+    .eq('order_id', order.id)
+
+  if (itemsError) {
+    console.error('Failed to load direct checkout order items:', itemsError.message)
+    return false
+  }
+
+  for (const item of orderItems || []) {
+    if (!item.product_id) continue
+    await supabaseAdmin.rpc('decrement_stock', {
+      p_product_id: item.product_id,
+      p_quantity: item.quantity,
+    })
+  }
+
+  const { error: updateError } = await supabaseAdmin
+    .from('orders')
+    .update({
+      status: 'paid',
+      payment_intent_id: session.payment_intent as string,
+      stripe_session_id: session.id,
+    })
+    .eq('id', order.id)
+
+  if (updateError) {
+    console.error('Failed to mark direct checkout order as paid:', updateError.message)
+    return false
+  }
+
+  if (order.user_id) {
+    await supabaseAdmin.from('cart_items').delete().eq('user_id', order.user_id)
+  }
+
+  console.log(`✅ Direct order ${order.id} marked paid`)
+  return true
+}
+
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const directHandled = await fulfillDirectOrderPayment(session)
+  if (directHandled) return
+
   const userId = session.metadata?.user_id
   if (!userId) return
 
   try {
-    // 1. Get user's cart items
     const { data: cartItems } = await supabaseAdmin
       .from('cart_items')
       .select('quantity, product:products(id, name, price, images, slug)')
@@ -55,13 +114,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     if (!cartItems || cartItems.length === 0) return
 
-    // 2. Calculate totals
     const subtotal = cartItems.reduce(
       (sum: number, item: any) => sum + item.product.price * item.quantity, 0
     )
-    const tax = Math.round(subtotal * 0.05 * 100) / 100 // 5% VAT
+    const tax = Math.round(subtotal * 0.05 * 100) / 100
 
-    // 3. Create order
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
@@ -93,7 +150,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       return
     }
 
-    // 4. Create order items
     const orderItems = cartItems.map((item: any) => ({
       order_id: order.id,
       product_id: item.product.id,
@@ -105,7 +161,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }))
     await supabaseAdmin.from('order_items').insert(orderItems)
 
-    // 5. Decrement stock
     for (const item of cartItems as any[]) {
       await supabaseAdmin.rpc('decrement_stock', {
         p_product_id: item.product.id,
@@ -113,7 +168,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       })
     }
 
-    // 6. Clear cart
     await supabaseAdmin.from('cart_items').delete().eq('user_id', userId)
 
     console.log(`✅ Order ${order.order_number} created for user ${userId}`)
