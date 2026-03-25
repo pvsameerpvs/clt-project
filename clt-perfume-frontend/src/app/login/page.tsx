@@ -12,7 +12,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; message?: string; next?: string }>
 }) {
   const { error, message, next } = await searchParams
-  const nextPath = next && next.startsWith("/") ? next : "/dashboard"
+  const nextPath = next && next.startsWith("/") ? next : "/profile"
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-neutral-50">

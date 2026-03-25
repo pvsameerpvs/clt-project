@@ -95,7 +95,8 @@ export function ProductPreview({ product, isDraft }: ProductPreviewProps) {
           </button>
 
           <div className="cta-wrap">
-            <button className="cta" type="button">Add to Bag - AED {money(product.price)}</button>
+            <button className="cta" type="button">Add to Bag </button>
+            {/* - AED {money(product.price)} */}
           </div>
         </div>
 

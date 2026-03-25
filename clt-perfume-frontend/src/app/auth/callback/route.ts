@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 
 function sanitizeNextPath(nextPath: string | null): string {
   if (!nextPath || !nextPath.startsWith("/")) {
-    return "/dashboard"
+    return "/profile"
   }
 
   return nextPath

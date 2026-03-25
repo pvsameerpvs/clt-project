@@ -177,9 +177,38 @@ export interface AdminCustomer {
   lastOrderAt: string | null
 }
 
+export interface AdminCustomerProfile {
+  id: string
+  firstName: string | null
+  lastName: string | null
+  email: string | null
+  phone: string | null
+  avatarUrl: string | null
+  role: string
+  createdAt: string
+}
+
+export interface AdminCustomerOrder {
+  id: string
+  order_number?: string
+  total: number
+  subtotal: number
+  tax: number
+  shipping_fee: number
+  status: string
+  created_at: string
+  shipping_address?: Record<string, unknown> | null
+}
+
+export interface AdminCustomerDetails {
+  customer: AdminCustomerProfile
+  orders: AdminCustomerOrder[]
+  shippingAddresses: Array<Record<string, unknown>>
+}
+
 export const ORDER_STATUSES = [
   "pending",
-  "paid",
+  "confirmed",
   "processing",
   "shipped",
   "delivered",
@@ -283,6 +312,10 @@ export function updateAdminOrderStatus(orderId: string, status: AdminOrderStatus
 
 export function getAdminCustomers() {
   return adminFetch<AdminCustomer[]>("/api/admin/customers")
+}
+
+export function getAdminCustomerDetails(customerId: string) {
+  return adminFetch<AdminCustomerDetails>(`/api/admin/customers/${encodeURIComponent(customerId)}`)
 }
 
 export function getSiteSettings() {

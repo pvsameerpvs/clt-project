@@ -37,8 +37,8 @@ function statusTone(status: string) {
   switch (status) {
     case "pending":
       return "pending"
-    case "paid":
-      return "paid"
+    case "confirmed":
+      return "confirmed"
     case "processing":
       return "processing"
     case "shipped":
@@ -108,7 +108,9 @@ export default function OrdersPage() {
       .filter((order) => isRevenueOrder(order.status))
       .reduce((sum, order) => sum + Number(order.total || 0), 0)
 
-    const pending = orders.filter((order) => order.status === "pending" || order.status === "processing").length
+    const pending = orders.filter(
+      (order) => order.status === "pending" || order.status === "confirmed" || order.status === "processing"
+    ).length
     const fulfilled = orders.filter((order) => order.status === "delivered").length
 
     return {
@@ -353,7 +355,7 @@ export default function OrdersPage() {
           background: #fff7ed;
           color: #9a3412;
         }
-        .status.paid {
+        .status.confirmed {
           background: #eff6ff;
           color: #1d4ed8;
         }

@@ -45,7 +45,7 @@ export function Footer() {
   return (
     <footer className="bg-black text-white border-t border-neutral-900">
       <div className="container mx-auto px-4 md:px-6 py-16 md:py-24">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 text-sm text-neutral-400">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 text-sm text-neutral-400">
           
           {/* Brand Info */}
           <div className="space-y-6 col-span-1 lg:col-span-2">
@@ -119,7 +119,7 @@ export function Footer() {
           </div>
 
           {/* Apps */}
-          <div className="space-y-6">
+          {/* <div className="space-y-6">
             <h4 className="font-semibold text-white uppercase tracking-widest text-xs">Download Our App</h4>
             <p className="text-xs font-light leading-relaxed mb-4">Shop anytime, anywhere with the {info?.name || ""} app. Available on iOS and Android.</p>
             <div className="flex flex-col gap-3">
@@ -152,7 +152,7 @@ export function Footer() {
                 </div>
               </a>
             </div>
-          </div>
+          </div> */}
         </div>
         
         {/* Bottom Bar */}

@@ -12,6 +12,77 @@ export interface PromoValidationResponse {
   message?: string
 }
 
+export interface CodCheckoutItemInput {
+  product_id: string
+  quantity: number
+  unit_price: number
+  original_unit_price?: number
+}
+
+export interface CodCheckoutPayload {
+  items: CodCheckoutItemInput[]
+  promo?: {
+    code?: string
+    discountType?: PromoDiscountType
+    discountValue?: number
+  } | null
+  shipping_address?: Record<string, unknown> | null
+}
+
+export interface CodCheckoutResponse {
+  id: string
+  order_number?: string
+  status: string
+  subtotal: number
+  promo_discount: number
+  total: number
+  payment_method: string
+}
+
+export interface UserOrderItemRecord {
+  id: string
+  product_id?: string | null
+  product_name?: string | null
+  product_image?: string | null
+  product_slug?: string | null
+  price?: number | string | null
+  quantity?: number | string | null
+}
+
+export interface UserOrderRecord {
+  id: string
+  order_number?: string | null
+  total?: number | string | null
+  status?: string | null
+  created_at: string
+  items?: UserOrderItemRecord[] | null
+  shipping_address?: {
+    title?: string
+    city?: string
+    country?: string
+  } | null
+}
+
+export interface OrderActionResponse {
+  id: string
+  status: string
+}
+
+export interface ReturnRequestRecord {
+  id: string
+  order_id: string
+  reason?: string | null
+  status: "pending" | "approved" | "rejected" | "completed" | string
+  created_at: string
+  updated_at: string
+  order?: {
+    order_number?: string | null
+    total?: number | string | null
+    status?: string | null
+    created_at?: string | null
+  } | null
+}
+
 export interface NavMenuCategory {
   name: string
   slug: string
@@ -337,4 +408,92 @@ export async function validatePromoCode(code: string, subtotal: number): Promise
   } catch {
     return { valid: false, message: "Failed to validate promo code" }
   }
+}
+
+export async function createCashOnDeliveryOrder(
+  accessToken: string,
+  payload: CodCheckoutPayload
+): Promise<CodCheckoutResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/orders/cod-checkout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  const data = (await res.json()) as CodCheckoutResponse & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to place cash on delivery order")
+  }
+
+  return data
+}
+
+export async function getMyOrders(accessToken: string): Promise<UserOrderRecord[]> {
+  const res = await fetch(`${API_BASE_URL}/api/orders`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: "no-store",
+  })
+
+  const data = (await res.json()) as UserOrderRecord[] & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to load orders")
+  }
+
+  return data as UserOrderRecord[]
+}
+
+export async function cancelMyOrder(accessToken: string, orderId: string): Promise<OrderActionResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/orders/${encodeURIComponent(orderId)}/cancel`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  const data = (await res.json()) as OrderActionResponse & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to cancel order")
+  }
+  return data
+}
+
+export async function getMyReturnRequests(accessToken: string): Promise<ReturnRequestRecord[]> {
+  const res = await fetch(`${API_BASE_URL}/api/orders/return-requests`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: "no-store",
+  })
+
+  const data = (await res.json()) as ReturnRequestRecord[] & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to load return requests")
+  }
+  return data as ReturnRequestRecord[]
+}
+
+export async function requestOrderReturn(
+  accessToken: string,
+  orderId: string,
+  payload?: { reason?: string }
+): Promise<ReturnRequestRecord> {
+  const res = await fetch(`${API_BASE_URL}/api/orders/${encodeURIComponent(orderId)}/return-request`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload || {}),
+  })
+
+  const data = (await res.json()) as ReturnRequestRecord & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to submit return request")
+  }
+  return data
 }

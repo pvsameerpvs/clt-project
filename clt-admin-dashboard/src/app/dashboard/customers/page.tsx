@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { AdminCustomer, getAdminCustomers } from "@/lib/admin-api"
 
 function fullName(customer: AdminCustomer) {
@@ -26,6 +28,7 @@ function spendingTier(totalSpent: number) {
 }
 
 export default function CustomersPage() {
+  const router = useRouter()
   const [customers, setCustomers] = useState<AdminCustomer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -81,6 +84,10 @@ export default function CustomersPage() {
       vipCustomers,
     }
   }, [customers])
+
+  const goToCustomerDetails = (customerId: string) => {
+    router.push(`/dashboard/customers/${encodeURIComponent(customerId)}`)
+  }
 
   return (
     <div className="customers-page">
@@ -156,6 +163,7 @@ export default function CustomersPage() {
                   <th>Tier</th>
                   <th>Last Order</th>
                   <th>Joined</th>
+                  <th>Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -164,7 +172,18 @@ export default function CustomersPage() {
                   const spent = Number(customer.totalSpent || 0)
                   const tier = spendingTier(spent)
                   return (
-                    <tr key={customer.id}>
+                    <tr
+                      key={customer.id}
+                      className="clickable-row"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => goToCustomerDetails(customer.id)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return
+                        event.preventDefault()
+                        goToCustomerDetails(customer.id)
+                      }}
+                    >
                       <td>
                         <div className="customer-id-block">
                           <div className="avatar">{name[0]?.toUpperCase() || "C"}</div>
@@ -188,6 +207,15 @@ export default function CustomersPage() {
                       </td>
                       <td className="sub">{formatUtcDate(customer.lastOrderAt)}</td>
                       <td className="sub">{formatUtcDate(customer.createdAt)}</td>
+                      <td>
+                        <Link
+                          href={`/dashboard/customers/${encodeURIComponent(customer.id)}`}
+                          className="details-link"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          View
+                        </Link>
+                      </td>
                     </tr>
                   )
                 })}
@@ -304,6 +332,17 @@ export default function CustomersPage() {
           font-size: 14px;
           vertical-align: top;
         }
+        .clickable-row {
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+        }
+        .clickable-row:hover {
+          background: #fafafa;
+        }
+        .clickable-row:focus-visible {
+          outline: 2px solid #111827;
+          outline-offset: -2px;
+        }
         .customer-id-block {
           display: grid;
           grid-template-columns: 32px 1fr;
@@ -331,6 +370,24 @@ export default function CustomersPage() {
         }
         .sub.id {
           max-width: 320px;
+        }
+        .details-link {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          border: 1px solid #d1d5db;
+          padding: 5px 10px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #111827;
+          text-decoration: none;
+          background: #fff;
+        }
+        .details-link:hover {
+          border-color: #111827;
         }
         .role,
         .tier {

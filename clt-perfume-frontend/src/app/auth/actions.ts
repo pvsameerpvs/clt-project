@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server"
 
 function sanitizeNextPath(nextPath: string | null): string {
   if (!nextPath || !nextPath.startsWith("/")) {
-    return "/dashboard"
+    return "/profile"
   }
 
   return nextPath
@@ -61,7 +61,7 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${baseUrl}/auth/callback?next=/dashboard`,
+      emailRedirectTo: `${baseUrl}/auth/callback?next=/profile`,
       data: {
         first_name: firstName,
         last_name: lastName,
@@ -74,7 +74,7 @@ export async function signup(formData: FormData) {
   }
 
   if (data.session) {
-    redirect("/dashboard")
+    redirect("/profile")
   }
 
   redirect("/login?message=Check%20your%20email%20to%20confirm%20your%20account")
@@ -87,7 +87,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${baseUrl}/auth/callback?next=/dashboard`,
+      redirectTo: `${baseUrl}/auth/callback?next=/profile`,
     },
   })
 

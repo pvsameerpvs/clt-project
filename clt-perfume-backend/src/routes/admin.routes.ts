@@ -17,6 +17,16 @@ function isRevenueOrder(status: string) {
   return status !== 'cancelled' && status !== 'refunded'
 }
 
+function normalizeOrderStatusForResponse(status: string) {
+  if (status === 'paid') return 'confirmed'
+  return status
+}
+
+function normalizeOrderStatusForStorage(status: string) {
+  if (status === 'confirmed') return 'paid'
+  return status
+}
+
 function isMissingParentIdColumn(error: { message?: string } | null | undefined) {
   return Boolean(error?.message?.includes("'parent_id'"))
 }
@@ -73,7 +83,7 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
         id: order.id,
         orderNumber: order.order_number || order.id.slice(0, 8),
         total: Number(order.total || 0),
-        status: order.status,
+        status: normalizeOrderStatusForResponse(order.status),
         createdAt: order.created_at,
       }))
 
@@ -276,7 +286,7 @@ adminRoutes.get('/orders/:id', async (req: Request, res: Response) => {
 
     if (error) throw error
     const { stock_quantity, ...rest } = data
-    res.json({ ...rest, stock: stock_quantity })
+    res.json({ ...rest, stock: stock_quantity, status: normalizeOrderStatusForResponse(rest.status) })
   } catch (error: any) {
     res.status(404).json({ error: 'Order not found' })
   }
@@ -326,7 +336,11 @@ adminRoutes.get('/orders', async (req: Request, res: Response) => {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    res.json(data)
+    const normalized = (data || []).map((order: any) => ({
+      ...order,
+      status: normalizeOrderStatusForResponse(order.status),
+    }))
+    res.json(normalized)
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
@@ -335,17 +349,18 @@ adminRoutes.get('/orders', async (req: Request, res: Response) => {
 // PUT /api/admin/orders/:id/status — Update order status
 adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
   try {
-    const { status } = req.body
-    const validStatuses = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']
+    const requestedStatus = String(req.body?.status || '').toLowerCase().trim()
+    const validStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', 'paid']
 
-    if (!validStatuses.includes(status)) {
+    if (!validStatuses.includes(requestedStatus)) {
       res.status(400).json({ error: 'Invalid status' })
       return
     }
 
-    const updateData: any = { status }
-    if (status === 'shipped') updateData.shipped_at = new Date().toISOString()
-    if (status === 'delivered') updateData.delivered_at = new Date().toISOString()
+    const statusToStore = normalizeOrderStatusForStorage(requestedStatus)
+    const updateData: any = { status: statusToStore }
+    if (statusToStore === 'shipped') updateData.shipped_at = new Date().toISOString()
+    if (statusToStore === 'delivered') updateData.delivered_at = new Date().toISOString()
 
     const { data, error } = await supabaseAdmin
       .from('orders')
@@ -355,7 +370,10 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
       .single()
 
     if (error) throw error
-    res.json(data)
+    res.json({
+      ...data,
+      status: normalizeOrderStatusForResponse(data.status),
+    })
   } catch (error: any) {
     res.status(400).json({ error: error.message })
   }
@@ -429,6 +447,75 @@ adminRoutes.get('/customers', async (req: Request, res: Response) => {
     })
 
     res.json(data)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// GET /api/admin/customers/:id — Customer details with orders and shipping addresses
+adminRoutes.get('/customers/:id', async (req: Request, res: Response) => {
+  try {
+    const customerId = String(req.params.id || '').trim()
+    if (!customerId) {
+      res.status(400).json({ error: 'Customer id is required' })
+      return
+    }
+
+    const [{ data: profile, error: profileError }, { data: orders, error: ordersError }, authUserResult] = await Promise.all([
+      supabaseAdmin
+        .from('profiles')
+        .select('id, first_name, last_name, phone, avatar_url, role, created_at')
+        .eq('id', customerId)
+        .single(),
+      supabaseAdmin
+        .from('orders')
+        .select('id, order_number, total, subtotal, tax, shipping_fee, status, created_at, shipping_address')
+        .eq('user_id', customerId)
+        .order('created_at', { ascending: false }),
+      supabaseAdmin.auth.admin.getUserById(customerId),
+    ])
+
+    if (profileError || !profile) {
+      res.status(404).json({ error: 'Customer not found' })
+      return
+    }
+    if (ordersError) throw ordersError
+    if (authUserResult.error) throw authUserResult.error
+
+    const customer = {
+      id: profile.id,
+      firstName: profile.first_name || null,
+      lastName: profile.last_name || null,
+      email: authUserResult.data.user?.email || null,
+      phone: profile.phone || null,
+      avatarUrl: profile.avatar_url || null,
+      role: profile.role || 'customer',
+      createdAt: profile.created_at,
+    }
+
+    const normalizedOrders = (orders || []).map((order: any) => ({
+      ...order,
+      status: normalizeOrderStatusForResponse(order.status),
+      total: Number(order.total || 0),
+      subtotal: Number(order.subtotal || 0),
+      tax: Number(order.tax || 0),
+      shipping_fee: Number(order.shipping_fee || 0),
+    }))
+
+    const shippingAddresses = Array.from(
+      new Map(
+        normalizedOrders
+          .map((order: any) => order.shipping_address)
+          .filter((address: unknown) => Boolean(address && typeof address === 'object'))
+          .map((address: any) => [JSON.stringify(address), address])
+      ).values()
+    )
+
+    res.json({
+      customer,
+      orders: normalizedOrders,
+      shippingAddresses,
+    })
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }

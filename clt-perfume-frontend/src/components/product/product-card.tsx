@@ -129,7 +129,8 @@ export function ProductCard({ product }: { product: Product }) {
                 onClick={handleAddToCart}
                 className="w-full bg-white text-black hover:bg-neutral-100 backdrop-blur-sm shadow-lg rounded-none h-11 text-xs uppercase tracking-widest font-medium group-hover:delay-75 transition-all"
              >
-               Add to Bag — AED {product.price}
+               Add to Bag 
+               {/* — AED {product.price} */}
              </Button>
           </div>
         </CardContent>

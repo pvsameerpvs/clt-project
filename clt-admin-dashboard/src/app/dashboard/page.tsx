@@ -160,7 +160,7 @@ export default function DashboardOverviewPage() {
                     <p className="text-xs font-bold">AED {order.total}</p>
                     <span className={cn(
                       "inline-block rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest mt-1",
-                      order.status === 'completed' ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"
+                      order.status === 'delivered' ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"
                     )}>
                       {order.status}
                     </span>

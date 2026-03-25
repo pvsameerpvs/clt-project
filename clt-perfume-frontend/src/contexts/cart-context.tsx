@@ -60,6 +60,7 @@ interface CartContextType {
   addToCart: (product: Product, quantity: number, options?: AddToCartOptions) => void
   removeFromCart: (lineKey: string) => void
   updateQuantity: (lineKey: string, quantity: number) => void
+  clearCart: () => void
   promo: AppliedPromo | null
   setPromo: (promo: AppliedPromo | null) => void
   promoDiscountAmount: number
@@ -164,6 +165,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ))
   }
 
+  const clearCart = () => {
+    setItems([])
+    setPromo(null)
+  }
+
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
   const totalPrice = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
   const promoDiscountAmount = calculatePromoDiscount(totalPrice, promo)
@@ -176,6 +182,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         addToCart,
         removeFromCart,
         updateQuantity,
+        clearCart,
         promo,
         setPromo,
         promoDiscountAmount,
