@@ -25,6 +25,9 @@ type CartOrderSummaryProps = {
   onApplyPromo: () => void
   onRemovePromo: () => void
   onProceedCheckout: () => void
+  proceedButtonLabel?: string
+  proceedHelperText?: string
+  isProceedDisabled?: boolean
 }
 
 function formatPrice(value: number) {
@@ -45,6 +48,9 @@ export function CartOrderSummary({
   onApplyPromo,
   onRemovePromo,
   onProceedCheckout,
+  proceedButtonLabel,
+  proceedHelperText,
+  isProceedDisabled = false,
 }: CartOrderSummaryProps) {
   return (
     <div className="rounded-2xl border border-neutral-100 bg-white p-8 shadow-sm">
@@ -107,10 +113,15 @@ export function CartOrderSummary({
 
       <Button
         onClick={onProceedCheckout}
+        disabled={isProceedDisabled}
         className="h-14 w-full rounded-xl bg-black text-xs font-medium uppercase tracking-widest text-white shadow-lg shadow-black/10 transition-all hover:bg-neutral-800"
       >
-        Proceed to Checkout
+        {proceedButtonLabel || "Proceed to Checkout"}
       </Button>
+
+      {proceedHelperText && (
+        <p className="mt-2 text-center text-xs text-neutral-500">{proceedHelperText}</p>
+      )}
 
       <div className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-center text-[11px] uppercase tracking-[0.12em] text-neutral-600">
         Address and payment options on next step

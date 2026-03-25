@@ -59,6 +59,7 @@ export default async function LoginPage({
 
           <div className="space-y-6">
             <form action={signInWithGoogle}>
+              <input type="hidden" name="next" value={nextPath} />
               <Button
                 type="submit"
                 variant="outline"

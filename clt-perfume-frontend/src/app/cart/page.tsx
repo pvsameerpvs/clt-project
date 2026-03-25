@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CartItem as CartLineItem, getCartLineKey, useCart } from "@/contexts/cart-context"
+import { useAuth } from "@/contexts/auth-context"
 import { CartItem } from "@/components/cart/cart-item"
 import { CartOrderSummary } from "@/components/cart/cart-order-summary"
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,7 @@ function CartPageContent() {
   } = useCart()
 
   const router = useRouter()
+  const { user, isLoading: isAuthLoading } = useAuth()
   const searchParams = useSearchParams()
   const bundleName = searchParams.get("bundle")?.trim() || ""
 
@@ -183,6 +185,21 @@ function CartPageContent() {
     setPromoMessage("Promo removed")
   }
 
+  const handleProceedCheckout = () => {
+    if (isAuthLoading) return
+
+    if (!user) {
+      router.push(
+        `/login?next=${encodeURIComponent("/checkout")}&message=${encodeURIComponent(
+          "Please login to continue checkout"
+        )}`
+      )
+      return
+    }
+
+    router.push("/checkout")
+  }
+
   if (items.length === 0) {
     return (
       <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center px-4">
@@ -318,7 +335,12 @@ function CartPageContent() {
                 onPromoInputChange={setPromoInput}
                 onApplyPromo={applyPromo}
                 onRemovePromo={removePromo}
-                onProceedCheckout={() => router.push("/checkout")}
+                onProceedCheckout={handleProceedCheckout}
+                proceedButtonLabel={
+                  isAuthLoading ? "Checking Account..." : user ? "Proceed to Checkout" : "Login to Checkout"
+                }
+                proceedHelperText={!isAuthLoading && !user ? "Sign in is required to place an order." : undefined}
+                isProceedDisabled={isAuthLoading}
               />
             </div>
           </div>

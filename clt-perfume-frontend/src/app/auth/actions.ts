@@ -80,14 +80,15 @@ export async function signup(formData: FormData) {
   redirect("/login?message=Check%20your%20email%20to%20confirm%20your%20account")
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(formData?: FormData) {
   const supabase = await createClient()
   const baseUrl = await getBaseUrl()
+  const nextPath = sanitizeNextPath(String(formData?.get("next") || ""))
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${baseUrl}/auth/callback?next=/profile`,
+      redirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`,
     },
   })
 

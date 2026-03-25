@@ -61,8 +61,6 @@ type CheckoutAddressFormState = {
 
 type PaymentMethod = "cod" | "bank"
 
-const CHECKOUT_ADDRESS_STORAGE_KEY = "cle_checkout_addresses"
-
 function formatPrice(value: number) {
   return `AED ${Math.round(Number(value) || 0)}`
 }
@@ -85,35 +83,6 @@ function createAddressFormState(contactName: string, phone: string): CheckoutAdd
     country: "United Arab Emirates",
     landmark: "",
   }
-}
-
-function normalizeStoredAddresses(value: unknown): CheckoutAddress[] {
-  if (!Array.isArray(value)) return []
-  const normalized: CheckoutAddress[] = []
-
-  for (const entry of value) {
-    if (!entry || typeof entry !== "object") continue
-    const source = entry as Partial<CheckoutAddress>
-    if (!source.line1 || !source.city || !source.country) continue
-
-    normalized.push({
-      id: source.id || createAddressId(),
-      title: source.title || "Address",
-      type: source.type === "home" || source.type === "office" ? source.type : "other",
-      contactName: source.contactName || "Client Account",
-      phone: source.phone || "",
-      line1: source.line1,
-      line2: source.line2 || "",
-      city: source.city,
-      state: source.state || "",
-      postalCode: source.postalCode || "",
-      country: source.country,
-      landmark: source.landmark || "",
-      isPrimary: Boolean(source.isPrimary),
-    })
-  }
-
-  return normalized
 }
 
 function mapUserAddressRow(address: UserAddressRow): CheckoutAddress {
@@ -164,6 +133,7 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod")
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+  const [isAuthResolved, setIsAuthResolved] = useState(false)
 
   const selectedCheckoutAddress = useMemo(
     () => shippingAddresses.find((address) => address.id === selectedAddressId) || null,
@@ -171,6 +141,9 @@ export default function CheckoutPage() {
   )
 
   const promoInputValue = promo ? promo.code : promoInput
+  const loginToCheckoutHref = `/login?next=${encodeURIComponent("/checkout")}&message=${encodeURIComponent(
+    "Please login to continue checkout"
+  )}`
 
   useEffect(() => {
     if (items.length === 0) {
@@ -187,56 +160,55 @@ export default function CheckoutPage() {
         data: { user },
       } = await supabase.auth.getUser()
       if (!mounted) return
-      setCurrentUserId(user?.id || null)
 
-      const { data: profileData } = user
-        ? await supabase
-            .from("profiles")
-            .select("first_name,last_name,phone")
-            .eq("id", user.id)
-            .maybeSingle()
-        : { data: null }
+      if (!user) {
+        setCurrentUserId(null)
+        setShippingAddresses([])
+        setSelectedAddressId("")
+        setAddressForm(createAddressFormState("Client Account", "+971 "))
+        setIsAuthResolved(true)
+        return
+      }
+
+      setCurrentUserId(user.id)
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("first_name,last_name,phone")
+        .eq("id", user.id)
+        .maybeSingle()
 
       const contactName =
         [profileData?.first_name, profileData?.last_name].filter(Boolean).join(" ").trim() ||
-        user?.email?.split("@")[0] ||
+        user.email?.split("@")[0] ||
         "Client Account"
       const phone = profileData?.phone?.trim() || "+971 "
-      let hydratedAddresses: CheckoutAddress[] = []
+      let addressData: UserAddressRow[] = []
 
-      if (user) {
-        let addressData: UserAddressRow[] = []
+      const detailedResult = await supabase
+        .from("user_addresses")
+        .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true })
 
-        const detailedResult = await supabase
+      if (detailedResult.error) {
+        const fallbackResult = await supabase
           .from("user_addresses")
-          .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
+          .select("id,title,address_type,contact_name,phone,line1,line2,city,country,is_primary")
           .eq("user_id", user.id)
           .order("created_at", { ascending: true })
 
-        if (detailedResult.error) {
-          const fallbackResult = await supabase
-            .from("user_addresses")
-            .select("id,title,address_type,contact_name,phone,line1,line2,city,country,is_primary")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: true })
-
-          addressData = (fallbackResult.data || []) as UserAddressRow[]
-        } else {
-          addressData = (detailedResult.data || []) as UserAddressRow[]
-        }
-
-        hydratedAddresses = addressData.map(mapUserAddressRow)
+        addressData = (fallbackResult.data || []) as UserAddressRow[]
       } else {
-        if (typeof window !== "undefined") {
-          const saved = window.localStorage.getItem(CHECKOUT_ADDRESS_STORAGE_KEY)
-          const parsed = normalizeStoredAddresses(saved ? JSON.parse(saved) : null)
-          hydratedAddresses = parsed
-        }
+        addressData = (detailedResult.data || []) as UserAddressRow[]
       }
+
+      const hydratedAddresses = addressData.map(mapUserAddressRow)
 
       setShippingAddresses(hydratedAddresses)
       setSelectedAddressId(hydratedAddresses.find((address) => address.isPrimary)?.id || hydratedAddresses[0]?.id || "")
       setAddressForm(createAddressFormState(contactName, phone))
+      setIsAuthResolved(true)
     }
 
     loadCheckoutAddresses().catch(() => {
@@ -245,18 +217,13 @@ export default function CheckoutPage() {
       setShippingAddresses([])
       setSelectedAddressId("")
       setAddressForm(createAddressFormState("Client Account", "+971 "))
+      setIsAuthResolved(true)
     })
 
     return () => {
       mounted = false
     }
   }, [])
-
-  useEffect(() => {
-    if (currentUserId) return
-    if (shippingAddresses.length === 0 || typeof window === "undefined") return
-    window.localStorage.setItem(CHECKOUT_ADDRESS_STORAGE_KEY, JSON.stringify(shippingAddresses))
-  }, [currentUserId, shippingAddresses])
 
   useEffect(() => {
     if (shippingAddresses.length === 0) return
@@ -297,51 +264,47 @@ export default function CheckoutPage() {
       landmark: addressForm.landmark.trim(),
     }
 
-    if (currentUserId) {
-      setIsSavingAddress(true)
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from("user_addresses")
-        .insert({
-          user_id: currentUserId,
-          title: nextAddressDraft.title,
-          address_type: nextAddressDraft.type,
-          contact_name: nextAddressDraft.contactName,
-          phone: nextAddressDraft.phone,
-          line1: nextAddressDraft.line1,
-          line2: nextAddressDraft.line2 || "",
-          city: nextAddressDraft.city,
-          state: nextAddressDraft.state || "",
-          postal_code: nextAddressDraft.postalCode || "",
-          country: nextAddressDraft.country,
-          landmark: nextAddressDraft.landmark || "",
-          is_primary: shippingAddresses.length === 0,
-        })
-        .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
-        .single()
-
-      if (error || !data) {
-        setAddressFormError(error?.message || "Failed to save address.")
-        setIsSavingAddress(false)
-        return
-      }
-
-      const savedAddress = mapUserAddressRow(data as UserAddressRow)
-      setShippingAddresses((prev) => [...prev, savedAddress])
-      setSelectedAddressId(savedAddress.id)
-      setAddressFormError("")
-      setShowAddressForm(false)
-      setAddressForm(createAddressFormState(savedAddress.contactName, savedAddress.phone))
-      setIsSavingAddress(false)
-      toast.success("Address saved")
+    if (!currentUserId) {
+      router.push(loginToCheckoutHref)
       return
     }
 
-    setShippingAddresses((prev) => [...prev, nextAddressDraft])
-    setSelectedAddressId(nextAddressDraft.id)
+    setIsSavingAddress(true)
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("user_addresses")
+      .insert({
+        user_id: currentUserId,
+        title: nextAddressDraft.title,
+        address_type: nextAddressDraft.type,
+        contact_name: nextAddressDraft.contactName,
+        phone: nextAddressDraft.phone,
+        line1: nextAddressDraft.line1,
+        line2: nextAddressDraft.line2 || "",
+        city: nextAddressDraft.city,
+        state: nextAddressDraft.state || "",
+        postal_code: nextAddressDraft.postalCode || "",
+        country: nextAddressDraft.country,
+        landmark: nextAddressDraft.landmark || "",
+        is_primary: shippingAddresses.length === 0,
+      })
+      .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
+      .single()
+
+    if (error || !data) {
+      setAddressFormError(error?.message || "Failed to save address.")
+      setIsSavingAddress(false)
+      return
+    }
+
+    const savedAddress = mapUserAddressRow(data as UserAddressRow)
+    setShippingAddresses((prev) => [...prev, savedAddress])
+    setSelectedAddressId(savedAddress.id)
     setAddressFormError("")
     setShowAddressForm(false)
-    setAddressForm(createAddressFormState(nextAddressDraft.contactName, nextAddressDraft.phone))
+    setAddressForm(createAddressFormState(savedAddress.contactName, savedAddress.phone))
+    setIsSavingAddress(false)
+    toast.success("Address saved")
   }
 
   const applyPromo = async () => {
@@ -405,7 +368,7 @@ export default function CheckoutPage() {
       } = await supabase.auth.getSession()
 
       if (!session?.access_token) {
-        router.push("/login?message=Please%20login%20to%20checkout")
+        router.push(loginToCheckoutHref)
         return
       }
 
@@ -474,6 +437,40 @@ export default function CheckoutPage() {
             Back to Cart
           </Button>
         </Link>
+      </div>
+    )
+  }
+
+  if (!isAuthResolved) {
+    return (
+      <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center px-4">
+        <div className="h-24 w-24 bg-neutral-100 rounded-full flex items-center justify-center mb-6 animate-pulse" />
+        <h1 className="text-3xl font-serif text-neutral-900 mb-4">Preparing Checkout</h1>
+        <p className="text-neutral-500 font-light max-w-sm text-center">Checking your account before loading delivery details.</p>
+      </div>
+    )
+  }
+
+  if (!currentUserId) {
+    return (
+      <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center px-4">
+        <div className="h-24 w-24 bg-neutral-100 rounded-full flex items-center justify-center mb-6">
+          <ShoppingBag className="h-10 w-10 text-neutral-300" />
+        </div>
+        <h1 className="text-3xl font-serif text-neutral-900 mb-4">Login Required</h1>
+        <p className="text-neutral-500 font-light mb-8 max-w-md text-center">
+          Please sign in to continue checkout, choose your address, and place your order securely.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <Link href={loginToCheckoutHref}>
+            <Button className="h-12 px-8 rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-xs font-medium">
+              Login to Continue
+            </Button>
+          </Link>
+          <Link href="/cart" className="h-12 inline-flex items-center justify-center rounded-xl border border-neutral-300 px-8 text-xs font-semibold uppercase tracking-[0.12em] text-neutral-700 transition hover:border-black hover:text-black">
+            Back to Cart
+          </Link>
+        </div>
       </div>
     )
   }
