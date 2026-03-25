@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   AdminOrder,
   AdminOrderStatus,
@@ -60,24 +60,41 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+
+  const [activeTab, setActiveTab] = useState<"today" | "all">("today")
   const [query, setQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
 
-  async function loadOrders() {
+  const loadOrders = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      setOrders(await getAdminOrders())
+
+      const result = await getAdminOrders({
+        scope: activeTab,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        query: query.trim() || undefined,
+        dateFrom: activeTab === "all" ? dateFrom || undefined : undefined,
+        dateTo: activeTab === "all" ? dateTo || undefined : undefined,
+      })
+
+      setOrders(result)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load orders.")
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeTab, dateFrom, dateTo, query, statusFilter])
 
   useEffect(() => {
-    loadOrders()
-  }, [])
+    const timer = setTimeout(() => {
+      loadOrders()
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [loadOrders])
 
   async function handleStatusChange(orderId: string, status: AdminOrderStatus) {
     try {
@@ -92,17 +109,12 @@ export default function OrdersPage() {
     }
   }
 
-  const filteredOrders = useMemo(() => {
-    const text = query.trim().toLowerCase()
-    return orders.filter((order) => {
-      const orderCode = (order.order_number || order.id).toLowerCase()
-      const customer = getProfileName(order).toLowerCase()
-      const status = (order.status || "").toLowerCase()
-      const matchesSearch = !text || orderCode.includes(text) || customer.includes(text) || status.includes(text)
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter
-      return matchesSearch && matchesStatus
-    })
-  }, [orders, query, statusFilter])
+  function resetFilters() {
+    setQuery("")
+    setStatusFilter("all")
+    setDateFrom("")
+    setDateTo("")
+  }
 
   const stats = useMemo(() => {
     const revenue = orders
@@ -127,7 +139,7 @@ export default function OrdersPage() {
       <header className="orders-header">
         <div>
           <h1>Orders</h1>
-          <p>Track orders, filter quickly, and update lifecycle status in one place.</p>
+          <p>Server-side filters with Today / All tabs and date-based order search.</p>
         </div>
         <button className="ghost-btn" onClick={loadOrders} type="button">
           Refresh
@@ -135,6 +147,24 @@ export default function OrdersPage() {
       </header>
 
       {error && <div className="error-box">{error}</div>}
+
+      <section className="tabs-row">
+        <button
+          type="button"
+          className={`tab-btn ${activeTab === "today" ? "active" : ""}`}
+          onClick={() => setActiveTab("today")}
+        >
+          Today Orders
+        </button>
+        <button
+          type="button"
+          className={`tab-btn ${activeTab === "all" ? "active" : ""}`}
+          onClick={() => setActiveTab("all")}
+        >
+          All Orders
+        </button>
+        <p className="result-count">{loading ? "Loading..." : `${orders.length} result(s)`}</p>
+      </section>
 
       <section className="stats-grid">
         <article className="stat-card">
@@ -174,13 +204,30 @@ export default function OrdersPage() {
             </option>
           ))}
         </select>
+        <input
+          type="date"
+          className="date-filter"
+          value={dateFrom}
+          onChange={(event) => setDateFrom(event.target.value)}
+          disabled={activeTab === "today"}
+        />
+        <input
+          type="date"
+          className="date-filter"
+          value={dateTo}
+          onChange={(event) => setDateTo(event.target.value)}
+          disabled={activeTab === "today"}
+        />
+        <button className="ghost-btn" type="button" onClick={resetFilters}>
+          Reset Filters
+        </button>
       </section>
 
       <section className="panel table-panel">
         {loading ? (
           <div className="empty">Loading orders...</div>
-        ) : filteredOrders.length === 0 ? (
-          <div className="empty">No orders match your filters.</div>
+        ) : orders.length === 0 ? (
+          <div className="empty">No orders match your current server filters.</div>
         ) : (
           <div className="table-wrap">
             <table>
@@ -195,7 +242,7 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map((order) => (
+                {orders.map((order) => (
                   <tr key={order.id}>
                     <td>
                       <div className="name">#{order.order_number || order.id.slice(0, 8)}</div>
@@ -225,9 +272,7 @@ export default function OrdersPage() {
                             </option>
                           ))}
                         </select>
-                        <span className="save-state">
-                          {updatingId === order.id ? "Saving..." : "Saved"}
-                        </span>
+                        <span className="save-state">{updatingId === order.id ? "Saving..." : "Saved"}</span>
                       </div>
                     </td>
                   </tr>
@@ -258,6 +303,33 @@ export default function OrdersPage() {
           margin: 6px 0 0;
           color: #6b7280;
           font-size: 14px;
+        }
+        .tabs-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .tab-btn {
+          border: 1px solid #d1d5db;
+          background: #fff;
+          border-radius: 999px;
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          cursor: pointer;
+        }
+        .tab-btn.active {
+          background: #111827;
+          border-color: #111827;
+          color: #fff;
+        }
+        .result-count {
+          margin: 0 0 0 auto;
+          color: #6b7280;
+          font-size: 12px;
         }
         .error-box {
           border: 1px solid #fecaca;
@@ -297,12 +369,13 @@ export default function OrdersPage() {
         }
         .controls {
           display: grid;
-          grid-template-columns: 1fr 200px;
+          grid-template-columns: 2fr 1fr 1fr 1fr auto;
           gap: 10px;
           padding: 12px;
         }
         .search,
         .status-filter,
+        .date-filter,
         .action-cell select {
           width: 100%;
           border: 1px solid #d1d5db;
@@ -310,6 +383,10 @@ export default function OrdersPage() {
           padding: 8px 10px;
           font-size: 14px;
           background: #fff;
+        }
+        .date-filter:disabled {
+          background: #f9fafb;
+          color: #9ca3af;
         }
         .table-panel {
           padding: 12px;
@@ -424,13 +501,20 @@ export default function OrdersPage() {
           padding: 8px 12px;
           font-size: 13px;
           cursor: pointer;
+          white-space: nowrap;
+        }
+        @media (max-width: 1100px) {
+          .controls {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .result-count {
+            margin-left: 0;
+            width: 100%;
+          }
         }
         @media (max-width: 980px) {
           .stats-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .controls {
-            grid-template-columns: 1fr;
           }
         }
         @media (max-width: 720px) {
@@ -439,6 +523,9 @@ export default function OrdersPage() {
             align-items: flex-start;
           }
           .stats-grid {
+            grid-template-columns: 1fr;
+          }
+          .controls {
             grid-template-columns: 1fr;
           }
         }

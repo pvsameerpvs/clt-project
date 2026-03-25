@@ -227,6 +227,14 @@ export const ORDER_STATUSES = [
 
 export type AdminOrderStatus = (typeof ORDER_STATUSES)[number]
 
+export interface AdminOrderFilters {
+  scope?: "today" | "all"
+  status?: string
+  query?: string
+  dateFrom?: string
+  dateTo?: string
+}
+
 function getApiBaseUrl() {
   return process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_BASE_URL
 }
@@ -300,8 +308,18 @@ export function deleteAdminProduct(productId: string) {
   })
 }
 
-export function getAdminOrders() {
-  return adminFetch<AdminOrder[]>("/api/admin/orders")
+export function getAdminOrders(filters?: AdminOrderFilters) {
+  const params = new URLSearchParams()
+
+  if (filters?.scope) params.set("scope", filters.scope)
+  if (filters?.status) params.set("status", filters.status)
+  if (filters?.query) params.set("q", filters.query)
+  if (filters?.dateFrom) params.set("date_from", filters.dateFrom)
+  if (filters?.dateTo) params.set("date_to", filters.dateTo)
+
+  const query = params.toString()
+  const path = `/api/admin/orders/search${query ? `?${query}` : ""}`
+  return adminFetch<AdminOrder[]>(path)
 }
 
 export function getAdminOrderDetails(orderId: string) {

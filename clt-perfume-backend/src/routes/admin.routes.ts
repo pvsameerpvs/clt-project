@@ -27,6 +27,20 @@ function normalizeOrderStatusForStorage(status: string) {
   return status
 }
 
+function isValidDateInput(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+function toUtcStartIso(dateInput: string) {
+  const date = new Date(`${dateInput}T00:00:00.000Z`)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
+}
+
+function toUtcEndIso(dateInput: string) {
+  const date = new Date(`${dateInput}T23:59:59.999Z`)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
+}
+
 function isMissingParentIdColumn(error: { message?: string } | null | undefined) {
   return Boolean(error?.message?.includes("'parent_id'"))
 }
@@ -272,6 +286,71 @@ adminRoutes.delete('/categories/:id', async (req: Request, res: Response) => {
     res.json({ success: true })
   } catch (error: any) {
     res.status(400).json({ error: error.message })
+  }
+})
+
+// GET /api/admin/orders/search — Server-side filtered order list
+adminRoutes.get('/orders/search', async (req: Request, res: Response) => {
+  try {
+    const scope = String(req.query.scope || 'all').toLowerCase()
+    const statusFilter = String(req.query.status || 'all').toLowerCase()
+    const searchText = String(req.query.q || '').trim().toLowerCase()
+    const dateFromInput = String(req.query.date_from || '').trim()
+    const dateToInput = String(req.query.date_to || '').trim()
+
+    let query = supabaseAdmin
+      .from('orders')
+      .select('*, profile:profiles(first_name, last_name)')
+      .order('created_at', { ascending: false })
+
+    if (statusFilter && statusFilter !== 'all') {
+      query = query.eq('status', normalizeOrderStatusForStorage(statusFilter))
+    }
+
+    if (scope === 'today') {
+      const now = new Date()
+      const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+      const nextDayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+      query = query.gte('created_at', todayStart.toISOString()).lt('created_at', nextDayStart.toISOString())
+    }
+
+    if (isValidDateInput(dateFromInput)) {
+      const startIso = toUtcStartIso(dateFromInput)
+      if (startIso) query = query.gte('created_at', startIso)
+    }
+
+    if (isValidDateInput(dateToInput)) {
+      const endIso = toUtcEndIso(dateToInput)
+      if (endIso) query = query.lte('created_at', endIso)
+    }
+
+    const { data, error } = await query
+
+    if (error) throw error
+
+    let normalized = (data || []).map((order: any) => ({
+      ...order,
+      status: normalizeOrderStatusForResponse(order.status),
+    }))
+
+    if (searchText) {
+      normalized = normalized.filter((order: any) => {
+        const orderCode = String(order.order_number || order.id || '').toLowerCase()
+        const profile = Array.isArray(order.profile) ? order.profile[0] : order.profile
+        const customerName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim().toLowerCase()
+        const status = String(order.status || '').toLowerCase()
+        return (
+          orderCode.includes(searchText) ||
+          String(order.id || '').toLowerCase().includes(searchText) ||
+          customerName.includes(searchText) ||
+          status.includes(searchText)
+        )
+      })
+    }
+
+    res.json(normalized)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
   }
 })
 

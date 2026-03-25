@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
 import {
   LayoutDashboard,
   Package,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { getAdminOrders } from "@/lib/admin-api"
 
 export const menuItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -37,6 +39,33 @@ interface DashboardNavProps {
 
 export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavProps) {
   const pathname = usePathname()
+  const [newOrderCount, setNewOrderCount] = useState(0)
+
+  const incomingStatuses = useMemo(() => new Set(["pending", "confirmed", "processing"]), [])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadNewOrderCount() {
+      try {
+        const todayOrders = await getAdminOrders({ scope: "today" })
+        if (!mounted) return
+        const incoming = todayOrders.filter((order) => incomingStatuses.has(String(order.status || "").toLowerCase()))
+        setNewOrderCount(incoming.length)
+      } catch {
+        if (!mounted) return
+        setNewOrderCount(0)
+      }
+    }
+
+    loadNewOrderCount()
+    const timer = setInterval(loadNewOrderCount, 30000)
+
+    return () => {
+      mounted = false
+      clearInterval(timer)
+    }
+  }, [incomingStatuses])
 
   return (
     <div className="flex h-full flex-col">
@@ -48,6 +77,7 @@ export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavP
       <nav className="flex-1 space-y-1.5 px-3">
         {menuItems.map((item) => {
           const active = item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href)
+          const isOrdersItem = item.href === "/dashboard/orders"
           return (
             <Link
               key={item.href}
@@ -61,7 +91,17 @@ export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavP
               )}
             >
               <item.icon className={cn("h-4 w-4 transition-colors", active ? "text-white" : "text-neutral-400 group-hover:text-neutral-900")} />
-              {item.label}
+              <span>{item.label}</span>
+              {isOrdersItem && newOrderCount > 0 && (
+                <span
+                  className={cn(
+                    "ml-auto inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                    active ? "bg-white text-black" : "bg-red-100 text-red-700"
+                  )}
+                >
+                  {newOrderCount > 99 ? "99+" : newOrderCount}
+                </span>
+              )}
             </Link>
           )
         })}
