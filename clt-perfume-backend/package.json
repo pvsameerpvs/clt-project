@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "reset:password": "node -r dotenv/config scripts/reset-user-password.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
