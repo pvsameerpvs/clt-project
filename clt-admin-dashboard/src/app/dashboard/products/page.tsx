@@ -222,6 +222,22 @@ export default function ProductsPage() {
     }
   }
 
+  async function handleToggleActive(product: AdminProduct) {
+    try {
+      setError(null)
+      const isActive = product.is_active !== false
+      await updateAdminProduct(product.id, { is_active: !isActive })
+      
+      if (form.id === product.id) {
+        setForm(prev => ({ ...prev, is_active: !isActive }))
+      }
+      
+      await loadProducts(selectedProductId)
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : "Unable to toggle visibility.")
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -388,6 +404,7 @@ export default function ProductsPage() {
               onSelect={(product) => setSelectedProductId(product.id)}
               onEdit={startEdit}
               onDelete={handleDelete}
+              onToggleActive={handleToggleActive}
               query={query}
               setQuery={setQuery}
               viewFilter={viewFilter}

@@ -10,6 +10,7 @@ interface ProductListProps {
   onSelect: (product: AdminProduct) => void
   onEdit: (product: AdminProduct) => void
   onDelete: (productId: string) => void
+  onToggleActive: (product: AdminProduct) => void
   query: string
   setQuery: (query: string) => void
   viewFilter: ProductViewFilter
@@ -43,6 +44,7 @@ export function ProductList({
   onSelect,
   onEdit,
   onDelete,
+  onToggleActive,
   query,
   setQuery,
   viewFilter,
@@ -156,6 +158,16 @@ export function ProductList({
                     <button
                       onClick={(event) => {
                         event.stopPropagation()
+                        onToggleActive(product)
+                      }}
+                      className="link-btn"
+                      type="button"
+                    >
+                      {product.is_active === false ? "Activate" : "Deactivate"}
+                    </button>
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation()
                         onDelete(product.id)
                       }}
                       className="link-btn danger"
@@ -239,6 +251,16 @@ export function ProductList({
                             type="button"
                           >
                             Edit
+                          </button>
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              onToggleActive(product)
+                            }}
+                            className="link-btn"
+                            type="button"
+                          >
+                            {product.is_active === false ? "Activate" : "Deactivate"}
                           </button>
                           <button
                             onClick={(event) => {
