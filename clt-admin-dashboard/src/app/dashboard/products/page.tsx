@@ -97,6 +97,7 @@ export default function ProductsPage() {
   const [form, setForm] = useState<ProductFormState>(EMPTY_PRODUCT_FORM)
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [serverMlFilter, setServerMlFilter] = useState("")
+  const [productToDelete, setProductToDelete] = useState<string | null>(null)
   
   // Professional Hub Tabs
   const [activeTab, setActiveTab] = useState<"studio" | "catalog" | "preview">("catalog")
@@ -204,18 +205,24 @@ export default function ProductsPage() {
     setActiveTab("studio") // Auto-switch to studio for editing
   }
 
-  async function handleDelete(productId: string) {
-    if (!window.confirm("Delete this product?")) return
+  function handleDeleteClick(productId: string) {
+    setProductToDelete(productId)
+  }
+
+  async function confirmDeleteRequest() {
+    if (!productToDelete) return
+    const idToDelete = productToDelete
+    setProductToDelete(null)
 
     try {
       setError(null)
-      await deleteAdminProduct(productId)
+      await deleteAdminProduct(idToDelete)
 
-      if (form.id === productId) {
+      if (form.id === idToDelete) {
         setForm(EMPTY_PRODUCT_FORM)
       }
 
-      const preferredId = selectedProductId === productId ? null : selectedProductId
+      const preferredId = selectedProductId === idToDelete ? null : selectedProductId
       await loadProducts(preferredId)
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Unable to delete product.")
@@ -403,7 +410,7 @@ export default function ProductsPage() {
               selectedProductId={selectedProductId}
               onSelect={(product) => setSelectedProductId(product.id)}
               onEdit={startEdit}
-              onDelete={handleDelete}
+              onDelete={handleDeleteClick}
               onToggleActive={handleToggleActive}
               query={query}
               setQuery={setQuery}
@@ -428,6 +435,32 @@ export default function ProductsPage() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white text-black p-8 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-serif font-semibold mb-2">Delete Product?</h3>
+            <p className="text-gray-600 mb-8 text-sm">
+              Are you absolute sure you want to delete this product? This action cannot be undone.
+            </p>
+            <div className="flex gap-4 justify-end">
+              <button
+                className="px-5 py-2.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                onClick={() => setProductToDelete(null)}
+              >
+                No, keep it
+              </button>
+              <button
+                className="px-5 py-2.5 rounded-full text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors"
+                onClick={confirmDeleteRequest}
+              >
+                Yes, delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

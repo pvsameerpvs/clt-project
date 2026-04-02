@@ -155,16 +155,18 @@ export function ProductList({
                     >
                       Edit
                     </button>
-                    <button
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onToggleActive(product)
-                      }}
-                      className="link-btn"
-                      type="button"
+                    <label 
+                      className="ui-switch" 
+                      title={product.is_active === false ? "Activate product" : "Deactivate product"} 
+                      onClick={(event) => event.stopPropagation()}
                     >
-                      {product.is_active === false ? "Activate" : "Deactivate"}
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={product.is_active !== false}
+                        onChange={() => onToggleActive(product)}
+                      />
+                      <span className="slider"></span>
+                    </label>
                     <button
                       onClick={(event) => {
                         event.stopPropagation()
@@ -252,16 +254,18 @@ export function ProductList({
                           >
                             Edit
                           </button>
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              onToggleActive(product)
-                            }}
-                            className="link-btn"
-                            type="button"
+                          <label 
+                            className="ui-switch" 
+                            title={product.is_active === false ? "Activate product" : "Deactivate product"} 
+                            onClick={(event) => event.stopPropagation()}
                           >
-                            {product.is_active === false ? "Activate" : "Deactivate"}
-                          </button>
+                            <input
+                              type="checkbox"
+                              checked={product.is_active !== false}
+                              onChange={() => onToggleActive(product)}
+                            />
+                            <span className="slider"></span>
+                          </label>
                           <button
                             onClick={(event) => {
                               event.stopPropagation()
@@ -444,6 +448,7 @@ export function ProductList({
         }
         .mobile-actions {
           display: flex;
+          align-items: center;
           gap: 10px;
         }
         .link-btn {
@@ -560,6 +565,7 @@ export function ProductList({
         }
         .action-wrap {
           display: flex;
+          align-items: center;
           gap: 10px;
         }
         @media (min-width: 900px) {
@@ -569,6 +575,51 @@ export function ProductList({
           .desktop-table {
             display: block;
           }
+        }
+        
+        .ui-switch {
+          position: relative;
+          display: inline-block;
+          width: 32px;
+          height: 18px;
+          margin: 0;
+        }
+        .ui-switch input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .ui-switch .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #d1d5db;
+          transition: .3s;
+          border-radius: 34px;
+        }
+        .ui-switch .slider:before {
+          position: absolute;
+          content: "";
+          height: 14px;
+          width: 14px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: .3s;
+          border-radius: 50%;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .ui-switch input:checked + .slider {
+          background-color: #111;
+        }
+        .ui-switch input:focus + .slider {
+          box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.2);
+        }
+        .ui-switch input:checked + .slider:before {
+          transform: translateX(14px);
         }
       `}</style>
     </section>
