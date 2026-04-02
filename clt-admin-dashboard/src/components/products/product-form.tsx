@@ -225,6 +225,47 @@ export function ProductForm({ form, setForm, onSubmit, onClear, saving, categori
             />
           </div>
 
+          <div className="form-section flex gap-4">
+            <div className="flex-1">
+              <label>Olfactive Family</label>
+              <input
+                className="field-input"
+                value={form.olfactive_family}
+                onChange={(event) => setForm((prev) => ({ ...prev, olfactive_family: event.target.value }))}
+                placeholder="e.g. Woody Oriental"
+              />
+            </div>
+            <div className="flex-1">
+              <label>Concentration</label>
+              <input
+                className="field-input"
+                value={form.concentration}
+                onChange={(event) => setForm((prev) => ({ ...prev, concentration: event.target.value }))}
+                placeholder="e.g. Eau de Parfum (EDP)"
+              />
+            </div>
+          </div>
+
+          <div className="form-section full">
+            <label>Olfactive Signature</label>
+            <input
+              className="field-input"
+              value={form.olfactive_signature}
+              onChange={(event) => setForm((prev) => ({ ...prev, olfactive_signature: event.target.value }))}
+              placeholder="e.g. A sensual blend of warm spices and deep musk."
+            />
+          </div>
+
+          <div className="form-section full">
+            <label>Mood & Use</label>
+            <input
+              className="field-input"
+              value={form.mood_use}
+              onChange={(event) => setForm((prev) => ({ ...prev, mood_use: event.target.value }))}
+              placeholder="e.g. Evening elegance, intimate gatherings"
+            />
+          </div>
+
           <div className="form-section">
             <label>Top Notes</label>
             <input

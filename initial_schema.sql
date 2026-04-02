@@ -49,7 +49,11 @@ CREATE TABLE IF NOT EXISTS public.products (
   price DECIMAL(10,2) NOT NULL,
   stock_quantity INTEGER DEFAULT 0,
   images TEXT[] DEFAULT '{}',
-  scent TEXT,
+  scent TEXT, -- Legacy / simplified categorization
+  olfactive_family TEXT,
+  olfactive_signature TEXT,
+  concentration TEXT,
+  mood_use TEXT,
   ml TEXT,
   top_notes TEXT[] DEFAULT '{}',
   heart_notes TEXT[] DEFAULT '{}',
@@ -107,7 +111,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
 CREATE TABLE IF NOT EXISTS public.order_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
-  product_id UUID REFERENCES public.products(id),
+  product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
   product_name TEXT NOT NULL,
   product_image TEXT,
   product_slug TEXT,

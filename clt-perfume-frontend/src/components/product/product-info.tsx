@@ -184,6 +184,39 @@ export function ProductInfo({ product }: { product: Product }) {
           </div>
         )}
 
+        {/* Olfactive Profile Section */}
+        {(product.olfactive_family || product.olfactive_signature || product.concentration || product.mood_use) && (
+          <div className="mb-6 p-6 bg-white border border-neutral-200 rounded-2xl">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-5">Olfactive Profile</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {product.olfactive_family && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 mb-1">Olfactive Family</div>
+                  <div className="text-sm font-medium text-neutral-800">{product.olfactive_family}</div>
+                </div>
+              )}
+              {product.concentration && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 mb-1">Concentration</div>
+                  <div className="text-sm font-medium text-neutral-800">{product.concentration}</div>
+                </div>
+              )}
+              {product.olfactive_signature && (
+                <div className="md:col-span-2">
+                  <div className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 mb-1">Signature</div>
+                  <div className="text-sm italic text-neutral-700 leading-relaxed">&ldquo;{product.olfactive_signature}&rdquo;</div>
+                </div>
+              )}
+              {product.mood_use && (
+                <div className="md:col-span-2">
+                  <div className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 mb-1">Mood & Experience</div>
+                  <div className="text-sm text-neutral-600">{product.mood_use}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Fragrance Notes Section */}
         {(product.top_notes || product.notes?.top) && (
           <div className="mb-8 p-6 bg-neutral-50 rounded-2xl border border-neutral-100">

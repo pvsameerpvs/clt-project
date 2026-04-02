@@ -18,6 +18,10 @@ export interface ProductPreviewData {
   is_best_seller: boolean
   is_exclusive: boolean
   ml?: string
+  olfactive_family?: string
+  olfactive_signature?: string
+  concentration?: string
+  mood_use?: string
 }
 
 interface ProductPreviewProps {

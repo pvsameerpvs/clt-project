@@ -6,6 +6,10 @@ export type ProductFormState = {
   price: string
   stock: string
   scent: string
+  olfactive_family: string
+  olfactive_signature: string
+  concentration: string
+  mood_use: string
   images: string
   tags: string
   top_notes: string
@@ -28,6 +32,10 @@ export const EMPTY_PRODUCT_FORM: ProductFormState = {
   price: "",
   stock: "",
   scent: "",
+  olfactive_family: "",
+  olfactive_signature: "",
+  concentration: "",
+  mood_use: "",
   images: "",
   tags: "",
   top_notes: "",

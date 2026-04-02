@@ -46,9 +46,13 @@ export interface AdminProduct {
   name: string
   description?: string
   price: number
-  stock: number
+  stock?: number
   images?: string[]
   scent?: string
+  olfactive_family?: string
+  olfactive_signature?: string
+  concentration?: string
+  mood_use?: string
   top_notes?: string[]
   heart_notes?: string[]
   base_notes?: string[]
