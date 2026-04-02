@@ -53,6 +53,7 @@ export interface AdminProduct {
   heart_notes?: string[]
   base_notes?: string[]
   tags?: string[]
+  ml?: string
   rating?: number
   review_count?: number
   is_active?: boolean

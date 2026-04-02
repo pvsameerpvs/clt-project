@@ -115,6 +115,7 @@ export function ProductList({
                   <div className="mobile-meta">
                     <span>AED {money(product.price || 0)}</span>
                     <span>Stock: {product.stock || 0}</span>
+                    {product.ml && <span>{product.ml}</span>}
                     <span>{statusLabel(product)}</span>
                   </div>
 
@@ -160,6 +161,7 @@ export function ProductList({
                   <th>Price</th>
                   <th>Stock</th>
                   <th>Status</th>
+                  <th>ml</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -208,6 +210,7 @@ export function ProductList({
                         </span>
                       </td>
                       <td className="value">{statusLabel(product)}</td>
+                      <td className="value">{product.ml || "-"}</td>
                       <td>
                         <div className="action-wrap">
                           <button

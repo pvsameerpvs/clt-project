@@ -24,6 +24,7 @@ export interface Product {
   price: number
   description: string
   images: string[]
+  ml?: string
   scent: string
   top_notes?: string[]
   heart_notes?: string[]

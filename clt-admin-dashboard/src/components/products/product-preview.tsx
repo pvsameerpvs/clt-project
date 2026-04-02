@@ -17,6 +17,7 @@ export interface ProductPreviewData {
   is_new: boolean
   is_best_seller: boolean
   is_exclusive: boolean
+  ml?: string
 }
 
 interface ProductPreviewProps {
@@ -104,7 +105,10 @@ export function ProductPreview({ product, isDraft }: ProductPreviewProps) {
           <div className="meta-head">
             <div>
               <h4>{product.name || "Untitled Fragrance"}</h4>
-              <p>{product.scent || "Scent profile not set"}</p>
+              <p>
+                {product.scent || "Scent profile not set"}
+                {product.ml && ` • ${product.ml}`}
+              </p>
             </div>
             <span className="price">AED {money(product.price)}</span>
           </div>

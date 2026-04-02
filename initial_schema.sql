@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   stock_quantity INTEGER DEFAULT 0,
   images TEXT[] DEFAULT '{}',
   scent TEXT,
+  ml TEXT,
   top_notes TEXT[] DEFAULT '{}',
   heart_notes TEXT[] DEFAULT '{}',
   base_notes TEXT[] DEFAULT '{}',

@@ -139,7 +139,10 @@ export function ProductCard({ product }: { product: Product }) {
           <div className="flex justify-between w-full items-start">
              <div>
                 <h3 className="font-serif text-lg text-neutral-900 leading-none group-hover:text-neutral-600 transition-colors">{product.name}</h3>
-                <p className="text-xs text-neutral-500 mt-1 uppercase tracking-wider">{product.scent}</p>
+                <p className="text-xs text-neutral-500 mt-1 uppercase tracking-wider">
+                   {product.scent}
+                   {product.ml && ` • ${product.ml}`}
+                </p>
              </div>
              <span className="font-medium text-xs sm:text-sm text-neutral-900">AED {product.price}</span>
           </div>

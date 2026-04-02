@@ -39,6 +39,7 @@ function normalizeProduct(product: AdminProduct): ProductPreviewData {
     is_new: Boolean(product.is_new),
     is_best_seller: Boolean(product.is_best_seller),
     is_exclusive: Boolean(product.is_exclusive),
+    ml: product.ml || "",
   }
 }
 
@@ -60,6 +61,7 @@ function draftFromForm(form: ProductFormState): ProductPreviewData {
     is_new: form.is_new,
     is_best_seller: form.is_best_seller,
     is_exclusive: form.is_exclusive,
+    ml: form.ml.trim(),
   }
 }
 
@@ -76,6 +78,7 @@ function hasCreateDraft(form: ProductFormState) {
       form.top_notes.trim() ||
       form.heart_notes.trim() ||
       form.base_notes.trim() ||
+      form.ml.trim() ||
       !form.is_active ||
       form.is_new ||
       form.is_best_seller ||
@@ -195,6 +198,7 @@ export default function ProductsPage() {
       is_best_seller: Boolean(product.is_best_seller),
       is_exclusive: Boolean(product.is_exclusive),
       category_id: product.category_id || "",
+      ml: product.ml || "",
     })
     setActiveTab("studio") // Auto-switch to studio for editing
   }
@@ -241,6 +245,7 @@ export default function ProductsPage() {
         is_best_seller: form.is_best_seller,
         is_exclusive: form.is_exclusive,
         category_id: form.category_id || null,
+        ml: form.ml.trim(),
       }
 
       if (!payload.name || !payload.slug) {
@@ -348,7 +353,7 @@ export default function ProductsPage() {
           { id: "catalog", label: "Master Catalog", icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg> },
           { id: "preview", label: "Live Visualizer", icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> }
         ].map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={tabBtnClass(tab.id)}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id as "studio" | "catalog" | "preview")} className={tabBtnClass(tab.id)}>
             <span className="bg-neutral-100 rounded-xl p-2 group-hover:bg-black group-hover:text-white transition-all">{tab.icon}</span>
             {tab.label}
           </button>

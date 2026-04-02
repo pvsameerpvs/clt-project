@@ -64,6 +64,7 @@ Purpose: All perfume products with images, scent notes, pricing, stock
 | `description` | TEXT | — | YES | — |
 | `images` | TEXT[] | `'{}'` | YES | Array of image paths |
 | `scent` | TEXT | — | YES | e.g., "Fresh & Airy" |
+| `ml` | TEXT | — | YES | e.g., "50ml", "100ml" |
 | `notes_top` | TEXT[] | `'{}'` | YES | Top fragrance notes |
 | `notes_heart` | TEXT[] | `'{}'` | YES | Heart fragrance notes |
 | `notes_base` | TEXT[] | `'{}'` | YES | Base fragrance notes |

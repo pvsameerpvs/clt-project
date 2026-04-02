@@ -145,6 +145,16 @@ export function ProductForm({ form, setForm, onSubmit, onClear, saving, categori
               onChange={(event) => setForm((prev) => ({ ...prev, stock: event.target.value }))}
             />
           </div>
+
+          <div className="form-section full">
+            <label>Size (ML)</label>
+            <input
+              className="field-input"
+              value={form.ml}
+              onChange={(event) => setForm((prev) => ({ ...prev, ml: event.target.value }))}
+              placeholder="e.g. 50ml, 100ml"
+            />
+          </div>
         </div>
       </section>
 
