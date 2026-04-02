@@ -140,9 +140,16 @@ export function ProductInfo({ product }: { product: Product }) {
   return (
     <div className="flex flex-col h-full">
       <div className="mb-6">
-        <Badge variant="secondary" className="mb-3 uppercase tracking-widest text-[10px] bg-neutral-100 text-neutral-600 rounded-sm px-2">
-          {categoryLabel}
-        </Badge>
+        <div className="flex items-center gap-2 mb-3">
+          <Badge variant="secondary" className="uppercase tracking-widest text-[10px] bg-neutral-100 text-neutral-600 rounded-sm px-2">
+            {categoryLabel}
+          </Badge>
+          {product.ml && (
+            <Badge variant="outline" className="uppercase tracking-widest text-[10px] border-neutral-200 text-neutral-600 rounded-sm px-2">
+              {product.ml}
+            </Badge>
+          )}
+        </div>
         <h1 className="text-4xl md:text-5xl font-serif font-medium text-neutral-900 mb-2">{product.name}</h1>
         
         <div className="flex items-center gap-4 mb-4">
