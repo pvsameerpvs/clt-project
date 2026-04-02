@@ -14,6 +14,8 @@ interface ProductListProps {
   setQuery: (query: string) => void
   viewFilter: ProductViewFilter
   setViewFilter: (filter: ProductViewFilter) => void
+  serverMlFilter: string
+  setServerMlFilter: (ml: string) => void
 }
 
 const FILTER_ITEMS: Array<{ value: ProductViewFilter; label: string }> = [
@@ -45,6 +47,8 @@ export function ProductList({
   setQuery,
   viewFilter,
   setViewFilter,
+  serverMlFilter,
+  setServerMlFilter,
 }: ProductListProps) {
   return (
     <section className="list-shell">
@@ -79,6 +83,19 @@ export function ProductList({
             {item.label}
           </button>
         ))}
+
+        <select 
+          className="ml-select filter-chip"
+          value={serverMlFilter}
+          onChange={(e) => setServerMlFilter(e.target.value)}
+        >
+          <option value="">All Sizes</option>
+          <option value="15ml">15ml</option>
+          <option value="30ml">30ml</option>
+          <option value="50ml">50ml</option>
+          <option value="100ml">100ml</option>
+          <option value="200ml">200ml</option>
+        </select>
       </div>
 
       {loading ? (
@@ -322,6 +339,16 @@ export function ProductList({
           border-color: #111;
           background: #111;
           color: #fff;
+        }
+        .ml-select {
+          outline: none;
+          appearance: none;
+          font-weight: 600;
+          padding-right: 24px;
+          background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+          background-repeat: no-repeat;
+          background-position: right 8px center;
+          background-size: 12px;
         }
         .empty {
           text-align: center;

@@ -96,6 +96,7 @@ export default function ProductsPage() {
   const [viewFilter, setViewFilter] = useState<ProductViewFilter>("all")
   const [form, setForm] = useState<ProductFormState>(EMPTY_PRODUCT_FORM)
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  const [serverMlFilter, setServerMlFilter] = useState("")
   
   // Professional Hub Tabs
   const [activeTab, setActiveTab] = useState<"studio" | "catalog" | "preview">("catalog")
@@ -147,13 +148,13 @@ export default function ProductsPage() {
     return null
   }, [form, selectedProduct, selectedProductId, shouldPreviewForm, sortedProducts])
 
-  async function loadProducts(preferredProductId?: string | null) {
+  async function loadProducts(preferredProductId?: string | null, mlValue?: string) {
     try {
       setLoading(true)
       setError(null)
  
       const [nextProducts, nextCategories] = await Promise.all([
-        getAdminProducts(),
+        getAdminProducts({ ml: mlValue ?? serverMlFilter }),
         getAdminCategories(),
       ])
       
@@ -175,8 +176,8 @@ export default function ProductsPage() {
   }
 
   useEffect(() => {
-    void loadProducts()
-  }, [])
+    void loadProducts(null, serverMlFilter)
+  }, [serverMlFilter])
 
   function startEdit(product: AdminProduct) {
     setSelectedProductId(product.id)
@@ -391,6 +392,8 @@ export default function ProductsPage() {
               setQuery={setQuery}
               viewFilter={viewFilter}
               setViewFilter={setViewFilter}
+              serverMlFilter={serverMlFilter}
+              setServerMlFilter={setServerMlFilter}
             />
           </div>
         )}

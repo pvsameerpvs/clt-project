@@ -285,8 +285,9 @@ export function getAdminDashboard() {
   return adminFetch<AdminDashboardData>("/api/admin/dashboard")
 }
 
-export function getAdminProducts() {
-  return adminFetch<AdminProduct[]>("/api/admin/products")
+export function getAdminProducts(params?: { ml?: string }) {
+  const query = params?.ml ? `?ml=${encodeURIComponent(params.ml)}` : ""
+  return adminFetch<AdminProduct[]>(`/api/admin/products${query}`)
 }
 
 export function createAdminProduct(payload: Partial<AdminProduct>) {

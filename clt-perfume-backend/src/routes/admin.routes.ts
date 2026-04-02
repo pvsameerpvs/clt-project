@@ -117,10 +117,16 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
 // GET /api/admin/products — List all products
 adminRoutes.get('/products', async (req: Request, res: Response) => {
   try {
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('products')
       .select('*, category:categories(name)')
       .order('created_at', { ascending: false })
+
+    if (req.query.ml) {
+      query = query.eq('ml', req.query.ml)
+    }
+
+    const { data, error } = await query
 
     if (error) throw error
 

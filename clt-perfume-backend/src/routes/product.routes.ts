@@ -121,6 +121,11 @@ productRoutes.get('/', async (req, res) => {
       query = query.ilike('scent', `%${scent}%`)
     }
 
+    // ml exact/ilike match Bypass
+    if (req.query.ml) {
+      query = query.eq('ml', req.query.ml)
+    }
+
     // 4. Price Filters
     if (minPrice) query = query.gte('price', minPrice)
     if (maxPrice) query = query.lte('price', maxPrice)
