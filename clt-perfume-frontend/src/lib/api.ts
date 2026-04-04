@@ -348,7 +348,17 @@ export async function getProducts(filters?: {
 
     const url = `${API_BASE_URL}/api/products${params.toString() ? '?' + params.toString() : ''}`
     const res = await fetch(url, { cache: 'no-store' })
-    if (!res.ok) throw new Error("Failed to fetch products")
+    if (!res.ok) {
+      let detail = `status ${res.status}`
+      try {
+        const body = await res.json()
+        if (body?.error) detail = `${res.status}: ${body.error}`
+      } catch {
+        // ignore JSON parse failure for non-JSON responses
+      }
+      console.warn(`[products] failed to fetch from backend (${detail})`)
+      return []
+    }
     const data = (await res.json()) as Product[];
     
     if (filters?.includeVariants) {
@@ -357,7 +367,7 @@ export async function getProducts(filters?: {
     
     return data.filter((p: Product) => p.show_in_catalog !== false);
   } catch (error) {
-    console.error(error)
+    console.warn("[products] network error while fetching products", error)
     return []
   }
 }

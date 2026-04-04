@@ -7,6 +7,14 @@ function isMissingParentIdColumn(error: { message?: string } | null | undefined)
   return Boolean(error?.message?.includes("'parent_id'"))
 }
 
+function isProductsCategoriesRelationSchemaError(error: { message?: string } | null | undefined) {
+  const message = error?.message || ''
+  return (
+    message.includes("relationship between 'products' and 'categories'") ||
+    (message.includes("'categories'") && message.includes('schema cache'))
+  )
+}
+
 async function resolveCategoryBranchIds(rootCategoryId: string) {
   const { data, error } = await supabaseAdmin
     .from('categories')
@@ -92,56 +100,66 @@ productRoutes.get('/', async (req, res) => {
       scent
     } = req.query
     
-    let query = supabaseAdmin
-      .from('products')
-      .select('*, category:categories(name, slug)')
-      .eq('is_active', true)
+    const runProductsQuery = async (withCategoryJoin: boolean) => {
+      let query = supabaseAdmin
+        .from('products')
+        .select(withCategoryJoin ? '*, category:categories(name, slug)' : '*')
+        .eq('is_active', true)
 
-    // 1. Category Bypass (Hierarchical)
-    if (category) {
-      const { data: catData } = await supabaseAdmin
-        .from('categories')
-        .select('id')
-        .eq('slug', category)
-        .single()
-      
-      if (catData) {
-        const categoryIds = await resolveCategoryBranchIds(catData.id)
-        query = query.in('category_id', categoryIds)
+      // 1. Category Bypass (Hierarchical)
+      if (category) {
+        const { data: catData } = await supabaseAdmin
+          .from('categories')
+          .select('id')
+          .eq('slug', category)
+          .single()
+
+        if (catData) {
+          const categoryIds = await resolveCategoryBranchIds(catData.id)
+          query = query.in('category_id', categoryIds)
+        }
       }
+
+      // 2. Feature Bypass (Flags)
+      if (is_best_seller === 'true') query = query.eq('is_best_seller', true)
+      if (is_new === 'true') query = query.eq('is_new', true)
+      if (is_exclusive === 'true') query = query.eq('is_exclusive', true)
+
+      // 3. Scent/Note Bypass (Text Search)
+      if (scent) {
+        query = query.ilike('scent', `%${scent}%`)
+      }
+
+      // ml exact/ilike match Bypass
+      if (req.query.ml) {
+        query = query.eq('ml', req.query.ml)
+      }
+
+      // 4. Price Filters
+      if (minPrice) query = query.gte('price', minPrice)
+      if (maxPrice) query = query.lte('price', maxPrice)
+
+      // 5. General Search
+      if (search) {
+        query = query.ilike('name', `%${search}%`)
+      }
+
+      query = query.order('created_at', { ascending: false })
+
+      if (limit) {
+        query = query.limit(Number(limit))
+      }
+
+      return query
     }
 
-    // 2. Feature Bypass (Flags)
-    if (is_best_seller === 'true') query = query.eq('is_best_seller', true)
-    if (is_new === 'true') query = query.eq('is_new', true)
-    if (is_exclusive === 'true') query = query.eq('is_exclusive', true)
+    let { data, error } = await runProductsQuery(true)
 
-    // 3. Scent/Note Bypass (Text Search)
-    if (scent) {
-      query = query.ilike('scent', `%${scent}%`)
+    if (error && isProductsCategoriesRelationSchemaError(error)) {
+      const retry = await runProductsQuery(false)
+      data = retry.data
+      error = retry.error
     }
-
-    // ml exact/ilike match Bypass
-    if (req.query.ml) {
-      query = query.eq('ml', req.query.ml)
-    }
-
-    // 4. Price Filters
-    if (minPrice) query = query.gte('price', minPrice)
-    if (maxPrice) query = query.lte('price', maxPrice)
-
-    // 5. General Search
-    if (search) {
-      query = query.ilike('name', `%${search}%`)
-    }
-
-    query = query.order('created_at', { ascending: false })
-
-    if (limit) {
-      query = query.limit(Number(limit))
-    }
-
-    const { data, error } = await query
 
     if (error) throw error
 
@@ -159,11 +177,21 @@ productRoutes.get('/', async (req, res) => {
 // GET /api/products/:slug - Get single product
 productRoutes.get('/:slug', async (req, res) => {
   try {
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('products')
       .select('*, category:categories(name, slug)')
       .eq('slug', req.params.slug)
       .single()
+
+    if (error && isProductsCategoriesRelationSchemaError(error)) {
+      const retry = await supabaseAdmin
+        .from('products')
+        .select('*')
+        .eq('slug', req.params.slug)
+        .single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) throw error
 
