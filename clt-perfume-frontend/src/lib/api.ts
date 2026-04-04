@@ -1,4 +1,5 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
+import { Product } from "@/lib/products"
 
 export type PromoDiscountType = "percentage" | "fixed"
 
@@ -335,7 +336,8 @@ export async function getProducts(filters?: {
   minPrice?: number; 
   maxPrice?: number;
   limit?: number;
-}) {
+  includeVariants?: boolean;
+}): Promise<Product[]> {
   try {
     const params = new URLSearchParams()
     if (filters?.category) params.append('category', filters.category)
@@ -347,14 +349,20 @@ export async function getProducts(filters?: {
     const url = `${API_BASE_URL}/api/products${params.toString() ? '?' + params.toString() : ''}`
     const res = await fetch(url, { cache: 'no-store' })
     if (!res.ok) throw new Error("Failed to fetch products")
-    return res.json()
+    const data = (await res.json()) as Product[];
+    
+    if (filters?.includeVariants) {
+      return data;
+    }
+    
+    return data.filter((p: Product) => p.show_in_catalog !== false);
   } catch (error) {
     console.error(error)
     return []
   }
 }
 
-export async function getProductBySlug(slug: string) {
+export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/products/${slug}`, { cache: 'no-store' })
     if (!res.ok) return null

@@ -57,7 +57,6 @@ export interface AdminProduct {
   heart_notes?: string[]
   base_notes?: string[]
   tags?: string[]
-  ml?: string
   rating?: number
   review_count?: number
   is_active?: boolean
@@ -66,6 +65,9 @@ export interface AdminProduct {
   is_exclusive?: boolean
   created_at?: string
   category_id?: string | null
+  variant_group_id?: string | null
+  show_in_catalog?: boolean
+  ml?: string | null
   category?: { name?: string | null } | Array<{ name?: string | null }> | null
 }
 

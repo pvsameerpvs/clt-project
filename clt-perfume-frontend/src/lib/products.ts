@@ -1,4 +1,3 @@
-
 export interface Review {
   id: string
   user: string
@@ -25,6 +24,8 @@ export interface Product {
   description: string
   images: string[]
   ml?: string
+  variant_group_id?: string
+  show_in_catalog?: boolean
   scent: string
   olfactive_family?: string
   olfactive_signature?: string

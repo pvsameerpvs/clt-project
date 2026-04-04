@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { getSiteSettings } from "@/lib/api"
+import { getSiteSettings, getProducts } from "@/lib/api"
 import { isOfferActive } from "@/lib/offers"
 
 import { useCart } from "@/contexts/cart-context"
@@ -76,12 +76,22 @@ export function ProductInfo({ product }: { product: Product }) {
   const [engraving, setEngraving] = useState("")
   const [engravingFont, setEngravingFont] = useState("serif")
   const [matchingBundleOffer, setMatchingBundleOffer] = useState<PromoOffer | null>(null)
+  const [variants, setVariants] = useState<Product[]>([])
   const { addToCart } = useCart()
   const { user, isLoading: isAuthLoading } = useAuth()
   const router = useRouter()
 
   const engravingPrice = engraving ? 25 : 0
   const categoryLabel = getCategoryLabel(product.category)
+
+  useEffect(() => {
+    if (product.variant_group_id) {
+      getProducts({ includeVariants: true }).then((all) => {
+        const matching = all.filter((p: Product) => p.variant_group_id === product.variant_group_id)
+        setVariants(matching.sort((a: Product, b: Product) => Number(a.ml || 0) - Number(b.ml || 0)))
+      }).catch(console.error)
+    }
+  }, [product.variant_group_id])
 
   useEffect(() => {
     let active = true
@@ -174,6 +184,25 @@ export function ProductInfo({ product }: { product: Product }) {
         <div className="prose prose-neutral text-neutral-600 font-light mb-8">
           <p>{product.description}</p>
         </div>
+
+        {variants.length > 1 && (
+          <div className="mb-8">
+            <div className="text-[10px] uppercase tracking-widest font-bold text-neutral-400 mb-3">Select Size</div>
+            <div className="flex gap-3">
+              {variants.map(v => (
+                <Link key={v.id} href={`/product/${v.slug}`}>
+                  <button className={`px-5 py-2.5 text-sm font-medium tracking-wide transition-all duration-200 outline-none ${
+                    v.id === product.id 
+                    ? 'border border-black bg-black text-white shadow-md' 
+                    : 'border border-neutral-200 bg-white text-neutral-600 hover:border-neutral-800'
+                  }`}>
+                    {v.ml ? `${v.ml} ML` : 'Default'}
+                  </button>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {matchingBundleOffer && (
           <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-4">

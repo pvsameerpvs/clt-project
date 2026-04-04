@@ -21,6 +21,8 @@ export type ProductFormState = {
   is_exclusive: boolean
   category_id: string
   ml: string
+  variant_group_id: string
+  show_in_catalog: boolean
 }
 
 export type ProductViewFilter = "all" | "active" | "inactive" | "low_stock" | "featured"
@@ -47,6 +49,8 @@ export const EMPTY_PRODUCT_FORM: ProductFormState = {
   is_exclusive: false,
   category_id: "",
   ml: "",
+  variant_group_id: "",
+  show_in_catalog: true,
 }
 
 export function joinCsv(values?: string[]) {

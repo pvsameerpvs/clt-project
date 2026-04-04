@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS public.products (
   is_exclusive BOOLEAN DEFAULT FALSE,
   is_featured BOOLEAN DEFAULT FALSE,
   is_active BOOLEAN DEFAULT TRUE,
+  variant_group_id TEXT,
+  show_in_catalog BOOLEAN DEFAULT TRUE,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

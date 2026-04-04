@@ -11,6 +11,8 @@ interface ProductFormProps {
   setForm: Dispatch<SetStateAction<ProductFormState>>
   onSubmit: (e: FormEvent<HTMLFormElement>) => void
   onClear: () => void
+  onVariantAutofill: () => void
+  variantGroupOptions: string[]
   saving: boolean
   categories: Category[]
 }
@@ -24,9 +26,9 @@ function slugify(value: string) {
     .replace(/-+/g, "-")
 }
 
-export function ProductForm({ form, setForm, onSubmit, onClear, saving, categories }: ProductFormProps) {
+export function ProductForm({ form, setForm, onSubmit, onClear, onVariantAutofill, variantGroupOptions, saving, categories }: ProductFormProps) {
   const isEditing = Boolean(form.id)
-  const generatedSlug = slugify(form.name)
+  const generatedSlug = slugify(`${form.name} ${form.ml ? form.ml + 'ml' : ''}`)
   const allCategoryOptions = buildCategoryHierarchyOptions(categories)
   const leafCategoryOptions = allCategoryOptions.filter((option) => option.isLeaf)
   const categoryOptions = leafCategoryOptions.length ? leafCategoryOptions : allCategoryOptions
@@ -35,6 +37,9 @@ export function ProductForm({ form, setForm, onSubmit, onClear, saving, categori
   const selectedCategoryOption =
     selectedCategory ? allCategoryOptions.find((option) => option.category.id === selectedCategory.id) : undefined
   const selectedCategoryIsLeaf = selectedCategory ? leafCategoryIds.has(selectedCategory.id) : true
+  const normalizedVariantGroup = form.variant_group_id.trim().toLowerCase()
+  const selectedVariantGroupOption =
+    variantGroupOptions.find((option) => option.toLowerCase() === normalizedVariantGroup) || ""
 
   return (
     <form className="form-shell" onSubmit={onSubmit}>
@@ -152,8 +157,43 @@ export function ProductForm({ form, setForm, onSubmit, onClear, saving, categori
               className="field-input"
               value={form.ml}
               onChange={(event) => setForm((prev) => ({ ...prev, ml: event.target.value }))}
-              placeholder="e.g. 50ml, 100ml"
+              placeholder="e.g. 50"
             />
+          </div>
+
+          <div className="form-section">
+            <label>Variant Group ID</label>
+            <select
+              className="field-input cursor-pointer mb-2"
+              value={selectedVariantGroupOption}
+              onChange={(event) => setForm((prev) => ({ ...prev, variant_group_id: event.target.value }))}
+            >
+              <option value="">Select existing Variant Group ID</option>
+              {variantGroupOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <div className="slug-row">
+              <input
+                className="field-input"
+                value={form.variant_group_id}
+                onChange={(event) => setForm((prev) => ({ ...prev, variant_group_id: event.target.value }))}
+                placeholder="e.g. noir-de-soir"
+              />
+              <button
+                type="button"
+                className="inline-btn"
+                onClick={onVariantAutofill}
+                disabled={!form.variant_group_id.trim()}
+              >
+                Fill Details
+              </button>
+            </div>
+            <p className="hint text-[10px] mt-1 text-neutral-400">
+              Choose from dropdown or type manually, then click Fill Details (except images, ML, slug).
+            </p>
           </div>
         </div>
       </section>
@@ -330,6 +370,14 @@ export function ProductForm({ form, setForm, onSubmit, onClear, saving, categori
               onChange={(event) => setForm((prev) => ({ ...prev, is_active: event.target.checked }))}
             />
             <span>Active</span>
+          </label>
+          <label className="flag-item">
+            <input
+              type="checkbox"
+              checked={form.show_in_catalog}
+              onChange={(event) => setForm((prev) => ({ ...prev, show_in_catalog: event.target.checked }))}
+            />
+            <span>Show in Catalog</span>
           </label>
           <label className="flag-item">
             <input

@@ -130,6 +130,24 @@ export default function ProductsPage() {
     })
   }, [query, sortedProducts, viewFilter])
 
+  const variantGroupOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const options: string[] = []
+
+    for (const product of sortedProducts) {
+      const raw = (product.variant_group_id || "").trim()
+      if (!raw) continue
+
+      const key = raw.toLowerCase()
+      if (seen.has(key)) continue
+
+      seen.add(key)
+      options.push(raw)
+    }
+
+    return options.sort((a, b) => a.localeCompare(b))
+  }, [sortedProducts])
+
   const selectedProduct = useMemo(
     () => sortedProducts.find((product) => product.id === selectedProductId) || null,
     [selectedProductId, sortedProducts]
@@ -180,6 +198,62 @@ export default function ProductsPage() {
     void loadProducts(null, serverMlFilter)
   }, [serverMlFilter])
 
+  function handleVariantAutofill() {
+    const normalizedGroupId = form.variant_group_id.trim().toLowerCase()
+    if (!normalizedGroupId) {
+      setError("Enter Variant Group ID first.")
+      return
+    }
+
+    const sourceProduct = sortedProducts.find(
+      (product) => (product.variant_group_id || "").trim().toLowerCase() === normalizedGroupId
+    )
+
+    if (!sourceProduct) {
+      setError(`No product found for Variant Group ID: ${form.variant_group_id.trim()}`)
+      return
+    }
+
+    setError(null)
+    setForm((prev) => {
+      if (prev.id) return prev
+      if (prev.variant_group_id.trim().toLowerCase() !== normalizedGroupId) return prev
+
+      return {
+        ...prev,
+        name: sourceProduct.name ?? prev.name,
+        description: sourceProduct.description ?? prev.description,
+        price:
+          sourceProduct.price === undefined || sourceProduct.price === null
+            ? prev.price
+            : String(sourceProduct.price),
+        stock:
+          sourceProduct.stock === undefined || sourceProduct.stock === null
+            ? prev.stock
+            : String(sourceProduct.stock),
+        scent: sourceProduct.scent ?? prev.scent,
+        olfactive_family: sourceProduct.olfactive_family ?? prev.olfactive_family,
+        olfactive_signature: sourceProduct.olfactive_signature ?? prev.olfactive_signature,
+        concentration: sourceProduct.concentration ?? prev.concentration,
+        mood_use: sourceProduct.mood_use ?? prev.mood_use,
+        tags: sourceProduct.tags ? joinCsv(sourceProduct.tags) : prev.tags,
+        top_notes: sourceProduct.top_notes ? joinCsv(sourceProduct.top_notes) : prev.top_notes,
+        heart_notes: sourceProduct.heart_notes ? joinCsv(sourceProduct.heart_notes) : prev.heart_notes,
+        base_notes: sourceProduct.base_notes ? joinCsv(sourceProduct.base_notes) : prev.base_notes,
+        is_active: sourceProduct.is_active !== false,
+        is_new: Boolean(sourceProduct.is_new),
+        is_best_seller: Boolean(sourceProduct.is_best_seller),
+        is_exclusive: Boolean(sourceProduct.is_exclusive),
+        category_id: sourceProduct.category_id ?? prev.category_id,
+        show_in_catalog: sourceProduct.show_in_catalog !== false,
+        // Keep these manual for each variant.
+        images: prev.images,
+        ml: prev.ml,
+        slug: prev.slug,
+      }
+    })
+  }
+
   function startEdit(product: AdminProduct) {
     setSelectedProductId(product.id)
     setForm({
@@ -205,6 +279,8 @@ export default function ProductsPage() {
       is_exclusive: Boolean(product.is_exclusive),
       category_id: product.category_id || "",
       ml: product.ml || "",
+      variant_group_id: product.variant_group_id || "",
+      show_in_catalog: product.show_in_catalog !== false,
     })
     setActiveTab("studio") // Auto-switch to studio for editing
   }
@@ -277,7 +353,9 @@ export default function ProductsPage() {
         is_best_seller: form.is_best_seller,
         is_exclusive: form.is_exclusive,
         category_id: form.category_id || null,
-        ml: form.ml.trim(),
+        ml: form.ml.trim() || null,
+        variant_group_id: form.variant_group_id.trim() || null,
+        show_in_catalog: form.show_in_catalog,
       }
 
       if (!payload.name || !payload.slug) {
@@ -400,6 +478,8 @@ export default function ProductsPage() {
               form={form}
               setForm={setForm}
               onSubmit={handleSubmit}
+              onVariantAutofill={handleVariantAutofill}
+              variantGroupOptions={variantGroupOptions}
               onClear={() => {
                 setForm(EMPTY_PRODUCT_FORM)
                 setSelectedProductId(null)

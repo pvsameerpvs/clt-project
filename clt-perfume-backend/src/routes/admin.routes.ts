@@ -50,6 +50,16 @@ function stripParentId<T extends Record<string, unknown>>(payload: T): Omit<T, '
   return rest
 }
 
+function isMissingProductOptionalColumn(error: { message?: string } | null | undefined) {
+  const message = error?.message || ''
+  return message.includes("'show_in_catalog'") || message.includes("'variant_group_id'")
+}
+
+function stripProductOptionalColumns<T extends Record<string, unknown>>(payload: T): Omit<T, 'show_in_catalog' | 'variant_group_id'> {
+  const { show_in_catalog, variant_group_id, ...rest } = payload
+  return rest
+}
+
 // All admin routes require auth + admin role
 adminRoutes.use(authMiddleware, adminMiddleware)
 
@@ -151,11 +161,21 @@ adminRoutes.post('/products', async (req: Request, res: Response) => {
       delete payload.stock
     }
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('products')
       .insert(payload)
       .select()
       .single()
+
+    if (error && isMissingProductOptionalColumn(error)) {
+      const retry = await supabaseAdmin
+        .from('products')
+        .insert(stripProductOptionalColumns(payload))
+        .select()
+        .single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) throw error
     const { stock_quantity, ...rest } = data
@@ -175,12 +195,23 @@ adminRoutes.put('/products/:id', async (req: Request, res: Response) => {
       delete payload.stock
     }
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('products')
       .update(payload)
       .eq('id', req.params.id)
       .select()
       .single()
+
+    if (error && isMissingProductOptionalColumn(error)) {
+      const retry = await supabaseAdmin
+        .from('products')
+        .update(stripProductOptionalColumns(payload))
+        .eq('id', req.params.id)
+        .select()
+        .single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) throw error
     const { stock_quantity, ...rest } = data
