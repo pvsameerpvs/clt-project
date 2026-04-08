@@ -13,7 +13,7 @@ export function ProductReviews({ product }: { product: Product }) {
   const staticReviews = product.reviews || []
   const { user } = useAuth()
 
-  const [liveReviews, setLiveReviews] = useState<{ id: string; user_name: string; user_avatar: string | null; rating: number; content: string; created_at: string }[]>([])
+  const [liveReviews, setLiveReviews] = useState<{ id: string; product_id: string; product_name: string | null; user_name: string; user_avatar: string | null; rating: number; content: string; created_at: string }[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [hoverRating, setHoverRating] = useState(0)
   const [rating, setRating] = useState(0)
@@ -48,6 +48,8 @@ export function ProductReviews({ product }: { product: Product }) {
     ...staticReviews,
     ...liveReviews.map((r) => ({
       id: r.id,
+      product_id: r.product_id,
+      product_name: r.product_name,
       user: r.user_name,
       avatar: r.user_avatar || undefined,
       rating: r.rating,
@@ -153,10 +155,18 @@ export function ProductReviews({ product }: { product: Product }) {
                       <div className="text-xs text-neutral-400">{review.date}</div>
                     </div>
                   </div>
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={`h-3 w-3 ${i < review.rating ? 'fill-black text-black' : 'text-neutral-200 fill-transparent'}`} />
-                    ))}
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`h-3 w-3 ${i < review.rating ? 'fill-black text-black' : 'text-neutral-200 fill-transparent'}`} />
+                      ))}
+                    </div>
+                    {/* If review belongs to a different product, show a tiny badge */}
+                    {('product_id' in review && review.product_id && review.product_id !== product.id) && (
+                      <span className="text-[9px] uppercase tracking-widest font-bold text-neutral-400 bg-neutral-50 px-2 py-1 rounded-full border border-neutral-100">
+                        For {('product_name' in review && review.product_name) ? review.product_name : "Another Product"}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <p className="text-neutral-600 font-light mt-4 leading-relaxed pl-14">

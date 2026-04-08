@@ -47,24 +47,31 @@ reviewRoutes.post('/', authMiddleware, async (req: Request, res: Response) => {
   }
 })
 
-// GET /api/reviews?product_id=xxx — fetch approved reviews for a product
+// GET /api/reviews?product_id=xxx — fetch approved reviews
 reviewRoutes.get('/', async (req: Request, res: Response) => {
   try {
     const { product_id } = req.query
-    if (!product_id) {
-      return res.status(400).json({ error: 'product_id query param is required' })
-    }
 
+    // Fetch ALL approved reviews to act as shared/common reviews
     const { data, error } = await supabaseAdmin
       .from('reviews')
-      .select('id, user_name, user_avatar, rating, content, created_at')
-      .eq('product_id', String(product_id))
+      .select('id, product_id, product_name, user_name, user_avatar, rating, content, created_at')
       .eq('is_approved', true)
       .order('created_at', { ascending: false })
 
     if (error) throw error
 
-    res.json(data || [])
+    let reviews = data || []
+    
+    // If a specific product is requested, put its reviews at the very top
+    if (product_id) {
+      const targetId = String(product_id)
+      const exactMatches = reviews.filter(r => r.product_id === targetId)
+      const otherMatches = reviews.filter(r => r.product_id !== targetId)
+      reviews = [...exactMatches, ...otherMatches]
+    }
+
+    res.json(reviews)
   } catch (error: any) {
     res.status(400).json({ error: error.message })
   }
