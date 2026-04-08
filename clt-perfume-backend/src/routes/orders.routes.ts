@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
 import { sendOrderConfirmationEmail } from '../services/email.service'
+import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
 
 export const orderRoutes = Router()
 
@@ -199,6 +200,7 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
     }
 
     const contactEmail = (payload.shipping_address as any)?.contact_email
+    const contactWhatsapp = (payload.shipping_address as any)?.contact_whatsapp
 
     sendOrderConfirmationEmail({
       order_number: order.order_number,
@@ -209,6 +211,12 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       payment_method: order.payment_method,
       items: orderItems,
       contact_email: contactEmail
+    })
+
+    sendOrderWhatsAppConfirmation({
+      order_number: order.order_number,
+      total: Number(order.total || 0),
+      contact_whatsapp: contactWhatsapp
     })
 
     res.status(201).json({

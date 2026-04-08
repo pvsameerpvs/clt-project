@@ -4,6 +4,7 @@ import { stripe } from '../config/stripe'
 import { supabaseAdmin } from '../config/supabase'
 import Stripe from 'stripe'
 import { sendOrderConfirmationEmail } from '../services/email.service'
+import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
 
 export const webhookRoutes = Router()
 
@@ -97,6 +98,7 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
   }
 
   const contactEmail = (order.shipping_address as any)?.contact_email
+  const contactWhatsapp = (order.shipping_address as any)?.contact_whatsapp
 
   sendOrderConfirmationEmail({
     order_number: order.order_number || '',
@@ -112,6 +114,12 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
       product_image: item.product_image
     })),
     contact_email: contactEmail || session.customer_details?.email || undefined
+  })
+
+  sendOrderWhatsAppConfirmation({
+    order_number: order.order_number || '',
+    total: Number(order.total || 0),
+    contact_whatsapp: contactWhatsapp
   })
 
   console.log(`✅ Direct order ${order.id} marked paid`)
@@ -189,6 +197,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     await supabaseAdmin.from('cart_items').delete().eq('user_id', userId)
 
+    const contactWhatsapp = (order.shipping_address as any)?.contact_whatsapp
+
     sendOrderConfirmationEmail({
       order_number: order.order_number || '',
       subtotal: Number(order.subtotal || 0),
@@ -198,6 +208,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       payment_method: order.payment_method || 'card',
       items: orderItems,
       contact_email: session.customer_details?.email || undefined
+    })
+
+    sendOrderWhatsAppConfirmation({
+      order_number: order.order_number || '',
+      total: Number(order.total || 0),
+      contact_whatsapp: contactWhatsapp
     })
 
     console.log(`✅ Order ${order.order_number} created for user ${userId}`)
