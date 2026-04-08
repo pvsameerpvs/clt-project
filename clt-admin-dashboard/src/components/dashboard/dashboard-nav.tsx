@@ -14,6 +14,7 @@ import {
   Mail,
   MessageSquare,
   Ticket,
+  Star,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,7 @@ export const menuItems = [
   { label: "Collections", href: "/dashboard/categories", icon: LayoutGrid },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingBag },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
+  { label: "Reviews", href: "/dashboard/reviews", icon: Star },
   { label: "Newsletter", href: "/dashboard/newsletter", icon: Mail },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "Coupons", href: "/dashboard/coupons", icon: Ticket },

@@ -709,3 +709,47 @@ adminRoutes.delete('/promo-codes/:id', async (req: Request, res: Response) => {
     res.status(400).json({ error: error.message })
   }
 })
+
+// ── Reviews ──────────────────────────────────────────────────
+
+// GET all reviews (admin sees all, approved + pending)
+adminRoutes.get('/reviews', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('reviews')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    res.json(data || [])
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// PUT approve a review
+adminRoutes.put('/reviews/:id/approve', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('reviews')
+      .update({ is_approved: true })
+      .eq('id', req.params.id)
+      .select()
+      .single()
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// DELETE a review
+adminRoutes.delete('/reviews/:id', async (req: Request, res: Response) => {
+  try {
+    const { error } = await supabaseAdmin.from('reviews').delete().eq('id', req.params.id)
+    if (error) throw error
+    res.json({ success: true })
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+

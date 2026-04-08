@@ -14,6 +14,7 @@ import { adminRoutes } from './routes/admin.routes'
 import { settingsRoutes } from './routes/settings.routes'
 import { productRoutes } from './routes/product.routes'
 import { promoCodeRoutes } from './routes/promo-codes.routes'
+import { reviewRoutes } from './routes/reviews.routes'
 
 
 const app = express()
@@ -62,6 +63,7 @@ app.use('/api/promo-codes', promoCodeRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api/products', productRoutes)
+app.use('/api/reviews', reviewRoutes)
 
 
 

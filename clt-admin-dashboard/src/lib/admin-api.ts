@@ -448,3 +448,36 @@ export function deleteAdminPromoCode(promoId: string) {
     method: "DELETE"
   })
 }
+
+// === REVIEWS ===
+
+export interface AdminReview {
+  id: string
+  product_id: string
+  product_name: string | null
+  user_id: string | null
+  user_name: string
+  user_email: string | null
+  user_avatar: string | null
+  rating: number
+  content: string
+  is_approved: boolean
+  created_at: string
+}
+
+export function getAdminReviews() {
+  return adminFetch<AdminReview[]>("/api/admin/reviews")
+}
+
+export function approveAdminReview(reviewId: string) {
+  return adminFetch<AdminReview>(`/api/admin/reviews/${reviewId}/approve`, {
+    method: "PUT",
+  })
+}
+
+export function deleteAdminReview(reviewId: string) {
+  return adminFetch<{ success: boolean }>(`/api/admin/reviews/${reviewId}`, {
+    method: "DELETE",
+  })
+}
+
