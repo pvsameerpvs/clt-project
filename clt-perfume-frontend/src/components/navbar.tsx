@@ -48,7 +48,7 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 flex-1 lg:flex-none flex justify-center lg:justify-start">
             <div className="flex flex-col items-center">
-               <Image src="/perfume-sam.png" alt="CLE Perfumes" width={150} height={60} className="object-contain w-auto h-12 md:h-16" priority />
+               <Image src="/perfume-sam.png" alt="CLE Perfumes" width={200} height={70} className="object-contain w-auto h-14 md:h-20" priority />
                <span className="text-[10px] md:text-xs tracking-[0.3em] uppercase mt-1.5">Perfumes</span>
             </div>
           </Link>

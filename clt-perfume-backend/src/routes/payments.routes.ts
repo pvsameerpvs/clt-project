@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { stripe } from '../config/stripe'
 import { supabaseAdmin } from '../config/supabase'
-import { authMiddleware } from '../middleware/auth.middleware'
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
 
 export const paymentRoutes = Router()
 
@@ -140,7 +140,7 @@ async function createSessionFromDbCart(userId: string, userEmail?: string | null
 }
 
 async function createSessionFromPayload(
-  userId: string,
+  userId: string | null,
   userEmail: string | null | undefined,
   payload: CheckoutPayload
 ) {
@@ -259,16 +259,16 @@ async function createSessionFromPayload(
 }
 
 // POST /api/payments/create-checkout-session
-paymentRoutes.post('/create-checkout-session', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+paymentRoutes.post('/create-checkout-session', optionalAuthMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.id
+    const userId = req.user?.id || null
     const payload = (req.body || {}) as CheckoutPayload
 
     const hasPayloadItems = Array.isArray(payload.items) && payload.items.length > 0
 
     const result = hasPayloadItems
-      ? await createSessionFromPayload(userId, req.user!.email, payload)
-      : await createSessionFromDbCart(userId, req.user!.email)
+      ? await createSessionFromPayload(userId, req.user?.email, payload)
+      : await createSessionFromDbCart(userId!, req.user!.email)
 
     res.json(result)
   } catch (error: any) {

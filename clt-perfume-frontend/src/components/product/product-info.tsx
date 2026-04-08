@@ -134,16 +134,6 @@ export function ProductInfo({ product }: { product: Product }) {
     if (isAuthLoading) return
 
     addCurrentProductToCart()
-
-    if (!user) {
-      router.push(
-        `/login?next=${encodeURIComponent("/checkout")}&message=${encodeURIComponent(
-          "Please login to continue checkout"
-        )}`
-      )
-      return
-    }
-
     router.push("/checkout")
   }
 

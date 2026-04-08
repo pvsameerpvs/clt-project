@@ -136,6 +136,15 @@ export default function CheckoutPage() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const currentUserId = user?.id || null
 
+  const [contactEmail, setContactEmail] = useState("")
+  const [contactWhatsapp, setContactWhatsapp] = useState("")
+
+  useEffect(() => {
+    if (user?.email) {
+      setContactEmail(user.email)
+    }
+  }, [user?.email])
+
   const selectedCheckoutAddress = useMemo(
     () => shippingAddresses.find((address) => address.id === selectedAddressId) || null,
     [selectedAddressId, shippingAddresses]
@@ -218,9 +227,8 @@ export default function CheckoutPage() {
   }, [currentUserId, isAuthLoading, user?.email])
 
   useEffect(() => {
-    if (isAuthLoading || items.length === 0 || currentUserId) return
-    router.replace(loginToCheckoutHref)
-  }, [currentUserId, isAuthLoading, items.length, loginToCheckoutHref, router])
+    // Redirect removed to allow guest checkout
+  }, [])
 
   useEffect(() => {
     if (shippingAddresses.length === 0) return
@@ -262,7 +270,12 @@ export default function CheckoutPage() {
     }
 
     if (!currentUserId) {
-      router.push(loginToCheckoutHref)
+      setShippingAddresses([nextAddressDraft])
+      setSelectedAddressId(nextAddressDraft.id)
+      setAddressFormError("")
+      setShowAddressForm(false)
+      setAddressForm(createAddressFormState(nextAddressDraft.contactName, nextAddressDraft.phone))
+      toast.success("Guest address saved")
       return
     }
 
@@ -352,6 +365,14 @@ export default function CheckoutPage() {
       toast.error("Your bag is empty.")
       return
     }
+    if (!currentUserId && !contactEmail.trim()) {
+      toast.error("Please provide an email address for order updates.")
+      return
+    }
+    if (!contactWhatsapp.trim()) {
+      toast.error("Please provide a WhatsApp or contact number.")
+      return
+    }
     if (!selectedCheckoutAddress) {
       toast.error("Please choose a delivery address.")
       return
@@ -363,11 +384,6 @@ export default function CheckoutPage() {
       const {
         data: { session },
       } = await supabase.auth.getSession()
-
-      if (!session?.access_token) {
-        router.push(loginToCheckoutHref)
-        return
-      }
 
       const payload = {
         items: items.map((item) => ({
@@ -396,18 +412,26 @@ export default function CheckoutPage() {
           postal_code: selectedCheckoutAddress.postalCode || "",
           country: selectedCheckoutAddress.country,
           landmark: selectedCheckoutAddress.landmark || "",
+          contact_email: contactEmail.trim() || user?.email || "",
+          contact_whatsapp: contactWhatsapp.trim(),
         },
       }
 
+      const token = session?.access_token || null
+
       if (paymentMethod === "cod") {
-        const order = await createCashOnDeliveryOrder(session.access_token, payload)
+        const order = await createCashOnDeliveryOrder(token, payload)
         clearCart()
         toast.success(`Order ${order.order_number || order.id} placed successfully`)
-        router.push(`/profile?section=orders&order=${encodeURIComponent(order.order_number || order.id)}`)
+        if (currentUserId) {
+          router.push(`/profile?section=orders&order=${encodeURIComponent(order.order_number || order.id)}`)
+        } else {
+          router.push(`/`)
+        }
         return
       }
 
-      const checkoutSession = await createBankCheckoutSession(session.access_token, payload)
+      const checkoutSession = await createBankCheckoutSession(token, payload)
       if (!checkoutSession.url) {
         throw new Error("Unable to start bank payment checkout")
       }
@@ -450,29 +474,7 @@ export default function CheckoutPage() {
     )
   }
 
-  if (!currentUserId) {
-    return (
-      <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center px-4">
-        <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white">
-          <Loader2 className="h-5 w-5 animate-spin text-neutral-600" />
-        </div>
-        <h1 className="text-2xl font-serif text-neutral-900 mb-2">Redirecting to Login</h1>
-        <p className="text-neutral-500 font-light mb-8 max-w-md text-center">
-          Checkout requires sign-in. You will continue to delivery and payment right after login.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <Link href={loginToCheckoutHref}>
-            <Button className="h-12 px-8 rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-xs font-medium">
-              Continue to Login
-            </Button>
-          </Link>
-          <Link href="/cart" className="h-12 inline-flex items-center justify-center rounded-xl border border-neutral-300 px-8 text-xs font-semibold uppercase tracking-[0.12em] text-neutral-700 transition hover:border-black hover:text-black">
-            Back to Cart
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  // No blocking auth view required for guest checkout
 
   return (
     <div className="min-h-screen bg-white py-10 md:py-14">
@@ -489,9 +491,54 @@ export default function CheckoutPage() {
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.3fr_1fr]">
           <section className="space-y-6">
+            {!currentUserId && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 md:p-6 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-serif text-xl text-amber-900 mb-1">Get 10% Off Your Order!</h2>
+                    <p className="text-sm text-amber-800 font-light">Sign in or create an account to instantly receive a 10% discount on your entire purchase.</p>
+                  </div>
+                  <Link href={loginToCheckoutHref}>
+                    <Button className="shrink-0 rounded-xl bg-amber-600 text-white hover:bg-amber-700 uppercase tracking-widest text-xs font-semibold px-6 h-11 transition-colors">
+                      Sign In & Claim
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
+              <h2 className="mb-4 font-serif text-2xl text-neutral-900">1. Contact Information</h2>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                {!currentUserId && (
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">Email Address *</label>
+                    <input
+                      type="email"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="h-11 w-full rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black"
+                    />
+                  </div>
+                )}
+                <div className="space-y-1.5 overflow-hidden">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">WhatsApp Number *</label>
+                  <input
+                    type="tel"
+                    value={contactWhatsapp}
+                    onChange={(e) => setContactWhatsapp(e.target.value)}
+                    placeholder="+971 50 XXXXXXX"
+                    className="h-11 w-full rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black"
+                  />
+                  <p className="text-[10px] text-neutral-400 mt-1">Used for order updates and tracking.</p>
+                </div>
+              </div>
+            </article>
+
             <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
               <div className="mb-4 flex items-center justify-between gap-2">
-                <h2 className="font-serif text-2xl text-neutral-900">1. Delivery Address</h2>
+                <h2 className="font-serif text-2xl text-neutral-900">2. Delivery Address</h2>
                 <span className="text-xs text-neutral-500">{shippingAddresses.length} saved</span>
               </div>
 
@@ -582,7 +629,7 @@ export default function CheckoutPage() {
             </article>
 
             <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
-              <h2 className="mb-4 font-serif text-2xl text-neutral-900">2. Payment Method</h2>
+              <h2 className="mb-4 font-serif text-2xl text-neutral-900">3. Payment Method</h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
@@ -611,7 +658,7 @@ export default function CheckoutPage() {
           </section>
 
           <aside className="h-fit rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 lg:sticky lg:top-24">
-            <h2 className="mb-4 border-b border-neutral-100 pb-3 font-serif text-2xl text-neutral-900">3. Review Order</h2>
+            <h2 className="mb-4 border-b border-neutral-100 pb-3 font-serif text-2xl text-neutral-900">4. Review Order</h2>
 
             <div className="mb-4 space-y-2">
               {items.map((item) => (
@@ -628,37 +675,42 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3 sm:p-4">
-              <p className="mb-2 text-[10px] uppercase tracking-[0.12em] text-neutral-500 sm:text-[11px]">Promo Code</p>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  value={promoInputValue}
-                  onChange={(event) => setPromoInput(event.target.value.toUpperCase())}
-                  placeholder="ENTER CODE"
-                  disabled={Boolean(promo)}
-                  className="h-10 min-w-0 flex-1 rounded-lg border border-neutral-300 bg-white px-3 text-sm outline-none transition-colors focus:border-black sm:h-11"
-                />
-                <button
-                  type="button"
-                  onClick={applyPromo}
-                  disabled={isApplyingPromo || Boolean(promo)}
-                  className="h-10 w-full rounded-lg bg-black px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 sm:h-11 sm:w-auto sm:min-w-[110px]"
-                >
-                  {promo ? "Applied" : isApplyingPromo ? "Applying" : "Apply"}
-                </button>
-              </div>
-              {promo && (
-                <div className="mt-2 flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-800 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="break-all">
-                    {promo.code} ({promo.discountType === "percentage" ? `${promo.discountValue}%` : `AED ${promo.discountValue}`})
-                  </span>
-                  <button type="button" onClick={removePromo} className="self-start font-semibold hover:text-black sm:self-auto">
-                    Remove
+            {currentUserId && (
+              <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3 sm:p-4">
+                <p className="mb-2 text-[10px] uppercase tracking-[0.12em] text-neutral-500 sm:text-[11px]">Promo Code</p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    value={promoInputValue}
+                    onChange={(event) => setPromoInput(event.target.value.toUpperCase())}
+                    placeholder="ENTER CODE"
+                    disabled={Boolean(promo)}
+                    className="h-10 min-w-0 flex-1 rounded-lg border border-neutral-300 bg-white px-3 text-sm outline-none transition-colors focus:border-black sm:h-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyPromo}
+                    disabled={isApplyingPromo || Boolean(promo)}
+                    className="h-10 w-full rounded-lg bg-black px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 sm:h-11 sm:w-auto sm:min-w-[110px]"
+                  >
+                    {promo ? "Applied" : isApplyingPromo ? "Applying" : "Apply"}
                   </button>
                 </div>
-              )}
-              {promoMessage && <p className={`mt-2 text-xs ${promoError ? "text-red-600" : "text-emerald-700"}`}>{promoMessage}</p>}
-            </div>
+                {promo && (
+                  <div className="mt-2 flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-800 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="break-all font-medium">
+                      {promo.code === "SIGNIN10" && "✨ Auto-applied: "}
+                      {promo.code} ({promo.discountType === "percentage" ? `${promo.discountValue}%` : `AED ${promo.discountValue}`})
+                    </span>
+                    {promo.code !== "SIGNIN10" && (
+                      <button type="button" onClick={removePromo} className="self-start font-semibold hover:text-black sm:self-auto">
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                )}
+                {promoMessage && <p className={`mt-2 text-xs ${promoError ? "text-red-600" : "text-emerald-700"}`}>{promoMessage}</p>}
+              </div>
+            )}
 
             <div className="space-y-3 text-sm text-neutral-600">
               <div className="flex justify-between"><span>Items ({totalItems})</span><span className="font-medium text-black">{formatPrice(totalPrice)}</span></div>

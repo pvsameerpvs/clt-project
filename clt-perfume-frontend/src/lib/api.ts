@@ -435,15 +435,19 @@ export async function validatePromoCode(code: string, subtotal: number): Promise
 }
 
 export async function createCashOnDeliveryOrder(
-  accessToken: string,
+  accessToken: string | null,
   payload: CodCheckoutPayload
 ): Promise<CodCheckoutResponse> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+  if (accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`
+  }
+
   const res = await fetch(`${API_BASE_URL}/api/orders/cod-checkout`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers,
     body: JSON.stringify(payload),
   })
 
@@ -456,15 +460,19 @@ export async function createCashOnDeliveryOrder(
 }
 
 export async function createBankCheckoutSession(
-  accessToken: string,
+  accessToken: string | null,
   payload: CodCheckoutPayload
 ): Promise<BankCheckoutSessionResponse> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+  if (accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`
+  }
+
   const res = await fetch(`${API_BASE_URL}/api/payments/create-checkout-session`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers,
     body: JSON.stringify(payload),
   })
 

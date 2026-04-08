@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from "react"
 import { Product } from "@/lib/products"
+import { useAuth } from "@/contexts/auth-context"
 
 export interface CartBundleMeta {
   id: string
@@ -75,6 +76,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [promo, setPromo] = useState<AppliedPromo | null>(null)
   const hasLoadedFromStorage = useRef(false)
+  const { user } = useAuth()
 
   // Load from LocalStorage after first mount to avoid SSR hydration mismatches.
   useEffect(() => {
@@ -172,7 +174,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
   const totalPrice = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
-  const promoDiscountAmount = calculatePromoDiscount(totalPrice, promo)
+
+  let effectivePromo = promo
+  if (!promo && user) {
+    // Auto-apply 10% discount for signed-in users
+    effectivePromo = {
+      code: "SIGNIN10",
+      discountType: "percentage",
+      discountValue: 10,
+    }
+  }
+
+  const promoDiscountAmount = calculatePromoDiscount(totalPrice, effectivePromo)
   const discountedTotal = Math.max(0, totalPrice - promoDiscountAmount)
 
   return (
@@ -183,7 +196,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateQuantity,
         clearCart,
-        promo,
+        promo: effectivePromo,
         setPromo,
         promoDiscountAmount,
         discountedTotal,

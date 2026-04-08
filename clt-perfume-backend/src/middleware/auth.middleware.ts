@@ -46,3 +46,30 @@ export function adminMiddleware(req: Request, res: Response, next: NextFunction)
   }
   next()
 }
+
+export async function optionalAuthMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const authHeader = req.headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    next()
+    return
+  }
+
+  const token = authHeader.split(' ')[1]
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
+
+  if (!error && user) {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    req.user = {
+      id: user.id,
+      email: user.email!,
+      role: profile?.role || 'customer',
+    }
+  }
+
+  next()
+}

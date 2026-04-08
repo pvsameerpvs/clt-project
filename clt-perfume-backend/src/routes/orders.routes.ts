@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
-import { authMiddleware } from '../middleware/auth.middleware'
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
 
 export const orderRoutes = Router()
 
@@ -90,7 +90,7 @@ orderRoutes.get('/', authMiddleware, async (req: Request, res: Response) => {
 })
 
 // POST /api/orders/cod-checkout — Create order from frontend cart (Cash on Delivery)
-orderRoutes.post('/cod-checkout', authMiddleware, async (req: Request, res: Response) => {
+orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const payload = (req.body || {}) as CodCheckoutPayload
     const rawItems = Array.isArray(payload.items) ? payload.items : []
@@ -142,7 +142,7 @@ orderRoutes.post('/cod-checkout', authMiddleware, async (req: Request, res: Resp
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
-        user_id: req.user!.id,
+        user_id: req.user?.id || null,
         order_number: orderNumber,
         status: 'pending',
         subtotal,

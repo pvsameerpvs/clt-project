@@ -12,9 +12,6 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Minus, Plus, ShoppingBag, X } from "lucide-react"
 import { validatePromoCode } from "@/lib/api"
 
-function formatPrice(value: number) {
-  return `AED ${Math.round(Number(value) || 0)}`
-}
 
 export default function CartPage() {
   return (
@@ -187,16 +184,6 @@ function CartPageContent() {
 
   const handleProceedCheckout = () => {
     if (isAuthLoading) return
-
-    if (!user) {
-      router.push(
-        `/login?next=${encodeURIComponent("/checkout")}&message=${encodeURIComponent(
-          "Please login to continue checkout"
-        )}`
-      )
-      return
-    }
-
     router.push("/checkout")
   }
 
@@ -337,10 +324,11 @@ function CartPageContent() {
                 onRemovePromo={removePromo}
                 onProceedCheckout={handleProceedCheckout}
                 proceedButtonLabel={
-                  isAuthLoading ? "Checking Account..." : user ? "Proceed to Checkout" : "Login to Checkout"
+                  isAuthLoading ? "Loading..." : "Proceed to Checkout"
                 }
-                proceedHelperText={!isAuthLoading && !user ? "Sign in is required to place an order." : undefined}
+                proceedHelperText={!isAuthLoading && !user ? "10% discount applies automatically if you sign in." : undefined}
                 isProceedDisabled={isAuthLoading}
+                showPromoInput={!!user}
               />
             </div>
           </div>
