@@ -102,7 +102,7 @@ export async function sendOrderConfirmationEmail(order: OrderDetails) {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE Perfumes <onboarding@resend.dev>', // Should be updated if user adds domain
+      from: 'CLE Perfumes <info@cleparfum.com>',
       to: order.contact_email,
       bcc: 'infocleparfum@gmail.com', // ⬅️ Sent copy to client
       subject: `Order Confirmation #${order.order_number}`,
@@ -117,4 +117,40 @@ export async function sendOrderConfirmationEmail(order: OrderDetails) {
   } catch (err) {
     console.error('[EmailService] Unexpected Error:', err)
   }
+}
+
+export async function sendOrderStatusEmail(orderNumber: string, status: string, contactEmail?: string) {
+  if (!contactEmail) return
+
+  const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1)
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafb; padding: 40px 0; margin: 0;">
+      <table align="center" width="100%" max-width="600" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <tr>
+          <td style="background-color: #000000; padding: 24px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-family: Georgia, serif; font-size: 24px;">CLE Perfumes</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px 24px;">
+            <p style="color: #111827; font-size: 18px; font-weight: 600;">Order Update: ${formattedStatus}</p>
+            <p style="color: #4b5563; font-size: 16px;">Hi there,</p>
+            <p style="color: #4b5563; font-size: 16px;">Your order <strong>#${orderNumber}</strong> has been updated to: <strong>${formattedStatus}</strong>.</p>
+            <p style="color: #4b5563; font-size: 16px;">If you have any questions, simply reply to this email!</p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  await resend.emails.send({
+    from: 'CLE Perfumes <info@cleparfum.com>',
+    to: contactEmail,
+    subject: `Order Update #${orderNumber} - ${formattedStatus}`,
+    html: html
+  }).catch(e => console.error('[EmailService] Status Email Error:', e))
 }

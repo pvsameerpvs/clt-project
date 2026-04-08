@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
+import { sendOrderStatusEmail } from '../services/email.service'
+import { sendOrderStatusWhatsApp } from '../services/whatsapp.service'
 
 export const adminRoutes = Router()
 
@@ -486,6 +488,14 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
       .single()
 
     if (error) throw error
+
+    const contactEmail = (data.shipping_address as any)?.contact_email
+    const contactWhatsapp = (data.shipping_address as any)?.contact_whatsapp
+
+    // Fire off async notifications
+    sendOrderStatusEmail(data.order_number, statusToStore, contactEmail)
+    sendOrderStatusWhatsApp(data.order_number, statusToStore, contactWhatsapp)
+
     res.json({
       ...data,
       status: normalizeOrderStatusForResponse(data.status),

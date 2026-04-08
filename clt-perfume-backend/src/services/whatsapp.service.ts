@@ -53,3 +53,30 @@ Thank you for shopping at CLE Perfumes. We are processing your order and will le
     console.error('[WhatsAppService] Twilio Error:', error)
   }
 }
+
+export async function sendOrderStatusWhatsApp(orderNumber: string, status: string, contactWhatsapp?: string) {
+  if (!contactWhatsapp || !client) return
+
+  let formattedNumber = contactWhatsapp.trim()
+  if (!formattedNumber.startsWith('+')) {
+    formattedNumber = '+' + formattedNumber 
+  }
+
+  const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1)
+  const messageText = `*Order Update:* #${orderNumber} 🎉
+
+Hi there! The status of your CLE Perfumes order is now: *${formattedStatus}*.
+
+Thank you for shopping with us!`
+
+  try {
+    await client.messages.create({
+      body: messageText,
+      from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+      to: `whatsapp:${formattedNumber}`
+    })
+    console.log(`[WhatsAppService] Status message sent for #${orderNumber}`)
+  } catch (error) {
+    console.error('[WhatsAppService] Twilio Status Error:', error)
+  }
+}
