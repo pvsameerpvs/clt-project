@@ -25,18 +25,22 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const currentCategoryId = typeof product.category_id === "string" ? product.category_id : ""
   const currentCategoryToken = normalizeToken(getCategorySlug(product.category) || "")
 
-  // Fetch related products from the same category first.
+  // Fetch cross-sell products from DIFFERENT categories
   const allProductsRaw = await getProducts()
   const allProducts = (allProductsRaw || []) as Product[]
-  const sameCategoryProducts = allProducts
+  
+  const differentCategoryProducts = allProducts
     .filter((p) => p.id !== product.id)
     .filter((p) => {
-      if (currentCategoryId) return p.category_id === currentCategoryId
+      if (currentCategoryId && p.category_id === currentCategoryId) return false
       const candidateCategory = normalizeToken(getCategorySlug(p.category) || "")
-      if (!candidateCategory || !currentCategoryToken) return false
-      return candidateCategory === currentCategoryToken
+      if (candidateCategory && currentCategoryToken && candidateCategory === currentCategoryToken) return false
+      return true
     })
-  const relatedProducts = (sameCategoryProducts.length > 0 ? sameCategoryProducts : allProducts.filter((p) => p.id !== product.id))
+
+  // If we couldn't find enough different-category products, just use any products (excluding current)
+  const relatedProducts = (differentCategoryProducts.length > 0 ? differentCategoryProducts : allProducts.filter((p) => p.id !== product.id))
+    .reverse() // Just reverse so it gives a different feel without being impure
     .slice(0, 5)
 
   return <ProductDisplay product={product} relatedProducts={relatedProducts} />

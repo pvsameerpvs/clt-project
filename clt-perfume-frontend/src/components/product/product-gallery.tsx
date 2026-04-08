@@ -7,8 +7,9 @@ import { Heart } from "lucide-react"
 import { Product } from "@/lib/products"
 import { useWishlist } from "@/contexts/wishlist-context"
 import { toast } from "sonner"
+import { ProductCard } from "@/components/product/product-card"
 
-export function ProductGallery({ product }: { product: Product }) {
+export function ProductGallery({ product, relatedProducts = [] }: { product: Product; relatedProducts?: Product[] }) {
   const { toggleWishlist, isInWishlist } = useWishlist()
   const validImages = useMemo(
     () => (product.images || []).filter((img) => typeof img === "string" && img.trim().length > 0),
@@ -92,6 +93,19 @@ export function ProductGallery({ product }: { product: Product }) {
           ))}
         </div>
       )}
+
+      {/* Show related products here on Desktop only to fill the whitespace */}
+      {relatedProducts.length > 0 && (
+        <div className="hidden lg:block mt-16 border-t border-neutral-100 pt-10">
+          <h3 className="text-xl font-serif mb-6">More from this collection</h3>
+          <div className="grid grid-cols-2 gap-4 max-w-md">
+            {relatedProducts.slice(0, 4).map((p) => (
+              <ProductCard key={`gallery-related-${p.id}`} product={p} />
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

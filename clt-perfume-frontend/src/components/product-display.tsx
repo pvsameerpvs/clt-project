@@ -29,8 +29,8 @@ export function ProductDisplay({ product, relatedProducts }: { product: Product,
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20 mb-20">
-          {/* Left Column: Images */}
-          <ProductGallery product={product} />
+          {/* Left Column: Images and Desktop Related Products */}
+          <ProductGallery product={product} relatedProducts={relatedProducts} />
 
           {/* Right Column: Product Info */}
           <ProductInfo product={product} />
