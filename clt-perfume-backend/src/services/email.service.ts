@@ -1,0 +1,120 @@
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+function formatPrice(value: number) {
+  return `AED ${Math.round(Number(value) || 0)}`
+}
+
+export type OrderDetails = {
+  order_number: string
+  subtotal: number
+  total: number
+  promo_discount: number
+  shipping_fee: number
+  payment_method: string
+  items: Array<{
+    product_name: string
+    quantity: number
+    price: number
+    product_image?: string | null
+  }>
+  contact_email?: string
+}
+
+export async function sendOrderConfirmationEmail(order: OrderDetails) {
+  if (!order.contact_email) {
+    console.log('[EmailService] No contact email provided; skipping receipt.')
+    return
+  }
+
+  // Create an HTML template manually as a string
+  const itemsHtml = order.items.map(item => `
+    <tr>
+      <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
+        <span style="font-weight: 600; color: #111827;">${item.product_name}</span><br/>
+        <span style="color: #6b7280; font-size: 12px;">Qty: ${item.quantity}</span>
+      </td>
+      <td style="padding: 12px; border-bottom: 1px solid #f3f4f6; text-align: right; color: #111827; font-weight: 500;">
+        ${formatPrice(item.price * item.quantity)}
+      </td>
+    </tr>
+  `).join('')
+
+  const promoRowHtml = order.promo_discount > 0 ? `
+    <tr>
+      <td style="padding: 12px; font-weight: 500; color: #111827;">Promo Discount:</td>
+      <td style="padding: 12px; text-align: right; color: #047857; font-weight: 500;">-${formatPrice(order.promo_discount)}</td>
+    </tr>
+  ` : ''
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; padding: 40px 0; margin: 0;">
+      <table align="center" width="100%" max-width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <tr>
+          <td style="background-color: #000000; padding: 24px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-family: Georgia, serif; font-size: 24px;">CLE Perfumes</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px 24px;">
+            <p style="color: #4b5563; font-size: 16px; margin-top: 0;">Hi there,</p>
+            <p style="color: #111827; font-size: 18px; font-weight: 600;">We've received your order!</p>
+            <p style="color: #4b5563; font-size: 16px; margin-bottom: 24px;">Thank you for shopping at CLE Perfumes. We are processing your order and will let you know once it's on the way.</p>
+            
+            <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+              <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Order Number</p>
+              <p style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">#${order.order_number}</p>
+            </div>
+
+            <table width="100%" style="border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
+              ${itemsHtml}
+            </table>
+
+            <table width="100%" style="border-collapse: collapse; font-size: 14px;">
+              <tr>
+                <td style="padding: 12px; font-weight: 500; color: #111827;">Subtotal:</td>
+                <td style="padding: 12px; text-align: right; color: #111827;">${formatPrice(order.subtotal)}</td>
+              </tr>
+              ${promoRowHtml}
+              <tr>
+                <td style="padding: 12px; font-weight: 500; color: #111827;">Shipping:</td>
+                <td style="padding: 12px; text-align: right; color: #111827;">FREE</td>
+              </tr>
+              <tr>
+                <td style="padding: 16px 12px; font-weight: 600; color: #111827; font-size: 16px; border-top: 2px solid #e5e7eb;">Total:</td>
+                <td style="padding: 16px 12px; text-align: right; color: #111827; font-weight: 600; font-size: 16px; border-top: 2px solid #e5e7eb;">${formatPrice(order.total)}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 14px; margin: 0;">Have a question? Reply to this email, we're happy to help.</p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'CLE Perfumes <onboarding@resend.dev>', // Should be updated if user adds domain
+      to: order.contact_email,
+      bcc: 'infocleparfum@gmail.com', // ⬅️ Sent copy to client
+      subject: `Order Confirmation #${order.order_number}`,
+      html: html
+    })
+
+    if (error) {
+      console.error('[EmailService] Resend Error:', error)
+    } else {
+      console.log('[EmailService] Email sent successfully:', data)
+    }
+  } catch (err) {
+    console.error('[EmailService] Unexpected Error:', err)
+  }
+}

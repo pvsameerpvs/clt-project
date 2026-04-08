@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
+import { sendOrderConfirmationEmail } from '../services/email.service'
 
 export const orderRoutes = Router()
 
@@ -196,6 +197,19 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
         p_quantity: quantity,
       })
     }
+
+    const contactEmail = (payload.shipping_address as any)?.contact_email
+
+    sendOrderConfirmationEmail({
+      order_number: order.order_number,
+      subtotal: Number(order.subtotal || 0),
+      total: Number(order.total || 0),
+      promo_discount: promoDiscount,
+      shipping_fee: Number(order.shipping_fee || 0),
+      payment_method: order.payment_method,
+      items: orderItems,
+      contact_email: contactEmail
+    })
 
     res.status(201).json({
       id: order.id,

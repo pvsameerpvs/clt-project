@@ -3,6 +3,7 @@ import express from 'express'
 import { stripe } from '../config/stripe'
 import { supabaseAdmin } from '../config/supabase'
 import Stripe from 'stripe'
+import { sendOrderConfirmationEmail } from '../services/email.service'
 
 export const webhookRoutes = Router()
 
@@ -46,7 +47,7 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
 
   const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
-    .select('id, user_id, status, payment_method')
+    .select('id, user_id, status, payment_method, shipping_address, order_number, subtotal, total, shipping_fee')
     .eq('id', orderId)
     .maybeSingle()
 
@@ -61,7 +62,7 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
 
   const { data: orderItems, error: itemsError } = await supabaseAdmin
     .from('order_items')
-    .select('product_id, quantity')
+    .select('product_id, quantity, product_name, price, product_image')
     .eq('order_id', order.id)
 
   if (itemsError) {
@@ -94,6 +95,24 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
   if (order.user_id) {
     await supabaseAdmin.from('cart_items').delete().eq('user_id', order.user_id)
   }
+
+  const contactEmail = (order.shipping_address as any)?.contact_email
+
+  sendOrderConfirmationEmail({
+    order_number: order.order_number || '',
+    subtotal: Number(order.subtotal || 0),
+    total: Number(order.total || 0),
+    promo_discount: Number(order.subtotal || 0) + Number(order.shipping_fee || 0) - Number(order.total || 0),
+    shipping_fee: Number(order.shipping_fee || 0),
+    payment_method: order.payment_method || 'card',
+    items: (orderItems || []).map((item) => ({
+      product_name: item.product_name,
+      quantity: item.quantity,
+      price: item.price,
+      product_image: item.product_image
+    })),
+    contact_email: contactEmail || session.customer_details?.email || undefined
+  })
 
   console.log(`✅ Direct order ${order.id} marked paid`)
   return true
@@ -169,6 +188,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     await supabaseAdmin.from('cart_items').delete().eq('user_id', userId)
+
+    sendOrderConfirmationEmail({
+      order_number: order.order_number || '',
+      subtotal: Number(order.subtotal || 0),
+      total: Number(order.total || 0),
+      promo_discount: 0, // Old cart flow didn't support promo codes natively as tracked fields
+      shipping_fee: Number(order.shipping_fee || 0),
+      payment_method: order.payment_method || 'card',
+      items: orderItems,
+      contact_email: session.customer_details?.email || undefined
+    })
 
     console.log(`✅ Order ${order.order_number} created for user ${userId}`)
   } catch (error) {
