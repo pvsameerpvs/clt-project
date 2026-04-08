@@ -313,7 +313,7 @@ export function ProductInfo({ product }: { product: Product }) {
       </div>
 
       {/* Actions */}
-      <div className="space-y-6 lg:mt-auto">
+      <div className="space-y-6 mt-8">
         {/* Quantity */}
         <div className="flex items-center gap-4">
           <span className="text-sm font-medium uppercase tracking-wide">Quantity</span>
