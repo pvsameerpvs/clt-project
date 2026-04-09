@@ -21,6 +21,7 @@ export function ProductReviews({ product }: { product: Product }) {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState("")
+  const [visibleCount, setVisibleCount] = useState(6)
 
   const ratingLabels = ["", "Poor", "Fair", "Good", "Very Good", "Excellent"]
 
@@ -139,41 +140,55 @@ export function ProductReviews({ product }: { product: Product }) {
         {/* Right: Review List */}
         <div className="md:w-2/3 space-y-8">
           {reviews.length > 0 ? (
-            reviews.map(review => (
-              <div key={review.id} className="pb-8 border-b border-neutral-100 last:border-0">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-3">
-                    {review.avatar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={review.avatar} alt={review.user} className="h-10 w-10 rounded-full object-cover shrink-0" />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(review.user)}&background=f5f5f5&color=171717`} alt={review.user} className="h-10 w-10 rounded-full object-cover shrink-0" />
-                    )}
-                    <div>
-                      <div className="font-medium text-neutral-900">{review.user}</div>
-                      <div className="text-xs text-neutral-400">{review.date}</div>
+            <>
+              {reviews.slice(0, visibleCount).map(review => (
+                <div key={review.id} className="pb-8 border-b border-neutral-100 last:border-0">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-3">
+                      {review.avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={review.avatar} alt={review.user} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(review.user)}&background=f5f5f5&color=171717`} alt={review.user} className="h-10 w-10 rounded-full object-cover shrink-0" />
+                      )}
+                      <div>
+                        <div className="font-medium text-neutral-900">{review.user}</div>
+                        <div className="text-xs text-neutral-400">{review.date}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={`h-3 w-3 ${i < review.rating ? 'fill-black text-black' : 'text-neutral-200 fill-transparent'}`} />
+                        ))}
+                      </div>
+                      {/* If review belongs to a different product, show a tiny badge */}
+                      {('product_id' in review && review.product_id && review.product_id !== product.id) && (
+                        <span className="text-[9px] uppercase tracking-widest font-bold text-neutral-400 bg-neutral-50 px-2 py-1 rounded-full border border-neutral-100">
+                          For {('product_name' in review && review.product_name) ? review.product_name : "Another Product"}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`h-3 w-3 ${i < review.rating ? 'fill-black text-black' : 'text-neutral-200 fill-transparent'}`} />
-                      ))}
-                    </div>
-                    {/* If review belongs to a different product, show a tiny badge */}
-                    {('product_id' in review && review.product_id && review.product_id !== product.id) && (
-                      <span className="text-[9px] uppercase tracking-widest font-bold text-neutral-400 bg-neutral-50 px-2 py-1 rounded-full border border-neutral-100">
-                        For {('product_name' in review && review.product_name) ? review.product_name : "Another Product"}
-                      </span>
-                    )}
-                  </div>
+                  <p className="text-neutral-600 font-light mt-4 leading-relaxed pl-14">
+                    {review.content}
+                  </p>
                 </div>
-                <p className="text-neutral-600 font-light mt-4 leading-relaxed pl-14">
-                  {review.content}
-                </p>
-              </div>
-            ))
+              ))}
+              
+              {reviews.length > visibleCount && (
+                <div className="pt-4 flex justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => setVisibleCount(prev => prev + 6)}
+                    className="rounded-full px-8 py-5 border-neutral-200 hover:border-black transition-colors"
+                  >
+                    See More Reviews
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-12 bg-neutral-50 rounded-2xl">
               <p className="text-neutral-500">No reviews yet. Be the first to share your thoughts!</p>
