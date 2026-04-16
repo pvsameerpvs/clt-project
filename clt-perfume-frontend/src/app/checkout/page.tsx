@@ -97,12 +97,24 @@ export default function CheckoutPage() {
       }
 
       const supabase = createClient()
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("first_name,last_name,phone")
-        .eq("id", currentUserId)
-        .maybeSingle()
 
+      // Optimization: Fetch profile and addresses in parallel for better performance
+      const [profileResult, addressResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("first_name,last_name,phone")
+          .eq("id", currentUserId)
+          .maybeSingle(),
+        supabase
+          .from("user_addresses")
+          .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
+          .eq("user_id", currentUserId)
+          .order("created_at", { ascending: true })
+      ])
+
+      if (!mounted) return
+
+      const profileData = profileResult.data
       const contactName =
         [profileData?.first_name, profileData?.last_name].filter(Boolean).join(" ").trim() ||
         user?.email?.split("@")[0] ||
@@ -110,13 +122,9 @@ export default function CheckoutPage() {
       const phone = profileData?.phone?.trim() || "+971 "
 
       let addressData: UserAddressRow[] = []
-      const detailedResult = await supabase
-        .from("user_addresses")
-        .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
-        .eq("user_id", currentUserId)
-        .order("created_at", { ascending: true })
-
-      if (detailedResult.error) {
+      
+      if (addressResult.error) {
+        // Robust fallback if older database schema is present
         const fallbackResult = await supabase
           .from("user_addresses")
           .select("id,title,address_type,contact_name,phone,line1,line2,city,country,is_primary")
@@ -124,10 +132,8 @@ export default function CheckoutPage() {
           .order("created_at", { ascending: true })
         addressData = (fallbackResult.data || []) as UserAddressRow[]
       } else {
-        addressData = (detailedResult.data || []) as UserAddressRow[]
+        addressData = (addressResult.data || []) as UserAddressRow[]
       }
-
-      if (!mounted) return
 
       const hydratedAddresses = addressData.map(mapUserAddressRow)
       setShippingAddresses(hydratedAddresses)

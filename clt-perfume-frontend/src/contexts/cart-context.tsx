@@ -73,10 +73,29 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
+import { useAuth } from "./auth-context"
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth()
   const [items, setItems] = useState<CartItem[]>([])
   const [promo, setPromo] = useState<AppliedPromo | null>(null)
   const hasLoadedFromStorage = useRef(false)
+  const prevUserRef = useRef<string | null>(null)
+
+  // Detect Logout - if we had a user and now we don't, clear the cart.
+  useEffect(() => {
+    const currentUserId = user?.id || null
+    if (prevUserRef.current && !currentUserId) {
+      queueMicrotask(() => {
+        // Transition from logged-in to guest (Logout)
+        setItems([])
+        setPromo(null)
+        localStorage.removeItem("cle_cart")
+        localStorage.removeItem("cle_cart_promo")
+      })
+    }
+    prevUserRef.current = currentUserId
+  }, [user])
 
   // Load from LocalStorage after first mount to avoid SSR hydration mismatches.
   useEffect(() => {

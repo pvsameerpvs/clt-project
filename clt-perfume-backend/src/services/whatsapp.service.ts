@@ -63,7 +63,7 @@ ${itemsText || 'Details in email'}
 
 *Total:* AED ${Math.round(order.total)}
 
-Thank you for shopping at CLE Perfumes. We are processing your order and will let you know once it's on the way.`
+Thank you for shopping at CLE DXB. We are processing your order and will let you know once it's on the way.`
 
   try {
     const logMsg = `[${new Date().toISOString()}] Attempting to send to ${formattedNumber} (Order: ${order.order_number})\n`
@@ -88,20 +88,26 @@ Thank you for shopping at CLE Perfumes. We are processing your order and will le
 export async function sendOrderStatusWhatsApp(orderNumber: string, status: string, contactWhatsapp?: string) {
   if (!contactWhatsapp || !client) return
 
-  let formattedNumber = contactWhatsapp.trim()
+  let formattedNumber = contactWhatsapp.trim().replace(/\s/g, '')
   if (!formattedNumber.startsWith('+')) {
     if (formattedNumber.startsWith('0')) {
       formattedNumber = '971' + formattedNumber.slice(1)
-    } else if (formattedNumber.length === 9 && (formattedNumber.length === 9 && (formattedNumber.startsWith('5') || formattedNumber.startsWith('2')))) {
+    } else if (formattedNumber.length === 9 && (formattedNumber.startsWith('5') || formattedNumber.startsWith('2'))) {
       formattedNumber = '971' + formattedNumber
     }
     formattedNumber = '+' + formattedNumber 
   }
 
+  // Basic validation: A valid E.164 number should be at least 11 chars (e.g. +971501234567)
+  if (formattedNumber.length < 11) {
+    console.log(`[WhatsAppService] Skipping invalid number: ${formattedNumber}`)
+    return
+  }
+
   const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1)
   const messageText = `*Order Update:* #${orderNumber} 🎉
 
-Hi there! The status of your CLE Perfumes order is now: *${formattedStatus}*.
+Hi there! The status of your CLE DXB order is now: *${formattedStatus}*.
 
 Thank you for shopping with us!`
 

@@ -11,9 +11,25 @@ interface WishlistContextType {
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined)
 
+import { useAuth } from "./auth-context"
+
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth()
   const [items, setItems] = useState<Product[]>([])
   const hasLoadedFromStorage = useRef(false)
+  const prevUserRef = useRef<string | null>(null)
+
+  // Detect Logout
+  useEffect(() => {
+    const currentUserId = user?.id || null
+    if (prevUserRef.current && !currentUserId) {
+      queueMicrotask(() => {
+        setItems([])
+        localStorage.removeItem("cle_wishlist")
+      })
+    }
+    prevUserRef.current = currentUserId
+  }, [user])
 
   // Load from LocalStorage after first mount to avoid SSR hydration mismatches.
   useEffect(() => {
