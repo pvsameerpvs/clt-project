@@ -5,7 +5,6 @@ export type ProfileSection =
   | "orders"
   | "addresses"
   | "returns"
-  | "reviews"
   | "wishlist"
   | "payment"
   | "password"

@@ -5,7 +5,6 @@ import {
   KeyRound,
   MapPin,
   ShoppingBag,
-  Star,
   UserCircle2,
 } from "lucide-react"
 import type { ProfileSection } from "./profile-types"
@@ -19,7 +18,6 @@ const NAV_ITEMS: Array<{
   { id: "orders", label: "My Orders", icon: ShoppingBag },
   { id: "addresses", label: "My Addresses", icon: MapPin },
   { id: "returns", label: "Returns & Cancel", icon: Ban },
-  { id: "reviews", label: "My Rating & Reviews", icon: Star },
   { id: "wishlist", label: "My Wishlist", icon: Heart },
   { id: "payment", label: "Payment", icon: CreditCard },
   { id: "password", label: "Change Password", icon: KeyRound },

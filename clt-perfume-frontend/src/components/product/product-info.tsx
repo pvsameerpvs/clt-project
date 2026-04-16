@@ -6,7 +6,6 @@ import { Product, getCategoryLabel } from "@/lib/products"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { 
-  Star, 
   Minus, 
   Plus, 
   Truck, 
@@ -152,16 +151,7 @@ export function ProductInfo({ product }: { product: Product }) {
         </div>
         <h1 className="text-4xl md:text-5xl font-serif font-medium text-neutral-900 mb-2">{product.name}</h1>
         
-        <div className="flex items-center gap-4 mb-4">
-          <div className="flex items-center gap-1 text-black">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className={`h-4 w-4 ${i < Math.floor(product.rating || 0) ? 'fill-black' : 'text-neutral-300 fill-transparent'}`} />
-            ))}
-            <span className="text-sm font-medium ml-2">{product.rating || 0}</span>
-          </div>
-          <span className="text-sm text-neutral-400">|</span>
-          <span className="text-sm text-neutral-500">{product.review_count || product.reviews?.length || 0} Reviews</span>
-        </div>
+
 
 
         <div className="flex items-baseline gap-3 mb-6">

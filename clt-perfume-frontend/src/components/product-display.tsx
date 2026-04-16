@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react"
 
 import { ProductGallery } from "@/components/product/product-gallery"
 import { ProductInfo } from "@/components/product/product-info"
-import { ProductReviews } from "@/components/product/product-reviews"
+
 import { RelatedProducts } from "@/components/product/related-products"
 
 
@@ -36,8 +36,7 @@ export function ProductDisplay({ product, relatedProducts }: { product: Product,
           <ProductInfo product={product} />
         </div>
 
-        {/* Reviews Section */}
-        <ProductReviews product={product} />
+
 
         {/* You Might Also Like */}
         <RelatedProducts relatedProducts={relatedProducts} />

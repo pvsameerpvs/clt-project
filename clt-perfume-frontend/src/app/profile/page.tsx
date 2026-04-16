@@ -567,12 +567,6 @@ export default function ProfilePage() {
               />
             )}
 
-            {activeSection === "reviews" && (
-              <section>
-                <h2 className="mb-3 font-serif text-2xl text-neutral-900">My Rating & Reviews</h2>
-                <p className="text-sm text-neutral-600">Your review history will appear here.</p>
-              </section>
-            )}
 
             {activeSection === "wishlist" && (
               <section>
