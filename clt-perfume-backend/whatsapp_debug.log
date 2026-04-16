@@ -20,3 +20,7 @@
 [2026-04-16T10:20:48.860Z] ERROR: The 'To' number +971 is not a valid phone number.
 [2026-04-16T10:33:57.399Z] Attempting to send to +971 (Order: CLT-MO1CDGLJ-192)
 [2026-04-16T10:33:57.756Z] ERROR: The 'To' number +971 is not a valid phone number.
+[2026-04-16T12:43:06.055Z] Attempting to send to +971 (Order: CLT-MO1GZJ4Q-024)
+[2026-04-16T12:43:06.529Z] ERROR: The 'To' number +971 is not a valid phone number.
+[2026-04-16T12:58:02.319Z] Attempting to send to +971 (Order: CLT-MO1HIQW0-090)
+[2026-04-16T12:58:03.036Z] ERROR: The 'To' number +971 is not a valid phone number.

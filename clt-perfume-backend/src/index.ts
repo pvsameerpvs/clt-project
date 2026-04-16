@@ -14,9 +14,8 @@ import { adminRoutes } from './routes/admin.routes'
 import { settingsRoutes } from './routes/settings.routes'
 import { productRoutes } from './routes/product.routes'
 import { promoCodeRoutes } from './routes/promo-codes.routes'
-import { reviewRoutes } from './routes/reviews.routes'
 import { authRoutes } from './routes/auth.routes'
-
+import { cartRoutes } from './routes/cart.routes'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -70,8 +69,8 @@ app.use('/api/promo-codes', promoCodeRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api/products', productRoutes)
-app.use('/api/reviews', reviewRoutes)
 app.use('/api/auth', authRoutes)
+app.use('/api/cart', cartRoutes)
 
 
 
@@ -80,6 +79,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+import { startAbandonedCartCron } from './services/cron.service'
+
 app.listen(PORT, () => {
   console.log(`🚀 CLE Perfumes API running on port ${PORT}`)
+  
+  // Start the background cron worker for abandoned carts
+  startAbandonedCartCron()
 })

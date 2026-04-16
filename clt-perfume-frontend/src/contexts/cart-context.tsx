@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from "react"
 import { Product } from "@/lib/products"
+import { syncCartToDatabase, clearCartFromDatabase } from "@/lib/cart-api"
+import { createClient } from "@/lib/supabase/client"
 
 export interface CartBundleMeta {
   id: string
@@ -113,10 +115,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     hasLoadedFromStorage.current = true
   }, [])
 
-  // Save to LocalStorage
+  // Save to LocalStorage and Sync to Backend for Abandoned Cart Trackng
   useEffect(() => {
     if (!hasLoadedFromStorage.current) return
     localStorage.setItem("cle_cart", JSON.stringify(items))
+
+    if (items.length > 0) {
+      const totalPrice = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
+      syncCartToDatabase(items, totalPrice)
+    }
   }, [items])
 
   useEffect(() => {
@@ -170,9 +177,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ))
   }
 
-  const clearCart = () => {
+  const clearCart = async () => {
     setItems([])
     setPromo(null)
+    
+    // Clear the tracking on the backend so they don't get an abandoned cart email after buying
+    await clearCartFromDatabase()
   }
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)

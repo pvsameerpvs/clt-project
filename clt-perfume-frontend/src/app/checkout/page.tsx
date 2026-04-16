@@ -1,108 +1,31 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Briefcase, Check, CreditCard, House, Loader2, MapPin, PlusCircle, ShoppingBag, Truck } from "lucide-react"
+import { ShoppingBag, Loader2 } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
 import { createBankCheckoutSession, createCashOnDeliveryOrder, validatePromoCode } from "@/lib/api"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-
-type CheckoutAddressType = "home" | "office" | "other"
-
-type CheckoutAddress = {
-  id: string
-  title: string
-  type: CheckoutAddressType
-  contactName: string
-  phone: string
-  line1: string
-  line2?: string
-  city: string
-  state?: string
-  postalCode?: string
-  country: string
-  landmark?: string
-  isPrimary?: boolean
-}
-
-type UserAddressRow = {
-  id: string
-  title: string
-  address_type: CheckoutAddressType
-  contact_name: string
-  phone: string
-  line1: string
-  line2?: string | null
-  city: string
-  state?: string | null
-  postal_code?: string | null
-  country: string
-  landmark?: string | null
-  is_primary?: boolean | null
-}
-
-type CheckoutAddressFormState = {
-  title: string
-  type: CheckoutAddressType
-  contactName: string
-  phone: string
-  line1: string
-  line2: string
-  city: string
-  state: string
-  postalCode: string
-  country: string
-  landmark: string
-}
-
-type PaymentMethod = "cod" | "bank"
-
-function formatPrice(value: number) {
-  return `AED ${Math.round(Number(value) || 0)}`
-}
-
-function createAddressId() {
-  return `addr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-function createAddressFormState(contactName: string, phone: string): CheckoutAddressFormState {
-  return {
-    title: "",
-    type: "other",
-    contactName,
-    phone,
-    line1: "",
-    line2: "",
-    city: "Dubai",
-    state: "Dubai",
-    postalCode: "",
-    country: "United Arab Emirates",
-    landmark: "",
-  }
-}
-
-function mapUserAddressRow(address: UserAddressRow): CheckoutAddress {
-  return {
-    id: address.id,
-    title: address.title,
-    type: address.address_type,
-    contactName: address.contact_name,
-    phone: address.phone,
-    line1: address.line1,
-    line2: address.line2 || "",
-    city: address.city,
-    state: address.state || "",
-    postalCode: address.postal_code || "",
-    country: address.country,
-    landmark: address.landmark || "",
-    isPrimary: Boolean(address.is_primary),
-  }
-}
+import { CheckoutContactInfo } from "./parts/checkout-contact-info"
+import { CheckoutAddressSection } from "./parts/checkout-address-section"
+import { CheckoutPaymentMethods } from "./parts/checkout-payment-methods"
+import { CheckoutOrderReview } from "./parts/checkout-order-review"
+import { 
+  CheckoutAddress, 
+  CheckoutAddressFormState, 
+  CheckoutAddressType, 
+  PaymentMethod, 
+  UserAddressRow 
+} from "./checkout-types"
+import { 
+  createAddressFormState, 
+  createAddressId, 
+  mapUserAddressRow 
+} from "./checkout-utils"
 
 export default function CheckoutPage() {
   const {
@@ -355,7 +278,6 @@ export default function CheckoutPage() {
 
   async function placeOrder() {
     if (items.length === 0) {
-      console.log('[Orders] Cart items empty')
       toast.error("Your bag is empty.")
       return
     }
@@ -468,8 +390,6 @@ export default function CheckoutPage() {
     )
   }
 
-  // No blocking auth view required for guest checkout
-
   return (
     <div className="min-h-screen bg-white py-10 md:py-14">
       <div className="mx-auto max-w-6xl px-4 md:px-6">
@@ -485,237 +405,53 @@ export default function CheckoutPage() {
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.3fr_1fr]">
           <section className="space-y-6">
-            <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
-              <h2 className="mb-4 font-serif text-2xl text-neutral-900">1. Contact Information</h2>
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                {!currentUserId && (
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">Email Address *</label>
-                    <input
-                      type="email"
-                      value={contactEmail}
-                      onChange={(e) => setContactEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="h-11 w-full rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black"
-                    />
-                  </div>
-                )}
-                <div className="space-y-1.5 overflow-hidden">
-                  <label className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">WhatsApp Number *</label>
-                  <input
-                    type="tel"
-                    value={contactWhatsapp}
-                    onChange={(e) => setContactWhatsapp(e.target.value)}
-                    placeholder="+971 50 XXXXXXX"
-                    className="h-11 w-full rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black"
-                  />
-                  <p className="text-[10px] text-neutral-400 mt-1">Used for order updates and tracking.</p>
-                </div>
-              </div>
-            </article>
+            <CheckoutContactInfo 
+              currentUserId={currentUserId}
+              contactEmail={contactEmail}
+              setContactEmail={setContactEmail}
+              contactWhatsapp={contactWhatsapp}
+              setContactWhatsapp={setContactWhatsapp}
+            />
 
-            <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
-              <div className="mb-4 flex items-center justify-between gap-2">
-                <h2 className="font-serif text-2xl text-neutral-900">2. Delivery Address</h2>
-                <span className="text-xs text-neutral-500">{shippingAddresses.length} saved</span>
-              </div>
+            <CheckoutAddressSection 
+              shippingAddresses={shippingAddresses}
+              selectedAddressId={selectedAddressId}
+              setSelectedAddressId={setSelectedAddressId}
+              showAddressForm={showAddressForm}
+              setShowAddressForm={setShowAddressForm}
+              isSavingAddress={isSavingAddress}
+              addressFormError={addressFormError}
+              setAddressFormError={setAddressFormError}
+              addressForm={addressForm}
+              updateAddressField={updateAddressField}
+              onSaveAddress={addAddress}
+            />
 
-              <div className="space-y-2">
-                {shippingAddresses.map((address) => {
-                  const isSelected = selectedAddressId === address.id
-                  const Icon = address.type === "home" ? House : address.type === "office" ? Briefcase : MapPin
-
-                  return (
-                    <button
-                      key={address.id}
-                      type="button"
-                      onClick={() => setSelectedAddressId(address.id)}
-                      className={`w-full rounded-xl border px-3 py-3 text-left transition ${
-                        isSelected
-                          ? "border-black bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.04)]"
-                          : "border-neutral-200 bg-white hover:border-neutral-300"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700">
-                            <Icon className="h-3.5 w-3.5" />
-                          </span>
-                          <div>
-                            <p className="text-sm font-semibold text-neutral-900">{address.title}</p>
-                            <p className="text-xs text-neutral-500">{address.contactName}</p>
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-black text-white">
-                            <Check className="h-3 w-3" />
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-2 text-xs text-neutral-600">
-                        {address.line1}
-                        {address.line2 ? `, ${address.line2}` : ""}, {address.city}, {address.country}
-                      </p>
-                      <p className="mt-1 text-xs text-neutral-500">{address.phone}</p>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {!showAddressForm ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddressFormError("")
-                    setShowAddressForm(true)
-                  }}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-300 bg-white px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black hover:text-black"
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  Add New Address
-                </button>
-              ) : (
-                <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-3">
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <input value={addressForm.title} onChange={(event) => updateAddressField("title", event.target.value)} placeholder="Address Title (Home, Office...)" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black sm:col-span-2" />
-                    <select value={addressForm.type} onChange={(event) => updateAddressField("type", event.target.value as CheckoutAddressType)} className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black">
-                      <option value="home">Home</option>
-                      <option value="office">Office</option>
-                      <option value="other">Other</option>
-                    </select>
-                    <input value={addressForm.postalCode} onChange={(event) => updateAddressField("postalCode", event.target.value)} placeholder="Postal Code" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-                    <input value={addressForm.contactName} onChange={(event) => updateAddressField("contactName", event.target.value)} placeholder="Contact Name" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-                    <input value={addressForm.phone} onChange={(event) => updateAddressField("phone", event.target.value)} placeholder="Phone Number" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-                    <input value={addressForm.line1} onChange={(event) => updateAddressField("line1", event.target.value)} placeholder="Address Line 1" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black sm:col-span-2" />
-                    <input value={addressForm.line2} onChange={(event) => updateAddressField("line2", event.target.value)} placeholder="Address Line 2 (Optional)" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black sm:col-span-2" />
-                    <input value={addressForm.city} onChange={(event) => updateAddressField("city", event.target.value)} placeholder="City" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-                    <input value={addressForm.state} onChange={(event) => updateAddressField("state", event.target.value)} placeholder="State" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-                    <input value={addressForm.country} onChange={(event) => updateAddressField("country", event.target.value)} placeholder="Country" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-                    <input value={addressForm.landmark} onChange={(event) => updateAddressField("landmark", event.target.value)} placeholder="Landmark (Optional)" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-                  </div>
-                  {addressFormError && <p className="mt-2 text-xs text-red-600">{addressFormError}</p>}
-                  <div className="mt-3 flex gap-2">
-                    <button type="button" onClick={addAddress} disabled={isSavingAddress} className="h-10 flex-1 rounded-lg bg-black px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-neutral-800 disabled:opacity-60">
-                      {isSavingAddress ? "Saving..." : "Save Address"}
-                    </button>
-                    <button type="button" onClick={() => { if (isSavingAddress) return; setShowAddressForm(false); setAddressFormError("") }} className="h-10 flex-1 rounded-lg border border-neutral-300 bg-white px-3 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black hover:text-black">
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </article>
-
-            <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
-              <h2 className="mb-4 font-serif text-2xl text-neutral-900">3. Payment Method</h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("cod")}
-                  className={`rounded-xl border p-4 text-left transition ${paymentMethod === "cod" ? "border-black bg-neutral-50" : "border-neutral-200 bg-white hover:border-neutral-300"}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Truck className="h-4 w-4" />
-                    <p className="text-sm font-semibold">Cash On Delivery</p>
-                  </div>
-                  <p className="mt-2 text-xs text-neutral-500">Pay when your order arrives.</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("bank")}
-                  className={`rounded-xl border p-4 text-left transition ${paymentMethod === "bank" ? "border-black bg-neutral-50" : "border-neutral-200 bg-white hover:border-neutral-300"}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    <p className="text-sm font-semibold">Bank / Card Payment</p>
-                  </div>
-                  <p className="mt-2 text-xs text-neutral-500">Secure card checkout powered by Stripe.</p>
-                </button>
-              </div>
-            </article>
+            <CheckoutPaymentMethods 
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
+            />
           </section>
 
-          <aside className="h-fit rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 lg:sticky lg:top-24">
-            <h2 className="mb-4 border-b border-neutral-100 pb-3 font-serif text-2xl text-neutral-900">4. Review Order</h2>
-
-            <div className="mb-4 space-y-2">
-              {items.map((item) => (
-                <div key={`${item.product.id}-${item.bundle?.id || "single"}`} className="flex items-center gap-3 rounded-lg border border-neutral-100 p-2">
-                  <div className="relative h-12 w-12 overflow-hidden rounded-md bg-neutral-100">
-                    <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-neutral-900">{item.product.name}</p>
-                    <p className="text-xs text-neutral-500">Qty {item.quantity}</p>
-                  </div>
-                  <p className="text-sm font-semibold text-neutral-800">{formatPrice(Number(item.product.price) * item.quantity)}</p>
-                </div>
-              ))}
-            </div>
-
-            {currentUserId && (
-              <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3 sm:p-4">
-                <p className="mb-2 text-[10px] uppercase tracking-[0.12em] text-neutral-500 sm:text-[11px]">Promo Code</p>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    value={promoInputValue}
-                    onChange={(event) => setPromoInput(event.target.value.toUpperCase())}
-                    placeholder="ENTER CODE"
-                    disabled={Boolean(promo)}
-                    className="h-10 min-w-0 flex-1 rounded-lg border border-neutral-300 bg-white px-3 text-sm outline-none transition-colors focus:border-black sm:h-11"
-                  />
-                  <button
-                    type="button"
-                    onClick={applyPromo}
-                    disabled={isApplyingPromo || Boolean(promo)}
-                    className="h-10 w-full rounded-lg bg-black px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 sm:h-11 sm:w-auto sm:min-w-[110px]"
-                  >
-                    {promo ? "Applied" : isApplyingPromo ? "Applying" : "Apply"}
-                  </button>
-                </div>
-                {promo && (
-                  <div className="mt-2 flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-800 sm:flex-row sm:items-center sm:justify-between">
-                    <span className="break-all font-medium">
-                      {promo.code} ({promo.discountType === "percentage" ? `${promo.discountValue}%` : `AED ${promo.discountValue}`})
-                    </span>
-                    <button type="button" onClick={removePromo} className="self-start font-semibold hover:text-black sm:self-auto">
-                      Remove
-                    </button>
-                  </div>
-                )}
-                {promoMessage && <p className={`mt-2 text-xs ${promoError ? "text-red-600" : "text-emerald-700"}`}>{promoMessage}</p>}
-              </div>
-            )}
-
-            <div className="space-y-3 text-sm text-neutral-600">
-              <div className="flex justify-between"><span>Items ({totalItems})</span><span className="font-medium text-black">{formatPrice(totalPrice)}</span></div>
-              {promo && promoDiscountAmount > 0 && (
-                <div className="flex justify-between text-emerald-700"><span>Promo Discount</span><span>- {formatPrice(promoDiscountAmount)}</span></div>
-              )}
-              <div className="flex justify-between"><span>Shipping</span><span className="font-medium text-green-700">FREE</span></div>
-            </div>
-
-            <div className="mt-5 flex items-end justify-between border-t border-neutral-100 pt-5">
-              <span className="font-serif text-lg">Total</span>
-              <span className="font-serif text-2xl">{formatPrice(discountedTotal)}</span>
-            </div>
-
-            <Button
-              onClick={placeOrder}
-              disabled={isPlacingOrder}
-              className="mt-6 h-14 w-full rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-[0.14em] text-xs font-semibold disabled:opacity-60"
-            >
-              {isPlacingOrder
-                ? "Processing..."
-                : paymentMethod === "cod"
-                  ? "Place COD Order"
-                  : "Pay Securely"}
-            </Button>
-
-            <p className="mt-3 text-center text-[11px] uppercase tracking-[0.12em] text-neutral-500">
-              {paymentMethod === "cod" ? "Cash on delivery selected" : "You will be redirected to secure bank payment"}
-            </p>
-          </aside>
+          <CheckoutOrderReview 
+            items={items}
+            currentUserId={currentUserId}
+            promoInputValue={promoInputValue}
+            onPromoInputChange={setPromoInput}
+            onApplyPromo={applyPromo}
+            promo={promo}
+            isApplyingPromo={isApplyingPromo}
+            removePromo={removePromo}
+            promoMessage={promoMessage}
+            promoError={promoError}
+            totalItems={totalItems}
+            totalPrice={totalPrice}
+            promoDiscountAmount={promoDiscountAmount}
+            discountedTotal={discountedTotal}
+            onPlaceOrder={placeOrder}
+            isPlacingOrder={isPlacingOrder}
+            paymentMethod={paymentMethod}
+          />
         </div>
       </div>
     </div>
