@@ -8,6 +8,18 @@ import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
 
 export const webhookRoutes = Router()
 
+async function getAuthUserEmail(userId?: string | null) {
+  if (!userId) return undefined
+
+  const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId)
+  if (error) {
+    console.error('Failed to load auth user for order email fallback:', error.message)
+    return undefined
+  }
+
+  return data.user?.email || undefined
+}
+
 webhookRoutes.post(
   '/stripe',
   express.raw({ type: 'application/json' }),
@@ -97,10 +109,14 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
     await supabaseAdmin.from('cart_items').delete().eq('user_id', order.user_id)
   }
 
-  const contactEmail = (order.shipping_address as any)?.contact_email
+  const contactEmail =
+    (order.shipping_address as any)?.contact_email ||
+    (await getAuthUserEmail(order.user_id)) ||
+    session.customer_details?.email ||
+    undefined
   const contactWhatsapp = (order.shipping_address as any)?.contact_whatsapp
 
-  sendOrderConfirmationEmail({
+  const emailResult = await sendOrderConfirmationEmail({
     order_number: order.order_number || '',
     subtotal: Number(order.subtotal || 0),
     total: Number(order.total || 0),
@@ -113,8 +129,12 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
       price: item.price,
       product_image: item.product_image
     })),
-    contact_email: contactEmail || session.customer_details?.email || undefined
+    contact_email: contactEmail
   })
+
+  if (!emailResult.ok && !emailResult.skipped) {
+    console.error('Direct checkout order email failed:', emailResult.error)
+  }
 
   sendOrderWhatsAppConfirmation({
     order_number: order.order_number || '',
@@ -172,6 +192,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
           state: (session as any).shipping_details.address?.state,
           country: (session as any).shipping_details.address?.country,
           postal_code: (session as any).shipping_details.address?.postal_code,
+          contact_email: session.customer_details?.email,
         } : null,
       })
       .select()
@@ -204,7 +225,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     const contactWhatsapp = (order.shipping_address as any)?.contact_whatsapp
 
-    sendOrderConfirmationEmail({
+    const emailResult = await sendOrderConfirmationEmail({
       order_number: order.order_number || '',
       subtotal: Number(order.subtotal || 0),
       total: Number(order.total || 0),
@@ -212,8 +233,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       shipping_fee: Number(order.shipping_fee || 0),
       payment_method: order.payment_method || 'card',
       items: orderItems,
-      contact_email: session.customer_details?.email || undefined
+      contact_email: session.customer_details?.email || (await getAuthUserEmail(userId))
     })
+
+    if (!emailResult.ok && !emailResult.skipped) {
+      console.error('Legacy checkout order email failed:', emailResult.error)
+    }
 
     sendOrderWhatsAppConfirmation({
       order_number: order.order_number || '',

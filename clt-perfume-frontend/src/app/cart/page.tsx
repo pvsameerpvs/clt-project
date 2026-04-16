@@ -326,7 +326,6 @@ function CartPageContent() {
                 proceedButtonLabel={
                   isAuthLoading ? "Loading..." : "Proceed to Checkout"
                 }
-                proceedHelperText={!isAuthLoading && !user ? "10% discount applies automatically if you sign in." : undefined}
                 isProceedDisabled={isAuthLoading}
                 showPromoInput={!!user}
               />

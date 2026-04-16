@@ -200,10 +200,10 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       })
     }
 
-    const contactEmail = (payload.shipping_address as any)?.contact_email
+    const contactEmail = (payload.shipping_address as any)?.contact_email || req.user?.email
     const contactWhatsapp = (payload.shipping_address as any)?.contact_whatsapp
 
-    sendOrderConfirmationEmail({
+    const emailResult = await sendOrderConfirmationEmail({
       order_number: order.order_number,
       subtotal: Number(order.subtotal || 0),
       total: Number(order.total || 0),
@@ -213,6 +213,10 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       items: orderItems,
       contact_email: contactEmail
     })
+
+    if (!emailResult.ok && !emailResult.skipped) {
+      console.error('[Orders] Order confirmation email failed:', emailResult.error)
+    }
 
     console.log('[Orders] Triggering WhatsApp confirmation for:', contactWhatsapp)
     sendOrderWhatsAppConfirmation({

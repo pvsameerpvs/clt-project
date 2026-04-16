@@ -6,6 +6,18 @@ import { sendOrderStatusWhatsApp } from '../services/whatsapp.service'
 
 export const adminRoutes = Router()
 
+async function getAuthUserEmail(userId?: string | null) {
+  if (!userId) return undefined
+
+  const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId)
+  if (error) {
+    console.error('Failed to load auth user for status email fallback:', error.message)
+    return undefined
+  }
+
+  return data.user?.email || undefined
+}
+
 type AdminOrder = {
   id: string
   user_id: string | null
@@ -489,11 +501,17 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
 
     if (error) throw error
 
-    const contactEmail = (data.shipping_address as any)?.contact_email
+    const contactEmail =
+      (data.shipping_address as any)?.contact_email ||
+      (await getAuthUserEmail(data.user_id)) ||
+      undefined
     const contactWhatsapp = (data.shipping_address as any)?.contact_whatsapp
 
-    // Fire off async notifications
-    sendOrderStatusEmail(data.order_number, statusToStore, contactEmail)
+    const emailResult = await sendOrderStatusEmail(data.order_number, statusToStore, contactEmail)
+    if (!emailResult.ok && !emailResult.skipped) {
+      console.error('Order status email failed:', emailResult.error)
+    }
+
     sendOrderStatusWhatsApp(data.order_number, statusToStore, contactWhatsapp)
 
     res.json({
@@ -752,4 +770,3 @@ adminRoutes.delete('/reviews/:id', async (req: Request, res: Response) => {
     res.status(400).json({ error: error.message })
   }
 })
-

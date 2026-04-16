@@ -28,10 +28,23 @@ type WelcomeEmailDetails = {
   source?: 'signup' | 'google'
 }
 
-export async function sendOrderConfirmationEmail(order: OrderDetails) {
-  if (!order.contact_email) {
-    console.log('[EmailService] No contact email provided; skipping receipt.')
-    return
+type EmailSendResult = {
+  ok: boolean
+  skipped?: boolean
+  error?: string
+}
+
+function normalizeEmailAddress(value?: string | null) {
+  const email = String(value || '').trim().toLowerCase()
+  return email && email.includes('@') ? email : ''
+}
+
+export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<EmailSendResult> {
+  const recipientEmail = normalizeEmailAddress(order.contact_email)
+
+  if (!recipientEmail) {
+    console.log('[EmailService] No valid contact email provided; skipping receipt.')
+    return { ok: false, skipped: true, error: 'No valid contact email provided' }
   }
 
   // Create an HTML template manually as a string
@@ -109,7 +122,7 @@ export async function sendOrderConfirmationEmail(order: OrderDetails) {
   try {
     const { data, error } = await resend.emails.send({
       from: 'CLE Perfumes <info@cleparfum.com>',
-      to: order.contact_email,
+      to: recipientEmail,
       bcc: 'infocleparfum@gmail.com', // ⬅️ Sent copy to client
       subject: `Order Confirmation #${order.order_number}`,
       html: html
@@ -117,11 +130,17 @@ export async function sendOrderConfirmationEmail(order: OrderDetails) {
 
     if (error) {
       console.error('[EmailService] Resend Error:', error)
+      return { ok: false, error: error.message || 'Resend failed to send order confirmation email' }
     } else {
       console.log('[EmailService] Email sent successfully:', data)
+      return { ok: true }
     }
   } catch (err) {
     console.error('[EmailService] Unexpected Error:', err)
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Unexpected error while sending order confirmation email',
+    }
   }
 }
 
@@ -180,8 +199,17 @@ export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
   }
 }
 
-export async function sendOrderStatusEmail(orderNumber: string, status: string, contactEmail?: string) {
-  if (!contactEmail) return
+export async function sendOrderStatusEmail(
+  orderNumber: string,
+  status: string,
+  contactEmail?: string
+): Promise<EmailSendResult> {
+  const recipientEmail = normalizeEmailAddress(contactEmail)
+
+  if (!recipientEmail) {
+    console.log('[EmailService] No valid contact email provided; skipping order status email.')
+    return { ok: false, skipped: true, error: 'No valid contact email provided' }
+  }
 
   const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1)
 
@@ -208,10 +236,27 @@ export async function sendOrderStatusEmail(orderNumber: string, status: string, 
     </html>
   `
 
-  await resend.emails.send({
-    from: 'CLE Perfumes <info@cleparfum.com>',
-    to: contactEmail,
-    subject: `Order Update #${orderNumber} - ${formattedStatus}`,
-    html: html
-  }).catch(e => console.error('[EmailService] Status Email Error:', e))
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'CLE Perfumes <info@cleparfum.com>',
+      to: recipientEmail,
+      bcc: 'infocleparfum@gmail.com', // Sent copy to admin
+      subject: `Order Update #${orderNumber} - ${formattedStatus}`,
+      html: html,
+    })
+
+    if (error) {
+      console.error('[EmailService] Status Email Error:', error)
+      return { ok: false, error: error.message || 'Resend failed to send order status email' }
+    }
+
+    console.log('[EmailService] Status email sent successfully:', data)
+    return { ok: true }
+  } catch (error) {
+    console.error('[EmailService] Unexpected Status Email Error:', error)
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unexpected error while sending order status email',
+    }
+  }
 }

@@ -151,9 +151,6 @@ export default function CheckoutPage() {
   )
 
   const promoInputValue = promo ? promo.code : promoInput
-  const loginToCheckoutHref = `/login?next=${encodeURIComponent("/checkout")}&message=${encodeURIComponent(
-    "Please login to continue checkout"
-  )}`
 
   useEffect(() => {
     if (items.length === 0) {
@@ -488,22 +485,6 @@ export default function CheckoutPage() {
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.3fr_1fr]">
           <section className="space-y-6">
-            {!currentUserId && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 md:p-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="font-serif text-xl text-amber-900 mb-1">Get 10% Off Your Order!</h2>
-                    <p className="text-sm text-amber-800 font-light">Sign in or create an account to instantly receive a 10% discount on your entire purchase.</p>
-                  </div>
-                  <Link href={loginToCheckoutHref}>
-                    <Button className="shrink-0 rounded-xl bg-amber-600 text-white hover:bg-amber-700 uppercase tracking-widest text-xs font-semibold px-6 h-11 transition-colors">
-                      Sign In & Claim
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
-
             <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
               <h2 className="mb-4 font-serif text-2xl text-neutral-900">1. Contact Information</h2>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -695,14 +676,11 @@ export default function CheckoutPage() {
                 {promo && (
                   <div className="mt-2 flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-800 sm:flex-row sm:items-center sm:justify-between">
                     <span className="break-all font-medium">
-                      {promo.code === "SIGNIN10" && "✨ Auto-applied: "}
                       {promo.code} ({promo.discountType === "percentage" ? `${promo.discountValue}%` : `AED ${promo.discountValue}`})
                     </span>
-                    {promo.code !== "SIGNIN10" && (
-                      <button type="button" onClick={removePromo} className="self-start font-semibold hover:text-black sm:self-auto">
-                        Remove
-                      </button>
-                    )}
+                    <button type="button" onClick={removePromo} className="self-start font-semibold hover:text-black sm:self-auto">
+                      Remove
+                    </button>
                   </div>
                 )}
                 {promoMessage && <p className={`mt-2 text-xs ${promoError ? "text-red-600" : "text-emerald-700"}`}>{promoMessage}</p>}
