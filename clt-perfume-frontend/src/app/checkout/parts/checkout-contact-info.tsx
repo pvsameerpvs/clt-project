@@ -1,3 +1,6 @@
+import { PhoneInput } from "react-international-phone"
+import "react-international-phone/style.css"
+
 interface CheckoutContactInfoProps {
   currentUserId: string | null | undefined
   contactEmail: string
@@ -29,18 +32,49 @@ export function CheckoutContactInfo({
             />
           </div>
         )}
-        <div className="space-y-1.5 overflow-hidden">
+        <div className="space-y-1.5 overflow-visible">
           <label className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">WhatsApp Number *</label>
-          <input
-            type="tel"
-            value={contactWhatsapp}
-            onChange={(e) => setContactWhatsapp(e.target.value)}
-            placeholder="+971 50 XXXXXXX"
-            className="h-11 w-full rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black"
-          />
+          <div className="whatsapp-phone-input">
+            <PhoneInput
+              defaultCountry="ae"
+              value={contactWhatsapp}
+              onChange={(phone) => setContactWhatsapp(phone)}
+              className="w-full"
+              inputStyle={{
+                width: '100%',
+                height: '44px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                border: '1px solid #d1d5db',
+                paddingLeft: '12px'
+              }}
+              countrySelectorStyleProps={{
+                buttonStyle: {
+                  height: '44px',
+                  borderRadius: '8px 0 0 8px',
+                  border: '1px solid #d1d5db',
+                  borderRight: 'none',
+                  backgroundColor: '#f9fafb'
+                }
+              }}
+            />
+          </div>
           <p className="text-[10px] text-neutral-400 mt-1">Used for order updates and tracking.</p>
         </div>
       </div>
+
+      <style jsx global>{`
+        .whatsapp-phone-input .react-international-phone-input-container {
+          width: 100% !important;
+        }
+        .whatsapp-phone-input .react-international-phone-input {
+          flex: 1 !important;
+        }
+        .whatsapp-phone-input .react-international-phone-country-selector-button {
+          padding-left: 8px !important;
+          padding-right: 8px !important;
+        }
+      `}</style>
     </article>
   )
 }
