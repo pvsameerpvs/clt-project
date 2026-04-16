@@ -21,7 +21,7 @@ export default function PrivacyPolicyPage() {
         secondaryAction={{ label: "Contact Us", href: "/contact-us" }}
       />
 
-      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-12 md:px-6 md:py-16">
+      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-12 md:px-8 md:py-16">
         <ContentCard
           title="Data We Collect"
           paragraphs={[

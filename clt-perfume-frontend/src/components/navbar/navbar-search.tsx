@@ -90,7 +90,7 @@ export function NavbarSearch({ className }: NavbarSearchProps) {
   }
 
   return (
-    <div ref={wrapperRef} className={cn("relative group", className)}>
+    <div ref={wrapperRef} className={cn("relative group z-[100]", className)}>
       <div className="relative flex items-center w-full">
         <Input 
           type="search" 
@@ -116,7 +116,7 @@ export function NavbarSearch({ className }: NavbarSearchProps) {
 
       {/* Live Search Dropdown */}
       {isOpen && (query.trim().length > 0) && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-neutral-100 overflow-hidden max-h-[80vh] overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-neutral-100 overflow-hidden max-h-[80vh] overflow-y-auto z-[9999]">
           {!loading && products.length === 0 && categories.length === 0 ? (
             <div className="p-6 text-center text-sm text-neutral-500 font-light">
               No results found for &quot;{query}&quot;

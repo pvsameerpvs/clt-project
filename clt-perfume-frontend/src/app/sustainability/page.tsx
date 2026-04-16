@@ -23,7 +23,7 @@ export default function SustainabilityPage() {
         secondaryAction={{ label: "About", href: "/about" }}
       />
 
-      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-12 md:px-6 md:py-16 lg:grid-cols-2">
+      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-12 md:px-8 md:py-16 lg:grid-cols-2">
         <ContentCard
           title="Transparency Commitment"
           paragraphs={[

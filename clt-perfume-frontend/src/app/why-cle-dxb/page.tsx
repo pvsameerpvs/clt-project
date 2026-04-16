@@ -23,7 +23,7 @@ export default function WhyCleDxbPage() {
         secondaryAction={{ label: "Clean Eau De Parfum", href: "/clean-eau-de-parfum" }}
       />
 
-      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-12 md:px-6 md:py-16 lg:grid-cols-2">
+      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-12 md:px-8 md:py-16 lg:grid-cols-2">
         <ContentCard
           title="Personal Fragrance Experience"
           paragraphs={[

@@ -88,7 +88,7 @@ export default function IngredientsPage() {
         <div className="pointer-events-none absolute -left-24 top-4 h-56 w-56 rounded-full bg-black/[0.035] blur-3xl" />
         <div className="pointer-events-none absolute -right-24 bottom-0 h-56 w-56 rounded-full bg-black/[0.035] blur-3xl" />
 
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 py-14 md:px-6 md:py-20 lg:grid-cols-2 lg:items-center">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-14 md:px-8 md:py-20 lg:grid-cols-2 lg:items-center">
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-black" />
@@ -150,7 +150,7 @@ export default function IngredientsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
+      <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-14">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {qualityMetrics.map((metric) => (
             <article key={metric.label} className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
@@ -162,7 +162,7 @@ export default function IngredientsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-6 md:px-6">
+      <section className="mx-auto max-w-7xl px-4 pb-6 md:px-8">
         <div className="flex flex-wrap gap-2">
           {ingredientGroups.map((group) => (
             <a
@@ -182,7 +182,7 @@ export default function IngredientsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 md:px-6">
+      <section className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm md:p-8">
           <h2 className="font-serif text-2xl text-neutral-900 md:text-3xl">How To Read This List</h2>
           <div className="mt-4 space-y-3 text-sm leading-relaxed text-neutral-700 md:text-base">
@@ -194,7 +194,7 @@ export default function IngredientsPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
+      <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-14">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {ingredientGroups.map((group, index) => (
             <article
@@ -237,7 +237,7 @@ export default function IngredientsPage() {
         </div>
       </section>
 
-      <section id="complete-declared-list" className="mx-auto max-w-6xl px-4 pb-12 md:px-6 md:pb-16">
+      <section id="complete-declared-list" className="mx-auto max-w-7xl px-4 pb-12 md:px-8 md:pb-16">
         <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">

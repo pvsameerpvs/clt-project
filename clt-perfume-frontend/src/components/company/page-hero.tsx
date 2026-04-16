@@ -32,7 +32,7 @@ export function PageHero({
       <div className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-black/[0.03] blur-3xl" />
       <div className="pointer-events-none absolute -bottom-28 -right-20 h-64 w-64 rounded-full bg-black/[0.03] blur-3xl" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-black/40 to-transparent" />
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 py-14 md:px-6 md:py-20 lg:grid-cols-2 lg:items-center">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 py-14 md:px-8 md:py-20 lg:grid-cols-2 lg:items-center">
         <div className="space-y-6 motion-safe:animate-[companyFadeUp_700ms_ease-out]">
           <div className="inline-flex items-center gap-2 rounded-full border border-black/15 bg-white/80 px-3 py-1">
             <span className="h-1.5 w-1.5 rounded-full bg-black" />

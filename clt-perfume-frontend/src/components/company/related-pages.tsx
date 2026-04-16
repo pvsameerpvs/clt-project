@@ -14,7 +14,7 @@ interface RelatedPagesProps {
 
 export function RelatedPages({ title = "Explore More", pages }: RelatedPagesProps) {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-12 md:px-6 md:py-16">
+    <section className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16">
       <div className="mb-6 flex items-end justify-between gap-4">
         <h2 className="font-serif text-2xl md:text-3xl">{title}</h2>
       </div>
