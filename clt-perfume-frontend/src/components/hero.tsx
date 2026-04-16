@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import Image from "next/image"
 import Autoplay from "embla-carousel-autoplay"
 import { ArrowRight } from "lucide-react"
@@ -14,8 +15,14 @@ import {
 
 import { getSiteSettings } from "@/lib/api"
 
+interface HeroSlide {
+  image: string
+  tagline: string
+  headline: string
+}
+
 export function Hero() {
-  const [slides, setSlides] = React.useState<any[]>([])
+  const [slides, setSlides] = React.useState<HeroSlide[]>([])
   const plugin = React.useRef(
     Autoplay({ delay: 5000, stopOnInteraction: false })
   )
@@ -44,7 +51,7 @@ export function Hero() {
           }}
         >
           <CarouselContent className="h-full ml-0">
-            {slides.map((slide: any, index: number) => (
+            {slides.map((slide: HeroSlide, index: number) => (
               <CarouselItem key={index} className="relative h-full w-full pl-0">
                 
                 {/* Background Image - Fits Exactly Like Before */}
@@ -54,7 +61,7 @@ export function Hero() {
                     alt={slide.tagline}
                     fill
 
-                    className="object-cover object-bottom"
+                    className="object-cover object-[75%_center] md:object-center"
                     priority={index === 0}
                     sizes="100vw"
                   />
@@ -82,14 +89,16 @@ export function Hero() {
 
                   {/* Bottom: Call to Action */}
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-                    <Button className="group flex h-14 items-center gap-4 rounded-full bg-white pl-8 pr-2 text-black transition-all hover:scale-105 hover:bg-neutral-200">
-                      <span className="text-sm font-medium tracking-wide">
-                        Discover The Scent
-                      </span>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white transition-transform group-hover:rotate-[-45deg]">
-                        <ArrowRight className="h-4 w-4" />
-                      </div>
-                    </Button>
+                    <Link href="/collections/all">
+                      <Button className="group flex h-14 items-center gap-4 rounded-full bg-white pl-8 pr-2 text-black transition-all hover:scale-105 hover:bg-neutral-200">
+                        <span className="text-sm font-medium tracking-wide">
+                          Discover The Scent
+                        </span>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white transition-transform group-hover:rotate-[-45deg]">
+                          <ArrowRight className="h-4 w-4" />
+                        </div>
+                      </Button>
+                    </Link>
                   </div>
 
                 </div>

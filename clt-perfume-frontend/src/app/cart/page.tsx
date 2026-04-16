@@ -203,7 +203,7 @@ function CartPageContent() {
                   isAuthLoading ? "Loading..." : "Proceed to Checkout"
                 }
                 isProceedDisabled={isAuthLoading}
-                showPromoInput={!!user}
+                showPromoInput={false}
               />
             </div>
           </div>

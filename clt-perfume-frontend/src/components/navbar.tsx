@@ -36,32 +36,34 @@ export function Navbar() {
       <div className="container mx-auto px-4 py-4 md:py-6">
         <div className="flex items-center justify-between gap-4 md:gap-6">
           
-          {/* Mobile Menu Icon */}
-          <button 
-            className="lg:hidden p-2 -ml-2 text-neutral-600 hover:text-black"
-            onClick={() => setIsMobileMenuOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-
-          {/* Logo */}
-          <Link href="/" className="flex-shrink-0 flex-1 lg:flex-none flex justify-center lg:justify-start">
-            <div className="flex flex-col items-center">
-               <Image src="/perfume-sam.png" alt="CLE Perfumes" width={200} height={70} className="object-contain w-auto h-14 md:h-20" priority />
-               <span className="text-[10px] md:text-xs tracking-[0.3em] uppercase mt-1.5">Perfumes</span>
+          {/* Logo (Left-aligned on mobile, centered internal text) */}
+          <Link href="/" className="flex-shrink-0 flex justify-start lg:justify-start">
+            <div className="flex flex-col items-center lg:items-center">
+               <Image src="/perfume-sam.png" alt="CLE Perfumes" width={160} height={60} className="object-contain w-auto h-12 md:h-20" priority />
+               <span className="text-[8px] md:text-xs tracking-[0.3em] uppercase mt-1">Perfumes</span>
             </div>
           </Link>
 
           {/* Search Bar (Desktop Only) */}
-          <NavbarSearch className="hidden lg:flex flex-1 w-full max-w-2xl" />
+          <NavbarSearch className="hidden lg:flex flex-1 w-full max-w-2xl px-8" />
 
-          {/* Actions (Account, Wishlist, Cart) */}
-          <NavbarActions />
+          {/* Right Actions (Wishlist, Cart, then Hamburger) */}
+          <div className="flex items-center gap-2 md:gap-6">
+            <NavbarActions />
+            
+            {/* Mobile Menu Icon (Now on the Right) */}
+            <button 
+              className="lg:hidden p-2 -mr-2 text-neutral-600 hover:text-black"
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
         </div>
         
         {/* Mobile Search Bar */}
-        <NavbarSearch className="lg:hidden mt-4 bg-neutral-50 h-10" />
+        <NavbarSearch className="lg:hidden mt-4" />
       </div>
 
       {/* Navigation Links */}

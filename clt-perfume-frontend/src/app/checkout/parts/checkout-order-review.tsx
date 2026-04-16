@@ -1,6 +1,6 @@
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { CartItem } from "@/contexts/cart-context"
+import { AppliedPromo, CartItem } from "@/contexts/cart-context"
 import { PaymentMethod } from "../checkout-types"
 import { formatPrice } from "../checkout-utils"
 
@@ -10,7 +10,7 @@ interface CheckoutOrderReviewProps {
   promoInputValue: string
   onPromoInputChange: (val: string) => void
   onApplyPromo: () => void
-  promo: any
+  promo: AppliedPromo | null
   isApplyingPromo: boolean
   removePromo: () => void
   promoMessage: string
@@ -65,19 +65,19 @@ export function CheckoutOrderReview({
       {currentUserId && (
         <div className="mb-4 rounded-xl border border-neutral-200 bg-neutral-50 p-3 sm:p-4">
           <p className="mb-2 text-[10px] uppercase tracking-[0.12em] text-neutral-500 sm:text-[11px]">Promo Code</p>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex items-center gap-2">
             <input
               value={promoInputValue}
               onChange={(event) => onPromoInputChange(event.target.value.toUpperCase())}
               placeholder="ENTER CODE"
               disabled={Boolean(promo)}
-              className="h-10 min-w-0 flex-1 rounded-lg border border-neutral-300 bg-white px-3 text-sm outline-none transition-colors focus:border-black sm:h-11"
+              className="h-11 min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition-colors focus:border-black placeholder:text-neutral-400"
             />
             <button
               type="button"
               onClick={onApplyPromo}
               disabled={isApplyingPromo || Boolean(promo)}
-              className="h-10 w-full rounded-lg bg-black px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 sm:h-11 sm:w-auto sm:min-w-[110px]"
+              className="h-11 min-w-[90px] rounded-lg bg-black px-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
             >
               {promo ? "Applied" : isApplyingPromo ? "Applying" : "Apply"}
             </button>

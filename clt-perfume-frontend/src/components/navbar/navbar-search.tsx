@@ -90,25 +90,29 @@ export function NavbarSearch({ className }: NavbarSearchProps) {
   }
 
   return (
-    <div ref={wrapperRef} className={cn("relative z-50", className)}>
-      <Input 
-        type="search" 
-        placeholder="Search for product or category" 
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={handleSearch}
-        onFocus={() => { if (query.trim()) setIsOpen(true) }}
-        className="w-full rounded-full pl-6 pr-12 h-12 border-neutral-300 focus-visible:ring-black/5 text-neutral-600 font-light"
-      />
-      
-      {loading ? (
-        <Loader2 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-neutral-400 h-5 w-5 animate-spin" />
-      ) : (
-        <Search 
-          onClick={submitSearch}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-neutral-400 h-5 w-5 cursor-pointer hover:text-black transition-colors" 
+    <div ref={wrapperRef} className={cn("relative group", className)}>
+      <div className="relative flex items-center w-full">
+        <Input 
+          type="search" 
+          placeholder="Search for product or category" 
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleSearch}
+          onFocus={() => { if (query.trim()) setIsOpen(true) }}
+          className="w-full rounded-full pl-6 pr-12 h-11 md:h-12 border-neutral-200 bg-white focus:bg-white focus-visible:ring-black/5 text-neutral-600 font-light"
         />
-      )}
+        
+        <div className="absolute right-5 flex items-center justify-center">
+          {loading ? (
+            <Loader2 className="text-neutral-400 h-5 w-5 animate-spin" />
+          ) : (
+            <Search 
+              onClick={submitSearch}
+              className="text-neutral-400 h-5 w-5 cursor-pointer hover:text-black transition-colors" 
+            />
+          )}
+        </div>
+      </div>
 
       {/* Live Search Dropdown */}
       {isOpen && (query.trim().length > 0) && (

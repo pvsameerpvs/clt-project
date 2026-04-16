@@ -6,6 +6,8 @@ import { X, ChevronRight, Zap, User } from "lucide-react"
 import { getCategories, getSiteSettings, NavMenuCategory, ProductCategory } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 
+import Image from "next/image"
+
 interface MobileMenuProps {
   isOpen: boolean
   onClose: () => void
@@ -143,15 +145,24 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       ></div>
 
       <div 
-        className={`fixed top-0 left-0 bottom-0 w-[85vw] max-w-sm bg-white z-[101] lg:hidden flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 right-0 bottom-0 w-[85vw] max-w-sm bg-white z-[101] lg:hidden flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        <div className="flex items-center justify-between p-5 border-b border-neutral-100">
-          <button 
-            onClick={() => setActiveMenu('main')}
-            className={`flex items-center gap-2 text-sm text-neutral-500 font-medium ${activeMenu === 'main' ? 'invisible' : 'visible'}`}
-          >
-             <ChevronRight className="w-4 h-4 rotate-180" /> Back
-          </button>
+        <div className="flex items-center justify-between p-5 border-b border-neutral-100 min-h-[85px]">
+          {activeMenu === 'main' ? (
+            <Link href="/" onClick={onClose} className="flex-shrink-0 flex items-center">
+              <div className="flex flex-col items-center">
+                 <Image src="/perfume-sam.png" alt="CLE Perfumes" width={140} height={50} className="object-contain w-auto h-11" priority />
+                 <span className="text-[10px] tracking-[0.3em] uppercase mt-1">Perfumes</span>
+              </div>
+            </Link>
+          ) : (
+            <button 
+              onClick={() => setActiveMenu('main')}
+              className="flex items-center gap-2 text-sm text-neutral-500 font-medium"
+            >
+               <ChevronRight className="w-4 h-4 rotate-180" /> Back
+            </button>
+          )}
           
           <button onClick={onClose} className="p-2 -mr-2 text-neutral-400 hover:text-black rounded-full hover:bg-neutral-50">
             <X className="w-5 h-5" />
@@ -160,7 +171,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
         <div className="flex-1 overflow-y-auto w-full">
           {/* Main Menu */}
-          <div className={`w-full flex flex-col p-6 ${activeMenu === 'main' ? 'block animate-in fade-in slide-in-from-left-4 duration-300' : 'hidden'}`}>
+          <div className={`w-full flex flex-col p-6 ${activeMenu === 'main' ? 'block animate-in fade-in slide-in-from-right-4 duration-300' : 'hidden'}`}>
             <div className="flex flex-col gap-6">
               {topCategories.map((category) => (
                 <button

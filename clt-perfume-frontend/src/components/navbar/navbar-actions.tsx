@@ -16,10 +16,10 @@ export function NavbarActions() {
   const accountLabel = user ? "Account" : "Log In"
 
   return (
-    <div className="flex items-center gap-4 md:gap-6 flex-shrink-0 text-neutral-600">
+    <div className="flex items-center gap-3 md:gap-6 flex-shrink-0 text-neutral-600">
       <Link
         href={accountHref}
-        className={`flex flex-col items-center gap-1 transition-colors ${isLoading ? "pointer-events-none opacity-60" : "hover:text-black"}`}
+        className={`hidden lg:flex flex-col items-center gap-1 transition-colors ${isLoading ? "pointer-events-none opacity-60" : "hover:text-black"}`}
       >
         <User className={`h-5 w-5 ${user ? "text-black" : ""}`} />
         <span className="text-[10px] uppercase tracking-wide">{accountLabel}</span>
