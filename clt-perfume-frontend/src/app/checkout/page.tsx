@@ -14,6 +14,7 @@ import { CheckoutContactInfo } from "./parts/checkout-contact-info"
 import { CheckoutAddressSection } from "./parts/checkout-address-section"
 import { CheckoutPaymentMethods } from "./parts/checkout-payment-methods"
 import { CheckoutOrderReview } from "./parts/checkout-order-review"
+import { useForm } from "react-hook-form"
 import { 
   CheckoutAddress, 
   CheckoutAddressFormState, 
@@ -41,6 +42,16 @@ export default function CheckoutPage() {
   const { user, isLoading: isAuthLoading } = useAuth()
   const router = useRouter()
 
+  const { control, formState: { errors }, watch, setValue } = useForm({
+    defaultValues: {
+      email: "",
+      whatsapp: "+971 "
+    }
+  })
+
+  const contactEmail = watch("email")
+  const contactWhatsapp = watch("whatsapp")
+
   const [promoInput, setPromoInput] = useState("")
   const [promoMessage, setPromoMessage] = useState("")
   const [promoError, setPromoError] = useState(false)
@@ -59,14 +70,11 @@ export default function CheckoutPage() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const currentUserId = user?.id || null
 
-  const [contactEmail, setContactEmail] = useState("")
-  const [contactWhatsapp, setContactWhatsapp] = useState("+971 ")
-
   useEffect(() => {
     if (user?.email) {
-      setContactEmail(user.email)
+      setValue("email", user.email)
     }
-  }, [user?.email])
+  }, [user?.email, setValue])
 
   const selectedCheckoutAddress = useMemo(
     () => shippingAddresses.find((address) => address.id === selectedAddressId) || null,
@@ -413,10 +421,8 @@ export default function CheckoutPage() {
           <section className="space-y-6">
             <CheckoutContactInfo 
               currentUserId={currentUserId}
-              contactEmail={contactEmail}
-              setContactEmail={setContactEmail}
-              contactWhatsapp={contactWhatsapp}
-              setContactWhatsapp={setContactWhatsapp}
+              control={control}
+              errors={errors}
             />
 
             <CheckoutAddressSection 
