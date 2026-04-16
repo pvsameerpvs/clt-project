@@ -65,7 +65,11 @@ function normalizeOrderStatusForResponse(status: string) {
 
 function isMissingRelationError(error: { message?: string } | null | undefined) {
   const message = (error?.message || '').toLowerCase()
-  return message.includes('relation') && message.includes('does not exist')
+  return (
+    (message.includes('relation') && message.includes('does not exist')) ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  )
 }
 
 // GET /api/orders — Get user's order history

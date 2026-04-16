@@ -71,7 +71,7 @@ export function ProfileAccountSection({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:max-w-xl">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <label className="space-y-2">
           <span className="text-sm font-medium text-neutral-800">First Name</span>
           <input
@@ -112,7 +112,7 @@ export function ProfileAccountSection({
           </div>
         </label>
 
-        <div className="space-y-2">
+        <div className="space-y-2 md:col-span-2">
           <span className="text-sm font-medium text-neutral-800">Gender</span>
           <div className="flex items-center gap-6">
             <button
@@ -167,7 +167,7 @@ export function ProfileAccountSection({
           </div>
         </label>
 
-        <label className="space-y-2">
+        <label className="space-y-2 md:col-span-2">
           <span className="text-sm font-medium text-neutral-800">Email</span>
           <input
             readOnly

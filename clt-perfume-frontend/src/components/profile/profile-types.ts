@@ -1,4 +1,4 @@
-import type { UserOrderRecord } from "@/lib/api"
+import type { UserOrderRecord, ReturnRequestRecord as ApiReturnRequest } from "@/lib/api"
 
 export type ProfileSection =
   | "account"
@@ -19,6 +19,7 @@ export type ProfileRecord = {
 }
 
 export type OrderRecord = UserOrderRecord
+export type ReturnRequestRecord = ApiReturnRequest
 
 export type AddressType = "home" | "office" | "other"
 

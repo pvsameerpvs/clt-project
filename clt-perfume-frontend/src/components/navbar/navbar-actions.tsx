@@ -12,7 +12,7 @@ export function NavbarActions() {
   const { totalItems } = useCart()
   const { items: wishlistItems } = useWishlist()
 
-  const accountHref = user ? "/profile" : "/login"
+  const accountHref = user ? "/profile/account" : "/login"
   const accountLabel = user ? "Account" : "Log In"
 
   return (

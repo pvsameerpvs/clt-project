@@ -54,12 +54,12 @@ export function ProfileAddressesSection({
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-neutral-500">
             {editingAddressId ? "Edit Address" : "New Address"}
           </h3>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             <input
               value={newAddress.title}
               onChange={(event) => onUpdateAddress("title", event.target.value)}
               placeholder="Address title"
-              className="h-11 rounded-xl border border-neutral-200 px-3 text-sm text-neutral-700 outline-none transition focus:border-black md:col-span-2"
+              className="h-11 rounded-xl border border-neutral-200 px-3 text-sm text-neutral-700 outline-none transition focus:border-black md:col-span-2 lg:col-span-3"
             />
             <select
               value={newAddress.type}
@@ -133,64 +133,66 @@ export function ProfileAddressesSection({
           No saved addresses yet. Add your first address.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {addresses.map((address) => {
             const Icon = address.type === "home" ? House : address.type === "office" ? Briefcase : MapPin
 
             return (
-              <article key={address.id} className="rounded-2xl border border-neutral-200 bg-white p-5">
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <div>
-                      <h3 className="text-base font-semibold text-neutral-900">{address.title}</h3>
-                      {address.isPrimary && (
-                        <p className="text-[11px] uppercase tracking-wide text-neutral-500">Primary Address</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {!address.isPrimary && (
-                      <button
-                        type="button"
-                        onClick={() => onSetPrimaryAddress(address.id)}
-                        disabled={updatingPrimaryId === address.id}
-                        className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 transition hover:border-amber-300 disabled:opacity-60"
-                      >
-                        <Crown className="h-3.5 w-3.5" />
-                        {updatingPrimaryId === address.id ? "..." : "Primary"}
-                      </button>
+              <article key={address.id} className="flex flex-col rounded-2xl border border-neutral-200 bg-white p-5">
+                <div className="mb-4 flex items-center gap-2 min-w-0">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-base font-semibold text-neutral-900" title={address.title}>
+                      {address.title}
+                    </h3>
+                    {address.isPrimary && (
+                      <p className="text-[11px] uppercase tracking-wide text-neutral-500">Primary Address</p>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => onOpenEditAddressForm(address)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-700 transition hover:border-black hover:text-black"
-                    >
-                      <Edit3 className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDeleteAddress(address.id)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700 transition hover:border-red-300"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
                   </div>
                 </div>
 
-                <div className="space-y-1 text-sm text-neutral-700">
+                <div className="flex-1 space-y-1 text-sm text-neutral-700">
                   <p className="font-medium text-neutral-900">{address.contactName}</p>
-                  <p>{address.line1}</p>
-                  {address.line2 && <p>{address.line2}</p>}
+                  <p className="line-clamp-1">{address.line1}</p>
+                  {address.line2 && <p className="line-clamp-1">{address.line2}</p>}
                   <p>
                     {address.city}, {address.country}
                   </p>
-                  <p className="pt-1 text-neutral-600">{address.phone}</p>
+                  <p className="pt-1 text-neutral-600 font-medium">{address.phone}</p>
                 </div>
+
+                <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-4">
+                  {!address.isPrimary && (
+                    <button
+                      type="button"
+                      onClick={() => onSetPrimaryAddress(address.id)}
+                      disabled={updatingPrimaryId === address.id}
+                      className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700 transition hover:border-amber-300 disabled:opacity-60"
+                    >
+                      <Crown className="h-3.5 w-3.5" />
+                      {updatingPrimaryId === address.id ? "Setting..." : "Set Primary"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onOpenEditAddressForm(address)}
+                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-neutral-700 transition hover:border-black hover:text-black"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteAddress(address.id)}
+                    className="inline-flex items-center justify-center rounded-lg border border-red-100 bg-red-50 p-1.5 text-red-600 transition hover:border-red-200 hover:bg-red-100"
+                    title="Delete Address"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+
               </article>
             )
           })}
