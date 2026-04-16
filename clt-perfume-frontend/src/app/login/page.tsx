@@ -1,3 +1,7 @@
+"use client"
+
+import { use } from "react"
+import { useForm } from "react-hook-form"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -6,13 +10,29 @@ import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
 import { login, signInWithGoogle } from "@/app/auth/actions"
 
-export default async function LoginPage({
+export default function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; message?: string; next?: string }>
 }) {
-  const { error, message, next } = await searchParams
-  const nextPath = next && next.startsWith("/") ? next : "/profile"
+  const { error, message, next } = use(searchParams)
+  const nextPath = next && next.startsWith("/") ? next : "/"
+
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<{ email: string; password: string }>()
+
+  const onSubmit = async (data: { email: string; password: string }) => {
+    const formData = new FormData()
+    formData.append("email", data.email)
+    formData.append("password", data.password)
+    formData.append("next", nextPath)
+    
+    const res = await login(formData)
+    if (res?.error) {
+      setError("root", { type: "server", message: res.error })
+    } else if (res?.success) {
+      window.location.replace(res.redirect || "/")
+    }
+  }
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-neutral-50">
@@ -86,24 +106,28 @@ export default async function LoginPage({
                 {error}
               </p>
             )}
+            {errors.root && (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {errors.root.message}
+              </p>
+            )}
             {message && (
               <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                 {message}
               </p>
             )}
 
-            <form className="space-y-5" action={login}>
-              <input type="hidden" name="next" value={nextPath} />
+            <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium ml-1">Email Address</Label>
                 <Input 
                   id="email" 
-                  name="email"
                   type="email" 
                   placeholder="name@example.com"
-                  className="h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all"
-                  required 
+                  className={`h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all ${errors.email ? 'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : ''}`}
+                  {...register("email", { required: "Email is required" })}
                 />
+                {errors.email && <span className="text-[10px] text-red-500 ml-1">{errors.email.message as string}</span>}
               </div>
 
               <div className="space-y-1.5">
@@ -115,19 +139,20 @@ export default async function LoginPage({
                 </div>
                 <Input 
                   id="password" 
-                  name="password"
                   type="password" 
                   placeholder="••••••••"
-                  className="h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all"
-                  required 
+                  className={`h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all ${errors.password ? 'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : ''}`}
+                  {...register("password", { required: "Password is required" })}
                 />
+                {errors.password && <span className="text-[10px] text-red-500 ml-1">{errors.password.message as string}</span>}
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full h-12 rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-xs font-medium transition-all shadow-lg shadow-black/10 mt-2"
+                className="w-full h-12 rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-xs font-medium transition-all shadow-lg shadow-black/10 mt-2 disabled:opacity-50"
+                disabled={isSubmitting}
               >
-                Sign In
+                {isSubmitting ? "Signing In..." : "Sign In"}
               </Button>
             </form>
 

@@ -1,4 +1,5 @@
 import twilio from 'twilio'
+import fs from 'fs'
 
 // Initialize Twilio client ONLY if keys are actually provided.
 // This prevents the backend from crashing while you haven't set up the keys yet.
@@ -12,6 +13,11 @@ export type WhatsAppOrderDetails = {
   order_number: string
   total: number
   contact_whatsapp?: string
+  items?: Array<{
+    product_name: string
+    quantity: number
+    price: number
+  }>
 }
 
 export async function sendOrderWhatsAppConfirmation(order: WhatsAppOrderDetails) {
@@ -27,29 +33,54 @@ export async function sendOrderWhatsAppConfirmation(order: WhatsAppOrderDetails)
   }
 
   // Format the number to E.164 format (e.g. +971501234567)
-  let formattedNumber = order.contact_whatsapp.trim()
+  let formattedNumber = order.contact_whatsapp.trim().replace(/\s/g, '')
+  
   if (!formattedNumber.startsWith('+')) {
-    // Assuming mostly UAE numbers if no plus is provided; adjust logic if needed.
-    // Usually, you should ensure the frontend passes the plus sign + country code!
+    // Handle UAE numbers (e.g., 056... or 56...)
+    if (formattedNumber.startsWith('0')) {
+      formattedNumber = '971' + formattedNumber.slice(1)
+    } else if (formattedNumber.length === 9 && (formattedNumber.startsWith('5') || formattedNumber.startsWith('2'))) {
+      // Very specific to UAE 9-digit local format
+      formattedNumber = '971' + formattedNumber
+    }
+    
     formattedNumber = '+' + formattedNumber 
   }
+
+  console.log(`[WhatsAppService] Preparing to send to: whatsapp:${formattedNumber} from: whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`)
+
+  // Format items list
+  const itemsText = (order.items || [])
+    .map(item => `• ${item.product_name} x${item.quantity}`)
+    .join('\n')
 
   const messageText = `We've received your order! 🎉
 
 *Order Number:* #${order.order_number}
+
+*Items:*
+${itemsText || 'Details in email'}
+
 *Total:* AED ${Math.round(order.total)}
 
 Thank you for shopping at CLE Perfumes. We are processing your order and will let you know once it's on the way.`
 
   try {
+    const logMsg = `[${new Date().toISOString()}] Attempting to send to ${formattedNumber} (Order: ${order.order_number})\n`
+    fs.appendFileSync('whatsapp_debug.log', logMsg)
+    
     const message = await client.messages.create({
       body: messageText,
       from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
       to: `whatsapp:${formattedNumber}`
     })
 
+    const successMsg = `[${new Date().toISOString()}] SUCCESS! SID: ${message.sid}\n`
+    fs.appendFileSync('whatsapp_debug.log', successMsg)
     console.log(`[WhatsAppService] Message sent successfully! SID: ${message.sid}`)
-  } catch (error) {
+  } catch (error: any) {
+    const errorMsg = `[${new Date().toISOString()}] ERROR: ${error.message}\n`
+    fs.appendFileSync('whatsapp_debug.log', errorMsg)
     console.error('[WhatsAppService] Twilio Error:', error)
   }
 }
@@ -59,6 +90,11 @@ export async function sendOrderStatusWhatsApp(orderNumber: string, status: strin
 
   let formattedNumber = contactWhatsapp.trim()
   if (!formattedNumber.startsWith('+')) {
+    if (formattedNumber.startsWith('0')) {
+      formattedNumber = '971' + formattedNumber.slice(1)
+    } else if (formattedNumber.length === 9 && (formattedNumber.length === 9 && (formattedNumber.startsWith('5') || formattedNumber.startsWith('2')))) {
+      formattedNumber = '971' + formattedNumber
+    }
     formattedNumber = '+' + formattedNumber 
   }
 

@@ -8,23 +8,22 @@ import { useWishlist } from "@/contexts/wishlist-context"
 import { Badge } from "@/components/ui/badge"
 
 export function NavbarActions() {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
   const { totalItems } = useCart()
   const { items: wishlistItems } = useWishlist()
 
+  const accountHref = user ? "/profile" : "/login"
+  const accountLabel = user ? "Account" : "Log In"
+
   return (
     <div className="flex items-center gap-4 md:gap-6 flex-shrink-0 text-neutral-600">
-      {user ? (
-        <Link href="/profile" className="flex flex-col items-center gap-1 hover:text-black transition-colors cursor-pointer">
-          <User className="h-5 w-5 text-black" />
-          <span className="text-[10px] uppercase tracking-wide">Account</span>
-        </Link>
-      ) : (
-        <Link href="/login" className="flex flex-col items-center gap-1 hover:text-black transition-colors">
-          <User className="h-5 w-5" />
-          <span className="text-[10px] uppercase tracking-wide">Sign In</span>
-        </Link>
-      )}
+      <Link
+        href={accountHref}
+        className={`flex flex-col items-center gap-1 transition-colors ${isLoading ? "pointer-events-none opacity-60" : "hover:text-black"}`}
+      >
+        <User className={`h-5 w-5 ${user ? "text-black" : ""}`} />
+        <span className="text-[10px] uppercase tracking-wide">{accountLabel}</span>
+      </Link>
 
       <Link href="/wishlist" className="flex flex-col items-center gap-1 hover:text-black transition-colors relative">
         <div className="relative">

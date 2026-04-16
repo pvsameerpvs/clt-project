@@ -137,7 +137,7 @@ export default function CheckoutPage() {
   const currentUserId = user?.id || null
 
   const [contactEmail, setContactEmail] = useState("")
-  const [contactWhatsapp, setContactWhatsapp] = useState("")
+  const [contactWhatsapp, setContactWhatsapp] = useState("+971 ")
 
   useEffect(() => {
     if (user?.email) {
@@ -225,10 +225,6 @@ export default function CheckoutPage() {
       mounted = false
     }
   }, [currentUserId, isAuthLoading, user?.email])
-
-  useEffect(() => {
-    // Redirect removed to allow guest checkout
-  }, [])
 
   useEffect(() => {
     if (shippingAddresses.length === 0) return
@@ -362,6 +358,7 @@ export default function CheckoutPage() {
 
   async function placeOrder() {
     if (items.length === 0) {
+      console.log('[Orders] Cart items empty')
       toast.error("Your bag is empty.")
       return
     }

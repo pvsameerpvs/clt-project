@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-  title: "CLT Admin Dashboard",
+  title: "CLE Perfume Dashboard",
   description: "Advanced management interface for CLE Perfumes",
 }
 

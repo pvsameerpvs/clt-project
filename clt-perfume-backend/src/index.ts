@@ -15,6 +15,7 @@ import { settingsRoutes } from './routes/settings.routes'
 import { productRoutes } from './routes/product.routes'
 import { promoCodeRoutes } from './routes/promo-codes.routes'
 import { reviewRoutes } from './routes/reviews.routes'
+import { authRoutes } from './routes/auth.routes'
 
 
 const app = express()
@@ -28,6 +29,12 @@ const allowedOrigins = (
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean)
+
+// Request logging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
+  next()
+})
 
 // Security
 app.use(helmet())
@@ -64,6 +71,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/reviews', reviewRoutes)
+app.use('/api/auth', authRoutes)
 
 
 

@@ -107,6 +107,7 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       .filter((item) => item.product_id && item.quantity > 0)
 
     if (items.length === 0) {
+      console.log('[Orders] Cart items empty for payload:', JSON.stringify(payload, null, 2))
       res.status(400).json({ error: 'Cart is empty' })
       return
     }
@@ -213,10 +214,16 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       contact_email: contactEmail
     })
 
+    console.log('[Orders] Triggering WhatsApp confirmation for:', contactWhatsapp)
     sendOrderWhatsAppConfirmation({
       order_number: order.order_number,
       total: Number(order.total || 0),
-      contact_whatsapp: contactWhatsapp
+      contact_whatsapp: contactWhatsapp,
+      items: orderItems.map(item => ({
+        product_name: item.product_name,
+        quantity: item.quantity,
+        price: item.price
+      }))
     })
 
     res.status(201).json({

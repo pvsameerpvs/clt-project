@@ -1,17 +1,39 @@
+"use client"
+
+import { use, useState } from "react"
+import { useForm } from "react-hook-form"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
-import { signInWithGoogle, signup } from "@/app/auth/actions"
+import { signInWithGoogle, signup, verifyEmailAbstract } from "@/app/auth/actions"
 
-export default async function SignupPage({
+export default function SignupPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>
 }) {
-  const { error } = await searchParams
+  const { error } = use(searchParams)
+
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<{ firstName: string; lastName: string; email: string; password: string }>()
+  const [typedEmail, setTypedEmail] = useState("")
+
+  const onSubmit = async (data: { firstName: string; lastName: string; email: string; password: string }) => {
+    const formData = new FormData()
+    formData.append("firstName", data.firstName)
+    formData.append("lastName", data.lastName)
+    formData.append("email", data.email)
+    formData.append("password", data.password)
+    
+    const res = await signup(formData)
+    if (res?.error) {
+      setError("root", { type: "server", message: res.error })
+    } else if (res?.success) {
+      window.location.replace(res.redirect || "/")
+    }
+  }
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-neutral-50 mb-reverse">
@@ -32,6 +54,7 @@ export default async function SignupPage({
 
           <div className="space-y-6">
             <form action={signInWithGoogle}>
+              <input type="hidden" name="email" value={typedEmail} />
               <Button
                 type="submit"
                 variant="outline"
@@ -58,30 +81,35 @@ export default async function SignupPage({
                 {error}
               </p>
             )}
+            {errors.root && (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {errors.root.message}
+              </p>
+            )}
 
-            <form className="space-y-4" action={signup}>
+            <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="firstName" className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium ml-1">First Name</Label>
                   <Input 
                     id="firstName" 
-                    name="firstName"
                     type="text" 
                     placeholder="Jane"
-                    className="h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all text-neutral-800"
-                    required 
+                    className={`h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all text-neutral-800 ${errors.firstName ? 'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : ''}`}
+                    {...register("firstName", { required: "First name is required" })}
                   />
+                  {errors.firstName && <span className="text-[10px] text-red-500 ml-1">{errors.firstName.message as string}</span>}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="lastName" className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium ml-1">Last Name</Label>
                   <Input 
                     id="lastName" 
-                    name="lastName"
                     type="text" 
                     placeholder="Doe"
-                    className="h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all text-neutral-800"
-                    required 
+                    className={`h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all text-neutral-800 ${errors.lastName ? 'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : ''}`}
+                    {...register("lastName", { required: "Last name is required" })}
                   />
+                  {errors.lastName && <span className="text-[10px] text-red-500 ml-1">{errors.lastName.message as string}</span>}
                 </div>
               </div>
 
@@ -89,32 +117,47 @@ export default async function SignupPage({
                 <Label htmlFor="email" className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium ml-1">Email Address</Label>
                 <Input 
                   id="email" 
-                  name="email"
                   type="email" 
                   placeholder="name@example.com"
-                  className="h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all text-neutral-800"
-                  required 
+                  className={`h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all text-neutral-800 ${errors.email ? 'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : ''}`}
+                  {...register("email", { 
+                    required: "Email is required",
+                    onChange: (event) => setTypedEmail(event.target.value),
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Please enter a valid format (e.g. name@example.com)"
+                    },
+                    validate: async (value) => {
+                      const res = await verifyEmailAbstract(value);
+                      if (!res.success) {
+                        return res.message as string;
+                      }
+                      return true;
+                    }
+                  })}
                 />
+                {errors.email && <span className="text-[10px] text-red-500 ml-1">{errors.email.message as string}</span>}
               </div>
 
               <div className="space-y-1.5 pt-1">
                 <Label htmlFor="password" className="text-[11px] uppercase tracking-wider text-neutral-500 font-medium ml-1">Create Password</Label>
                 <Input 
                   id="password" 
-                  name="password"
                   type="password" 
                   placeholder="••••••••"
-                  className="h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all text-neutral-800"
-                  required 
+                  className={`h-12 rounded-xl border-neutral-200 focus-visible:ring-black focus-visible:border-black bg-neutral-50/50 px-4 text-sm transition-all text-neutral-800 ${errors.password ? 'border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500' : ''}`}
+                  {...register("password", { required: "Password is required", minLength: { value: 8, message: "Must be at least 8 characters long" } })}
                 />
                 <p className="text-[10px] text-neutral-400 font-light mt-1 ml-1 tracking-wide">Must be at least 8 characters long.</p>
+                {errors.password && <span className="text-[10px] text-red-500 ml-1">{errors.password.message as string}</span>}
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full h-12 rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-xs font-medium transition-all shadow-lg shadow-black/10 mt-4"
+                className="w-full h-12 rounded-xl bg-black text-white hover:bg-neutral-800 uppercase tracking-widest text-xs font-medium transition-all shadow-lg shadow-black/10 mt-4 disabled:opacity-50"
+                disabled={isSubmitting}
               >
-                Create Account
+                {isSubmitting ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
 

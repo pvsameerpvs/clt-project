@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import {
+  ensureProfileExists,
+  getUserNameParts,
+  isLikelyFirstGoogleSession,
+  sendWelcomeEmail,
+} from "@/lib/auth/account-service"
 
 function sanitizeNextPath(nextPath: string | null): string {
   if (!nextPath || !nextPath.startsWith("/")) {
@@ -17,9 +23,32 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
+      const user = data.session?.user
+      const { firstName, lastName } = getUserNameParts(user)
+
+      if (user?.id) {
+        await ensureProfileExists({
+          userId: user.id,
+          firstName,
+          lastName,
+          avatarUrl:
+            (typeof user.user_metadata?.avatar_url === "string" && user.user_metadata.avatar_url) ||
+            (typeof user.user_metadata?.picture === "string" && user.user_metadata.picture) ||
+            "",
+        })
+      }
+
+      if (user?.email && isLikelyFirstGoogleSession(user)) {
+        await sendWelcomeEmail({
+          email: user.email,
+          firstName,
+          source: "google",
+        })
+      }
+
       return NextResponse.redirect(new URL(nextPath, origin))
     }
   }

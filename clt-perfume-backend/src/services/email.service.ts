@@ -22,6 +22,12 @@ export type OrderDetails = {
   contact_email?: string
 }
 
+type WelcomeEmailDetails = {
+  email: string
+  firstName?: string
+  source?: 'signup' | 'google'
+}
+
 export async function sendOrderConfirmationEmail(order: OrderDetails) {
   if (!order.contact_email) {
     console.log('[EmailService] No contact email provided; skipping receipt.')
@@ -116,6 +122,61 @@ export async function sendOrderConfirmationEmail(order: OrderDetails) {
     }
   } catch (err) {
     console.error('[EmailService] Unexpected Error:', err)
+  }
+}
+
+export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
+  if (!details.email) {
+    console.log('[EmailService] No email provided; skipping welcome email.')
+    return
+  }
+
+  const customerName = details.firstName?.trim() || 'there'
+  const sourceLabel = details.source === 'google' ? 'Google sign-in' : 'your new account'
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; padding: 40px 0; margin: 0;">
+      <table align="center" width="100%" max-width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <tr>
+          <td style="background-color: #000000; padding: 24px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-family: Georgia, serif; font-size: 24px;">CLE Perfumes</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px 24px;">
+            <p style="color: #4b5563; font-size: 16px; margin-top: 0;">Hi ${customerName},</p>
+            <p style="color: #111827; font-size: 18px; font-weight: 600;">Thank you for joining CLE Perfumes.</p>
+            <p style="color: #4b5563; font-size: 16px; margin-bottom: 16px;">Your account is ready and ${sourceLabel} is now connected to CLE Perfumes.</p>
+            <p style="color: #4b5563; font-size: 16px; margin-bottom: 24px;">You can now sign in, manage your profile, track orders, and continue shopping with a saved account.</p>
+            <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+              <p style="margin: 0; font-size: 14px; color: #6b7280;">Account email</p>
+              <p style="margin: 4px 0 0; font-size: 16px; font-weight: 600; color: #111827;">${details.email}</p>
+            </div>
+            <p style="color: #4b5563; font-size: 16px; margin-bottom: 0;">If you did not create this account, please reply to this email so we can help right away.</p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'CLE Perfumes <info@cleparfum.com>',
+      to: details.email,
+      subject: 'Welcome to CLE Perfumes',
+      html,
+    })
+
+    if (error) {
+      console.error('[EmailService] Welcome Email Error:', error)
+    } else {
+      console.log('[EmailService] Welcome email sent successfully:', data)
+    }
+  } catch (err) {
+    console.error('[EmailService] Unexpected Welcome Email Error:', err)
   }
 }
 

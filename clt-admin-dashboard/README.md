@@ -1,4 +1,4 @@
-# CLT Admin Dashboard
+# CLE Perfume Dashboard
 
 Standalone admin dashboard app for CLE Perfumes.
 

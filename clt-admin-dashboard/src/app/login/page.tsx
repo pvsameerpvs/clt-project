@@ -22,7 +22,7 @@ export default async function LoginPage({
         }}
       >
         <p style={{ margin: 0, color: "#6b7280", fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          CLT Admin Dashboard
+          CLE Perfume Dashboard
         </p>
         <h1 style={{ marginTop: 10, marginBottom: 6, fontSize: 28 }}>Sign In</h1>
         <p style={{ marginTop: 0, marginBottom: 20, color: "#6b7280", fontSize: 14 }}>

@@ -72,7 +72,7 @@ export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavP
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center px-6 border-b border-neutral-100 mb-6">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">CLT</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">CLE Perfume</p>
         <span className="ml-2 font-serif text-lg font-bold">Dashboard</span>
       </div>
 

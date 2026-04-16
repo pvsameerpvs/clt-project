@@ -119,7 +119,12 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
   sendOrderWhatsAppConfirmation({
     order_number: order.order_number || '',
     total: Number(order.total || 0),
-    contact_whatsapp: contactWhatsapp
+    contact_whatsapp: contactWhatsapp,
+    items: (orderItems || []).map(item => ({
+      product_name: item.product_name,
+      quantity: item.quantity,
+      price: item.price
+    }))
   })
 
   console.log(`✅ Direct order ${order.id} marked paid`)
@@ -213,7 +218,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     sendOrderWhatsAppConfirmation({
       order_number: order.order_number || '',
       total: Number(order.total || 0),
-      contact_whatsapp: contactWhatsapp
+      contact_whatsapp: contactWhatsapp,
+      items: orderItems.map(item => ({
+        product_name: item.product_name,
+        quantity: item.quantity,
+        price: item.price
+      }))
     })
 
     console.log(`✅ Order ${order.order_number} created for user ${userId}`)
