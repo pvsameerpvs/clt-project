@@ -23,14 +23,14 @@ export default function OrdersPage() {
     async function loadOrders() {
       if (!user) return
       
-      const { data: { session } } = await supabase.auth.getSession()
-      const accessToken = session?.access_token
-      if (!accessToken) return
-
       try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) return
+
         const [ordersData, returnsData] = await Promise.all([
-          getMyOrders(accessToken),
-          getMyReturnRequests(accessToken)
+          getMyOrders(token),
+          getMyReturnRequests(token)
         ])
         setOrders(ordersData)
         setReturnRequests(returnsData)
@@ -40,7 +40,7 @@ export default function OrdersPage() {
         setOrdersLoading(false)
       }
     }
-
+ 
     loadOrders()
   }, [user, supabase])
 

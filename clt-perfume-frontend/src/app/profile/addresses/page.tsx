@@ -9,17 +9,16 @@ import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 
 export default function AddressesPage() {
-  const { user, fullName, profile } = useProfile()
+  const { user, fullName, profile, addresses: globalAddresses, loading, refreshProfile } = useProfile()
   const supabase = createClient()
-
+ 
   const [addresses, setAddresses] = useState<AddressRecord[]>([])
-  const [addressesLoading, setAddressesLoading] = useState(true)
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null)
   const [isSavingAddress, setIsSavingAddress] = useState(false)
   const [updatingPrimaryId, setUpdatingPrimaryId] = useState<string | null>(null)
   const [addressError, setAddressError] = useState("")
-
+ 
   const [newAddress, setNewAddress] = useState<AddressFormState>({
     title: "",
     type: "other",
@@ -30,23 +29,15 @@ export default function AddressesPage() {
     city: "Dubai",
     country: "United Arab Emirates",
   })
-
+ 
+  // Sync with global pre-fetched addresses
   useEffect(() => {
-    async function loadAddresses() {
-      if (!user) return
-      const { data, error } = await supabase
-        .from("user_addresses")
-        .select("id,title,address_type,contact_name,phone,line1,line2,city,country,is_primary")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
-
-      if (!error) {
-        setAddresses((data as UserAddressRow[]).map(mapAddressRow))
-      }
-      setAddressesLoading(false)
+    if (globalAddresses) {
+      queueMicrotask(() => {
+        setAddresses(globalAddresses as unknown as AddressRecord[])
+      })
     }
-    loadAddresses()
-  }, [user, supabase])
+  }, [globalAddresses])
 
   function updateNewAddress<K extends keyof AddressFormState>(key: K, value: AddressFormState[K]) {
     setNewAddress((prev) => ({ ...prev, [key]: value }))
@@ -130,12 +121,11 @@ export default function AddressesPage() {
       return
     }
 
-    const mapped = mapAddressRow(data as UserAddressRow)
+    await refreshProfile() // Update global pre-fetch
+    
     if (editingAddressId) {
-      setAddresses(prev => prev.map(a => a.id === editingAddressId ? mapped : a))
       toast.success("Address updated")
     } else {
-      setAddresses(prev => [...prev, mapped])
       toast.success("Address added")
     }
     setShowAddressForm(false)
@@ -148,7 +138,7 @@ export default function AddressesPage() {
     await supabase.from("user_addresses").update({ is_primary: false }).eq("user_id", user.id)
     await supabase.from("user_addresses").update({ is_primary: true }).eq("id", addressId).eq("user_id", user.id)
     
-    setAddresses(prev => prev.map(a => ({ ...a, isPrimary: a.id === addressId })))
+    await refreshProfile() // Update global pre-fetch
     setUpdatingPrimaryId(null)
     toast.success("Primary address updated")
   }
@@ -157,14 +147,14 @@ export default function AddressesPage() {
     if (!user) return
     const { error } = await supabase.from("user_addresses").delete().eq("id", addressId).eq("user_id", user.id)
     if (!error) {
-      setAddresses(prev => prev.filter(a => a.id !== addressId))
+      await refreshProfile() // Update global pre-fetch
       toast.success("Address removed")
     }
   }
 
   return (
     <ProfileAddressesSection
-      addressesLoading={addressesLoading}
+      addressesLoading={loading}
       addresses={addresses}
       showAddressForm={showAddressForm}
       editingAddressId={editingAddressId}

@@ -8,14 +8,16 @@ import { toDateInputValue } from "@/components/profile/profile-utils"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 
-export default function AccountPage() {
-  const { user, profile, initials, refreshProfile } = useProfile()
-  const supabase = createClient()
+import { Loader2 } from "lucide-react"
 
+export default function AccountPage() {
+  const { user, profile, initials, loading, refreshProfile } = useProfile()
+  const supabase = createClient()
+ 
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [profileError, setProfileError] = useState("")
-
+ 
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
     firstName: "",
     lastName: "",
@@ -23,7 +25,7 @@ export default function AccountPage() {
     dateOfBirth: "",
     gender: "",
   })
-
+ 
   useEffect(() => {
     if (profile && !isEditingProfile) {
       queueMicrotask(() => {
@@ -37,6 +39,15 @@ export default function AccountPage() {
       })
     }
   }, [profile, isEditingProfile])
+
+  if (loading && !profile) {
+    return (
+      <div className="flex h-[400px] w-full flex-col items-center justify-center space-y-4 rounded-3xl bg-neutral-50/50">
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-300" />
+        <p className="text-sm font-medium tracking-widest text-neutral-400 uppercase">Synchronizing Account</p>
+      </div>
+    )
+  }
 
   function updateProfileField<K extends keyof ProfileFormState>(key: K, value: ProfileFormState[K]) {
     setProfileForm((prev) => ({ ...prev, [key]: value }))

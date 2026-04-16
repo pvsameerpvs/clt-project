@@ -5,7 +5,6 @@ import { FeaturedProducts } from "@/components/featured-products";
 import { OfferCards } from "@/components/offer-cards";
 import { PocketFriendly } from "@/components/pocket-friendly";
 import { BrandStory } from "@/components/brand-story";
-import { Newsletter } from "@/components/newsletter";
 
 export default function Home() {
   return (
@@ -17,7 +16,6 @@ export default function Home() {
      
       <OfferCards />
       <PocketFriendly />
-       <Newsletter />
     </div>
   );
 }

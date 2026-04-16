@@ -10,30 +10,32 @@ import { normalizeReturnRequestStatus } from "@/components/profile/profile-utils
 import { toast } from "sonner"
 
 export default function ReturnsPage() {
-  const { user } = useProfile()
+  const { user, loading: profileLoading } = useProfile()
   const supabase = createClient()
-
+ 
   const [orders, setOrders] = useState<OrderRecord[]>([])
   const [returnRequests, setReturnRequests] = useState<ReturnRequestRecord[]>([])
-  const [loading, setLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(false)
   const [orderActionLoadingId, setOrderActionLoadingId] = useState<string | null>(null)
   const [returnReasonByOrder, setReturnReasonByOrder] = useState<Record<string, string>>({})
-
+ 
   useEffect(() => {
     async function loadData() {
       if (!user) return
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-      if (!token) return
-
+      
       try {
+        setDataLoading(true)
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) return
+ 
         const [o, r] = await Promise.all([getMyOrders(token), getMyReturnRequests(token)])
         setOrders(o)
         setReturnRequests(r)
       } catch (e) {
         console.error(e)
       } finally {
-        setLoading(false)
+        setDataLoading(false)
       }
     }
     loadData()
@@ -92,8 +94,8 @@ export default function ReturnsPage() {
 
   return (
     <ProfileReturnsSection
-      ordersLoading={loading}
-      returnsLoading={loading}
+      ordersLoading={dataLoading}
+      returnsLoading={dataLoading}
       orders={orders}
       returnRequests={returnRequests}
       orderActionLoadingId={orderActionLoadingId}

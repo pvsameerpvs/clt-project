@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { ShoppingBag, Loader2 } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
+import { useProfile } from "@/contexts/profile-context"
 import { createBankCheckoutSession, createCashOnDeliveryOrder, validatePromoCode } from "@/lib/api"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -27,7 +28,7 @@ import {
   createAddressId, 
   mapUserAddressRow 
 } from "./checkout-utils"
-
+ 
 export default function CheckoutPage() {
   const {
     items,
@@ -40,23 +41,24 @@ export default function CheckoutPage() {
     discountedTotal,
   } = useCart()
   const { user, isLoading: isAuthLoading } = useAuth()
+  const { addresses: globalAddresses, profile, loading: isProfileLoading } = useProfile()
   const router = useRouter()
-
+ 
   const { control, formState: { errors }, watch, setValue } = useForm({
     defaultValues: {
       email: "",
       whatsapp: "+971 "
     }
   })
-
+ 
   const contactEmail = watch("email")
   const contactWhatsapp = watch("whatsapp")
-
+ 
   const [promoInput, setPromoInput] = useState("")
   const [promoMessage, setPromoMessage] = useState("")
   const [promoError, setPromoError] = useState(false)
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)
-
+ 
   const [shippingAddresses, setShippingAddresses] = useState<CheckoutAddress[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState("")
   const [showAddressForm, setShowAddressForm] = useState(false)
@@ -65,100 +67,53 @@ export default function CheckoutPage() {
   const [addressForm, setAddressForm] = useState<CheckoutAddressFormState>(() =>
     createAddressFormState("Client Account", "+971 ")
   )
-
+ 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod")
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const currentUserId = user?.id || null
-
+ 
+  // Sync global pre-fetched addresses to local state
+  useEffect(() => {
+    if (globalAddresses.length > 0) {
+      setShippingAddresses(globalAddresses)
+      // Only auto-select if nothing is selected or if current selection is invalid
+      if (!selectedAddressId || !globalAddresses.some(a => a.id === selectedAddressId)) {
+        const primary = globalAddresses.find(a => a.isPrimary) || globalAddresses[0]
+        setSelectedAddressId(primary.id)
+      }
+    }
+  }, [globalAddresses])
+ 
+  // Initial form values from profile
+  useEffect(() => {
+    if (profile) {
+      const contactName = [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim() || (user?.email?.split("@")[0] || "Client Account")
+      const phone = profile.phone?.trim() || "+971 "
+      setAddressForm(createAddressFormState(contactName, phone))
+      setValue("whatsapp", phone)
+    }
+  }, [profile, user?.email, setValue])
+ 
   useEffect(() => {
     if (user?.email) {
       setValue("email", user.email)
     }
   }, [user?.email, setValue])
-
+ 
   const selectedCheckoutAddress = useMemo(
     () => shippingAddresses.find((address) => address.id === selectedAddressId) || null,
     [selectedAddressId, shippingAddresses]
   )
-
+ 
   const promoInputValue = promo ? promo.code : promoInput
-
+ 
   useEffect(() => {
     if (items.length === 0) {
       router.replace("/cart")
     }
   }, [items.length, router])
-
-  useEffect(() => {
-    if (isAuthLoading) return
-
-    let mounted = true
-
-    async function loadCheckoutAddresses() {
-      if (!currentUserId) {
-        setShippingAddresses([])
-        setSelectedAddressId("")
-        setShowAddressForm(false)
-        setAddressFormError("")
-        setAddressForm(createAddressFormState("Client Account", "+971 "))
-        return
-      }
-
-      const supabase = createClient()
-
-      // Optimization: Fetch profile and addresses in parallel for better performance
-      const [profileResult, addressResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("first_name,last_name,phone")
-          .eq("id", currentUserId)
-          .maybeSingle(),
-        supabase
-          .from("user_addresses")
-          .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
-          .eq("user_id", currentUserId)
-          .order("created_at", { ascending: true })
-      ])
-
-      if (!mounted) return
-
-      const profileData = profileResult.data
-      const contactName =
-        [profileData?.first_name, profileData?.last_name].filter(Boolean).join(" ").trim() ||
-        user?.email?.split("@")[0] ||
-        "Client Account"
-      const phone = profileData?.phone?.trim() || "+971 "
-
-      let addressData: UserAddressRow[] = []
-      
-      if (addressResult.error) {
-        // Robust fallback if older database schema is present
-        const fallbackResult = await supabase
-          .from("user_addresses")
-          .select("id,title,address_type,contact_name,phone,line1,line2,city,country,is_primary")
-          .eq("user_id", currentUserId)
-          .order("created_at", { ascending: true })
-        addressData = (fallbackResult.data || []) as UserAddressRow[]
-      } else {
-        addressData = (addressResult.data || []) as UserAddressRow[]
-      }
-
-      const hydratedAddresses = addressData.map(mapUserAddressRow)
-      setShippingAddresses(hydratedAddresses)
-      setSelectedAddressId(hydratedAddresses.find((address) => address.isPrimary)?.id || hydratedAddresses[0]?.id || "")
-      setAddressForm(createAddressFormState(contactName, phone))
-    }
-
-    loadCheckoutAddresses().catch(() => {
-      if (!mounted) return
-      setShippingAddresses([])
-      setSelectedAddressId("")
-    })
-
-    return () => {
-      mounted = false
-    }
-  }, [currentUserId, isAuthLoading, user?.email])
+ 
+  // Final layout check...
 
   useEffect(() => {
     if (shippingAddresses.length === 0) return
@@ -392,7 +347,7 @@ export default function CheckoutPage() {
     )
   }
 
-  if (isAuthLoading) {
+  if (isAuthLoading || isProfileLoading) {
     return (
       <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center px-4">
         <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white">
