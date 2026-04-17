@@ -1,4 +1,5 @@
 import { Control, Controller, FieldValues, FieldErrors, Path, PathValue } from "react-hook-form"
+import Link from "next/link"
 import { PhoneInput } from "react-international-phone"
 import "react-international-phone/style.css"
 
@@ -21,6 +22,19 @@ export function CheckoutContactInfo<T extends ContactFields>({
   return (
     <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
       <h2 className="mb-4 font-serif text-2xl text-neutral-900">1. Contact Information</h2>
+      {!currentUserId && (
+        <div className="mb-6 rounded-xl bg-neutral-50 p-4 border border-neutral-100 flex items-center justify-between gap-4">
+          <p className="text-xs text-neutral-600">
+            Already have an account? Log in to use your saved addresses and faster checkout.
+          </p>
+          <Link 
+            href="/login?next=/checkout" 
+            className="text-xs font-bold text-black uppercase tracking-widest border-b border-black pb-0.5 hover:opacity-70 transition-opacity whitespace-nowrap"
+          >
+            Log In Now
+          </Link>
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {!currentUserId && (
           <div className="space-y-1.5">

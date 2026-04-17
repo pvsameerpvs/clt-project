@@ -8,6 +8,7 @@ import { useCart } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useProfile } from "@/contexts/profile-context"
 import { createBankCheckoutSession, createCashOnDeliveryOrder, validatePromoCode } from "@/lib/api"
+import { verifyEmailAbstract } from "@/app/auth/actions"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -44,7 +45,7 @@ export default function CheckoutPage() {
   const { addresses: globalAddresses, profile, loading: isProfileLoading } = useProfile()
   const router = useRouter()
  
-  const { control, formState: { errors }, watch, setValue } = useForm({
+  const { control, formState: { errors }, watch, setValue, handleSubmit } = useForm({
     defaultValues: {
       email: "",
       whatsapp: "+971 "
@@ -65,7 +66,7 @@ export default function CheckoutPage() {
   const [isSavingAddress, setIsSavingAddress] = useState(false)
   const [addressFormError, setAddressFormError] = useState("")
   const [addressForm, setAddressForm] = useState<CheckoutAddressFormState>(() =>
-    createAddressFormState("Client Account", "+971 ")
+    createAddressFormState("Client Account", contactWhatsapp || "+971 ")
   )
  
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod")
@@ -245,7 +246,15 @@ export default function CheckoutPage() {
     setPromoMessage("Promo removed")
   }
 
-  async function placeOrder() {
+  interface CheckoutFormData {
+    email: string
+    whatsapp: string
+  }
+
+  async function placeOrder(formData: CheckoutFormData) {
+    const contactEmail = String(formData.email || "").trim()
+    const contactWhatsapp = String(formData.whatsapp || "").trim()
+
     if (items.length === 0) {
       toast.error("Your bag is empty.")
       return
@@ -261,6 +270,22 @@ export default function CheckoutPage() {
     if (!selectedCheckoutAddress) {
       toast.error("Please choose a delivery address.")
       return
+    }
+
+    // Validate guest email using Abstract API (same as signup)
+    if (!currentUserId && contactEmail.trim()) {
+      setIsPlacingOrder(true)
+      try {
+        const emailCheck = await verifyEmailAbstract(contactEmail.trim())
+        if (!emailCheck.success) {
+          toast.error(emailCheck.message || "Please provide a valid, deliverable email address.")
+          setIsPlacingOrder(false)
+          return
+        }
+      } catch (err) {
+        console.error("Email verification service error:", err)
+        // If the checking service fails, we continue anyway to avoid losing a sale
+      }
     }
 
     setIsPlacingOrder(true)
@@ -392,6 +417,7 @@ export default function CheckoutPage() {
               addressForm={addressForm}
               updateAddressField={updateAddressField}
               onSaveAddress={addAddress}
+              contactWhatsapp={contactWhatsapp}
             />
 
             <CheckoutPaymentMethods 
@@ -415,7 +441,7 @@ export default function CheckoutPage() {
             totalPrice={totalPrice}
             promoDiscountAmount={promoDiscountAmount}
             discountedTotal={discountedTotal}
-            onPlaceOrder={placeOrder}
+            onPlaceOrder={handleSubmit(placeOrder)}
             isPlacingOrder={isPlacingOrder}
             paymentMethod={paymentMethod}
           />

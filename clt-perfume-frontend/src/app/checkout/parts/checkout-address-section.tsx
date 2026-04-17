@@ -13,6 +13,7 @@ interface CheckoutAddressSectionProps {
   addressForm: CheckoutAddressFormState
   updateAddressField: <K extends keyof CheckoutAddressFormState>(field: K, value: CheckoutAddressFormState[K]) => void
   onSaveAddress: () => void
+  contactWhatsapp?: string
 }
 
 export function CheckoutAddressSection({
@@ -26,7 +27,8 @@ export function CheckoutAddressSection({
   setAddressFormError,
   addressForm,
   updateAddressField,
-  onSaveAddress
+  onSaveAddress,
+  contactWhatsapp
 }: CheckoutAddressSectionProps) {
   return (
     <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
@@ -82,6 +84,10 @@ export function CheckoutAddressSection({
           type="button"
           onClick={() => {
             setAddressFormError("")
+            // Sync current contact whatsapp to the address form before opening if it's currently empty
+            if (!addressForm.phone || addressForm.phone === "+971 " || addressForm.phone === " ") {
+              updateAddressField("phone", contactWhatsapp || "+971 ")
+            }
             setShowAddressForm(true)
           }}
           className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-300 bg-white px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black hover:text-black"
