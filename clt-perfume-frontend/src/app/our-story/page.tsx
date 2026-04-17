@@ -16,7 +16,7 @@ export default function OurStoryPage() {
         eyebrow="Our Story"
         title="The Debut Of Cle DXB"
         description="Cle DXB launches with a curated collection of five signature fragrances, offered in 50 ml and 100 ml. The project was built to bring luxury fragrance quality into a cleaner, more transparent customer experience."
-        imageSrc="/curated-pefume-banner-1.jpeg"
+        imageSrc="/our-story.jpeg"
         imageAlt="Cle DXB story visual"
         tags={["Curated Launch", "Signature Fragrances", "Dubai"]}
         primaryAction={{ label: "Why Cle DXB", href: "/why-cle-dxb" }}

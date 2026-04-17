@@ -16,7 +16,7 @@ export default function BottleDesignPage() {
         eyebrow="Bottle Design"
         title="A Bottle Beyond Convention"
         description="At Cle DXB, we believe the bottle should be as expressive as the scent itself. After one year of design and development, we created a sculptural vessel that combines artistry, function, sustainability, and creative expression."
-        imageSrc="/perfume-sam.png"
+        imageSrc="/prfume-bannar-2.jpg"
         imageAlt="Cle DXB bottle design concept"
         tags={["Art Meets Essence", "One Year Development", "Sculptural Form"]}
         primaryAction={{ label: "Our Story", href: "/our-story" }}

@@ -16,7 +16,7 @@ export default function WhyCleDxbPage() {
         eyebrow="Why Cle DXB"
         title="Your Scent, Your Style"
         description="There are 8 billion people on the planet, each with different personality, memories, style, skin chemistry, and olfactive preferences. Personalization, education, creativity, and sustainability are at the center of Cle DXB."
-        imageSrc="/prfume-bannar-4.png"
+        imageSrc="/why-cle-dxb.png"
         imageAlt="Personal fragrance expression"
         tags={["Personalization", "Education", "Creativity", "Sustainability"]}
         primaryAction={{ label: "Our Story", href: "/our-story" }}

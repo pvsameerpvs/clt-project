@@ -16,7 +16,7 @@ export default function CleanEauDeParfumPage() {
         eyebrow="Clean Eau De Parfum"
         title="High Concentrate, Cleaner Formula Direction"
         description="All our perfumes contain 30% perfume concentrate, one of the highest levels in the industry. Every formula is 100% cruelty-free with no preservatives, GMO, CRM, phthalates, or paraffin."
-        imageSrc="/prfume-bannar-3.jpg"
+        imageSrc="/clean-eau-de-parfum.jpeg"
         imageAlt="Clean formula fragrance"
         tags={["30% Concentrate", "Cruelty-Free", "No Phthalates"]}
         primaryAction={{ label: "Ingredients", href: "/ingredients" }}

@@ -17,7 +17,7 @@ export default function AboutPage() {
         eyebrow="Company"
         title="A New Fragrance House Built In Dubai"
         description="Cle DXB debuts with a curated collection of five signature fragrances in 50 ml and 100 ml. Every page in this section gives you full detail on our story, formula standards, bottle design, and customer policies."
-        imageSrc="/curated-pefume-banner.png"
+        imageSrc="/about-hero-section.png"
         imageAlt="Cle DXB fragrance collection"
         tags={["5 Signature Fragrances", "50 ml & 100 ml", "Clean Formula Focus"]}
         primaryAction={{ label: "Our Story", href: "/our-story" }}
