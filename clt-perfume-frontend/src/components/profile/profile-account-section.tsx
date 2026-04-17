@@ -1,6 +1,8 @@
 import { CalendarDays, PencilLine } from "lucide-react"
 import { toDisplayDate } from "./profile-utils"
 import type { ProfileFormState, ProfileRecord } from "./profile-types"
+import { PhoneInput } from "react-international-phone"
+import "react-international-phone/style.css"
 
 type ProfileAccountSectionProps = {
   profile: ProfileRecord | null
@@ -156,15 +158,48 @@ export function ProfileAccountSection({
 
         <label className="space-y-2">
           <span className="text-sm font-medium text-neutral-800">Phone Number</span>
-          <div className={`flex overflow-hidden rounded-xl border ${isEditingProfile ? "border-neutral-300" : "border-neutral-200 bg-neutral-50"}`}>
-            <span className="inline-flex items-center border-r border-neutral-200 px-3 text-sm text-neutral-600">+971</span>
-            <input
-              readOnly={!isEditingProfile}
+          <div className="profile-phone-input">
+            <PhoneInput
+              defaultCountry="ae"
               value={profileForm.phone}
-              onChange={(event) => onFieldChange("phone", event.target.value)}
-              className="w-full bg-transparent px-3 py-3 text-neutral-700"
+              onChange={(phone) => onFieldChange("phone", phone)}
+              disabled={!isEditingProfile}
+              className="w-full"
+              inputStyle={{
+                width: '100%',
+                height: '48px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                border: isEditingProfile ? '1px solid #d1d5db' : '1px solid #e5e5e5',
+                backgroundColor: isEditingProfile ? '#ffffff' : '#f9fafb',
+                color: '#404040',
+                paddingLeft: '12px'
+              }}
+              countrySelectorStyleProps={{
+                buttonStyle: {
+                  height: '48px',
+                  borderRadius: '12px 0 0 12px',
+                  borderTop: isEditingProfile ? '1px solid #d1d5db' : '1px solid #e5e5e5',
+                  borderBottom: isEditingProfile ? '1px solid #d1d5db' : '1px solid #e5e5e5',
+                  borderLeft: isEditingProfile ? '1px solid #d1d5db' : '1px solid #e5e5e5',
+                  borderRight: 'none',
+                  backgroundColor: isEditingProfile ? '#ffffff' : '#f9fafb'
+                }
+              }}
             />
           </div>
+          <style jsx global>{`
+            .profile-phone-input .react-international-phone-input-container {
+              width: 100% !important;
+            }
+            .profile-phone-input .react-international-phone-input {
+              flex: 1 !important;
+            }
+            .profile-phone-input .react-international-phone-country-selector-button {
+              padding-left: 8px !important;
+              padding-right: 8px !important;
+            }
+          `}</style>
         </label>
 
         <label className="space-y-2 md:col-span-2">

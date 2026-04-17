@@ -105,7 +105,9 @@ export function CheckoutContactInfo<T extends ContactFields>({
                     buttonStyle: {
                       height: '44px',
                       borderRadius: '8px 0 0 8px',
-                      border: errors.whatsapp ? '1px solid #ef4444' : '1px solid #d1d5db',
+                      borderTop: errors.whatsapp ? '1px solid #ef4444' : '1px solid #d1d5db',
+                      borderBottom: errors.whatsapp ? '1px solid #ef4444' : '1px solid #d1d5db',
+                      borderLeft: errors.whatsapp ? '1px solid #ef4444' : '1px solid #d1d5db',
                       borderRight: 'none',
                       backgroundColor: '#f9fafb'
                     }
