@@ -202,7 +202,7 @@ export async function signInWithGoogle(formData?: FormData) {
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  redirect("/login")
+  return { success: true }
 }
 
 export async function verifyEmailAbstract(email: string) {

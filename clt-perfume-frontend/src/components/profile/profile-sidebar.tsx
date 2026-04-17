@@ -103,6 +103,8 @@ export function ProfileSidebar({ initials, fullName }: ProfileSidebarProps) {
                 onClick={async () => {
                   setShowLogoutConfirm(false)
                   await signOut()
+                  // Force a full page reload to clear memory/cookies definitively
+                  window.location.href = "/login"
                 }}
                 className="w-full rounded-xl bg-black py-4 text-sm font-bold text-white transition hover:bg-neutral-800 active:scale-[0.98]"
               >
