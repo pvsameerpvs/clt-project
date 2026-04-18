@@ -85,7 +85,12 @@ Thank you for shopping at CLE DXB. We are processing your order and will let you
   }
 }
 
-export async function sendOrderStatusWhatsApp(orderNumber: string, status: string, contactWhatsapp?: string) {
+export async function sendOrderStatusWhatsApp(
+  orderNumber: string,
+  status: string,
+  contactWhatsapp?: string,
+  paymentStatus?: string
+) {
   if (!contactWhatsapp || !client) return
 
   let formattedNumber = contactWhatsapp.trim().replace(/\s/g, '')
@@ -105,9 +110,13 @@ export async function sendOrderStatusWhatsApp(orderNumber: string, status: strin
   }
 
   const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1)
+  const paymentLine = paymentStatus?.trim()
+    ? `\n*Payment Status:* ${paymentStatus.trim()}`
+    : ''
   const messageText = `*Order Update:* #${orderNumber} 🎉
 
 Hi there! The status of your CLE DXB order is now: *${formattedStatus}*.
+${paymentLine}
 
 Thank you for shopping with us!`
 

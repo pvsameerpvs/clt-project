@@ -204,7 +204,8 @@ export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
 export async function sendOrderStatusEmail(
   orderNumber: string,
   status: string,
-  contactEmail?: string
+  contactEmail?: string,
+  paymentStatus?: string
 ): Promise<EmailSendResult> {
   const recipientEmail = normalizeEmailAddress(contactEmail)
 
@@ -214,6 +215,7 @@ export async function sendOrderStatusEmail(
   }
 
   const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1)
+  const formattedPaymentStatus = paymentStatus?.trim()
 
   const html = `
     <!DOCTYPE html>
@@ -231,6 +233,7 @@ export async function sendOrderStatusEmail(
             <p style="color: #111827; font-size: 18px; font-weight: 600;">Order Update: ${formattedStatus}</p>
             <p style="color: #4b5563; font-size: 16px;">Hi there,</p>
             <p style="color: #4b5563; font-size: 16px;">Your order <strong>#${orderNumber}</strong> has been updated to: <strong>${formattedStatus}</strong>.</p>
+            ${formattedPaymentStatus ? `<p style="color: #4b5563; font-size: 16px;">Payment status: <strong>${formattedPaymentStatus}</strong>.</p>` : ''}
             <p style="color: #4b5563; font-size: 16px;">If you have any questions, simply reply to this email!</p>
           </td>
         </tr>
@@ -340,4 +343,3 @@ export async function sendAbandonedCartEmail(recipientEmail: string, items: any[
     return { ok: false, error: err.message }
   }
 }
-

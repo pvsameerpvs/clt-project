@@ -41,6 +41,21 @@ function normalizeOrderStatusForStorage(status: string) {
   return status
 }
 
+function getNotificationPaymentStatus(paymentMethod: string | null | undefined, status: string) {
+  const normalizedMethod = String(paymentMethod || '').toLowerCase()
+  const normalizedStatus = String(status || '').toLowerCase()
+
+  if (normalizedMethod === 'cash_on_delivery') {
+    if (normalizedStatus === 'paid' || normalizedStatus === 'delivered') {
+      return 'Paid'
+    }
+
+    return 'Cash on Delivery'
+  }
+
+  return 'Paid'
+}
+
 function isValidDateInput(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
@@ -487,7 +502,28 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
       return
     }
 
+    const { data: existingOrder, error: existingOrderError } = await supabaseAdmin
+      .from('orders')
+      .select('id, status, payment_method')
+      .eq('id', req.params.id)
+      .single()
+
+    if (existingOrderError || !existingOrder) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    if (
+      requestedStatus === 'delivered' &&
+      !['paid', 'processing', 'shipped', 'delivered'].includes(String(existingOrder.status || '').toLowerCase())
+    ) {
+      res.status(400).json({ error: 'Delivered status can only be set after the order reaches the paid/confirmed stage.' })
+      return
+    }
+
     const statusToStore = normalizeOrderStatusForStorage(requestedStatus)
+    const notificationStatus = requestedStatus
+    const paymentStatus = getNotificationPaymentStatus(existingOrder.payment_method, requestedStatus)
     const updateData: any = { status: statusToStore }
     if (statusToStore === 'shipped') updateData.shipped_at = new Date().toISOString()
     if (statusToStore === 'delivered') updateData.delivered_at = new Date().toISOString()
@@ -507,12 +543,17 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
       undefined
     const contactWhatsapp = (data.shipping_address as any)?.contact_whatsapp
 
-    const emailResult = await sendOrderStatusEmail(data.order_number, statusToStore, contactEmail)
+    const emailResult = await sendOrderStatusEmail(
+      data.order_number,
+      notificationStatus,
+      contactEmail,
+      paymentStatus
+    )
     if (!emailResult.ok && !emailResult.skipped) {
       console.error('Order status email failed:', emailResult.error)
     }
 
-    sendOrderStatusWhatsApp(data.order_number, statusToStore, contactWhatsapp)
+    sendOrderStatusWhatsApp(data.order_number, notificationStatus, contactWhatsapp, paymentStatus)
 
     res.json({
       ...data,
