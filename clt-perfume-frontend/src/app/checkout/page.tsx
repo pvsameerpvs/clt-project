@@ -16,11 +16,14 @@ import { CheckoutContactInfo } from "./parts/checkout-contact-info"
 import { CheckoutAddressSection } from "./parts/checkout-address-section"
 import { CheckoutPaymentMethods } from "./parts/checkout-payment-methods"
 import { CheckoutOrderReview } from "./parts/checkout-order-review"
+import {
+  createCheckoutSuccessSnapshot,
+  storeCheckoutSuccessSnapshot,
+} from "./checkout-success-storage"
 import { useForm } from "react-hook-form"
 import { 
   CheckoutAddress, 
   CheckoutAddressFormState, 
-  CheckoutAddressType, 
   PaymentMethod, 
   UserAddressRow 
 } from "./checkout-types"
@@ -35,7 +38,6 @@ export default function CheckoutPage() {
     items,
     totalPrice,
     totalItems,
-    clearCart,
     promo,
     setPromo,
     promoDiscountAmount,
@@ -52,7 +54,6 @@ export default function CheckoutPage() {
     }
   })
  
-  const contactEmail = watch("email")
   const contactWhatsapp = watch("whatsapp")
  
   const [promoInput, setPromoInput] = useState("")
@@ -83,7 +84,7 @@ export default function CheckoutPage() {
         setSelectedAddressId(primary.id)
       }
     }
-  }, [globalAddresses])
+  }, [globalAddresses, selectedAddressId])
  
   // Initial form values from profile
   useEffect(() => {
@@ -323,17 +324,31 @@ export default function CheckoutPage() {
         },
       }
 
+      const baseSuccessSnapshot = createCheckoutSuccessSnapshot({
+        items,
+        paymentMethod,
+        subtotal: totalPrice,
+        discount: promoDiscountAmount,
+        total: discountedTotal,
+        email: contactEmail.trim() || user?.email || "",
+        whatsapp: contactWhatsapp.trim(),
+        address: selectedCheckoutAddress,
+      })
+
       const token = session?.access_token || null
 
       if (paymentMethod === "cod") {
         const order = await createCashOnDeliveryOrder(token, payload)
-        clearCart()
+        storeCheckoutSuccessSnapshot({
+          ...baseSuccessSnapshot,
+          orderId: order.id,
+          orderNumber: order.order_number || order.id,
+          paymentMethod: "cod",
+        })
         toast.success(`Order ${order.order_number || order.id} placed successfully`)
-        if (currentUserId) {
-          router.push(`/profile?section=orders&order=${encodeURIComponent(order.order_number || order.id)}`)
-        } else {
-          router.push(`/`)
-        }
+        router.push(
+          `/checkout/success?order_id=${encodeURIComponent(order.id)}&order_number=${encodeURIComponent(order.order_number || order.id)}&payment=cod`
+        )
         return
       }
 
@@ -342,6 +357,11 @@ export default function CheckoutPage() {
         throw new Error("Unable to start bank payment checkout")
       }
 
+      storeCheckoutSuccessSnapshot({
+        ...baseSuccessSnapshot,
+        orderId: checkoutSession.orderId,
+        paymentMethod: "bank",
+      })
       window.location.href = checkoutSession.url
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to place order"

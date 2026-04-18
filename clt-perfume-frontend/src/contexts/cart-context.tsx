@@ -1,9 +1,8 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, useRef } from "react"
+import React, { createContext, useCallback, useContext, useState, useEffect, useRef } from "react"
 import { Product } from "@/lib/products"
 import { syncCartToDatabase, clearCartFromDatabase } from "@/lib/cart-api"
-import { createClient } from "@/lib/supabase/client"
 
 export interface CartBundleMeta {
   id: string
@@ -196,13 +195,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ))
   }
 
-  const clearCart = async () => {
+  const clearCart = useCallback(async () => {
     setItems([])
     setPromo(null)
     
     // Clear the tracking on the backend so they don't get an abandoned cart email after buying
     await clearCartFromDatabase()
-  }
+  }, [])
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
   const totalPrice = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
