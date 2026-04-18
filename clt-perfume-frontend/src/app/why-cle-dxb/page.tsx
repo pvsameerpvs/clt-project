@@ -5,7 +5,7 @@ import { RelatedPages } from "@/components/company/related-pages"
 import { companyPageLinks } from "@/lib/company-content"
 
 export const metadata: Metadata = {
-  title: "Why Cle DXB | CLE Perfumes",
+  title: "Why Cle DXB | CLE DXB Perfumes",
   description: "The brand philosophy behind personalization and scent identity.",
 }
 

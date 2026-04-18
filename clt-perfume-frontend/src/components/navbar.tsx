@@ -39,7 +39,7 @@ export function Navbar() {
           {/* Logo (Left-aligned on mobile, centered internal text) */}
           <Link href="/" className="flex-shrink-0 flex justify-start lg:justify-start">
             <div className="flex flex-col items-center lg:items-center">
-               <Image src="/perfume-sam.png" alt="CLE Perfumes" width={160} height={60} className="object-contain w-auto h-12 md:h-20" priority />
+               <Image src="/perfume-sam.png" alt="CLE DXB Perfumes" width={160} height={60} className="object-contain w-auto h-12 md:h-20" priority />
                <span className="text-[8px] md:text-xs tracking-[0.3em] uppercase mt-1">Perfumes</span>
             </div>
           </Link>

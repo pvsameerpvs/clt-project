@@ -310,7 +310,7 @@ export default async function DealsCollectionPage() {
                         <div className="p-5 flex flex-col flex-1">
                           <h3 className="text-lg font-serif text-neutral-900">{offer.title || "Offer"}</h3>
                           <p className="mt-2 text-sm text-neutral-600 line-clamp-2">
-                            {offer.description || "Special curated promotion from CLE Perfumes."}
+                            {offer.description || "Special curated promotion from CLE DXB Perfumes."}
                           </p>
 
                           <div className="mt-3 flex flex-wrap gap-1.5">

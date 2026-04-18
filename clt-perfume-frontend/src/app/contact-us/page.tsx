@@ -5,7 +5,7 @@ import { companyPageLinks } from "@/lib/company-content"
 import { Mail, MessageSquare, Clock, ArrowRight } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Contact Concierge | CLE Perfumes",
+  title: "Contact Concierge | CLE DXB Perfumes",
   description: "Boutique support and concierge services for Cle DXB.",
 }
 

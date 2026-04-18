@@ -15,7 +15,7 @@ import { RelatedPages } from "@/components/company/related-pages"
 import { companyPageLinks, perfumeIngredients } from "@/lib/company-content"
 
 export const metadata: Metadata = {
-  title: "Ingredients | CLE Perfumes",
+  title: "Ingredients | CLE DXB Perfumes",
   description: "Full ingredients list for Cle DXB perfumes.",
 }
 

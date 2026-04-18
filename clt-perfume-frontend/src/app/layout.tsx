@@ -18,8 +18,13 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "CLE Perfumes | The Essence of Elegance",
+  title: "CLE DXB Perfumes | The Essence of Elegance",
   description: "Discover luxury fragrances crafted for the modern individual.",
+  icons: {
+    icon: "/logo-cle-favicon.png",
+    shortcut: "/logo-cle-favicon.png",
+    apple: "/logo-cle-favicon.png",
+  },
 };
 
 import { Toaster } from "@/components/ui/sonner";

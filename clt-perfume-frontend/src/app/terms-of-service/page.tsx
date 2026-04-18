@@ -3,7 +3,7 @@ import Link from "next/link"
 import { ContentCard } from "@/components/company/content-card"
 
 export const metadata: Metadata = {
-  title: "Terms of Service | CLE Perfumes",
+  title: "Terms of Service | CLE DXB Perfumes",
   description: "Terms and conditions for purchasing Cle DXB products.",
 }
 

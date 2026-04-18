@@ -5,7 +5,7 @@ import { RelatedPages } from "@/components/company/related-pages"
 import { companyPageLinks } from "@/lib/company-content"
 
 export const metadata: Metadata = {
-  title: "Returns & Refund Policy | CLE Perfumes",
+  title: "Returns & Refund Policy | CLE DXB Perfumes",
   description: "Returns and refund policy for Cle DXB perfumes.",
 }
 
