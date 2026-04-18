@@ -2,45 +2,19 @@ import { Router, Request, Response } from 'express'
 import { stripe } from '../config/stripe'
 import { supabaseAdmin } from '../config/supabase'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
+import {
+  CheckoutValidationError,
+  getOrderAmountInFils,
+  resolveCheckoutPricing,
+  type CheckoutOrderItem,
+  type CheckoutPayload,
+} from '../services/checkout.service'
 
 export const paymentRoutes = Router()
-
-type PromoDiscountType = 'percentage' | 'fixed'
-
-type CheckoutItemPayload = {
-  product_id: string
-  quantity: number
-  unit_price: number
-}
-
-type CheckoutPayload = {
-  items?: CheckoutItemPayload[]
-  promo?: {
-    discountType?: PromoDiscountType
-    discountValue?: number
-  } | null
-  shipping_address?: Record<string, unknown> | null
-}
 
 function toSafeNumber(value: unknown) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : 0
-}
-
-function calculatePromoDiscount(
-  subtotal: number,
-  promo?: { discountType?: PromoDiscountType; discountValue?: number } | null
-) {
-  if (!promo?.discountType) return 0
-  const safeSubtotal = Math.max(0, toSafeNumber(subtotal))
-  const safeDiscountValue = Math.max(0, toSafeNumber(promo.discountValue))
-
-  if (promo.discountType === 'fixed') {
-    return Math.min(safeSubtotal, safeDiscountValue)
-  }
-
-  const percentage = Math.min(100, safeDiscountValue)
-  return (safeSubtotal * percentage) / 100
 }
 
 function generateOrderNumber() {
@@ -60,7 +34,7 @@ function resolveImageUrl(image?: string | null) {
 
 // Keeps Stripe totals aligned even when promo discount is applied.
 function buildStripeLineItems(
-  items: Array<{ product_name: string; product_image?: string | null; price: number; quantity: number }>,
+  items: CheckoutOrderItem[],
   subtotal: number,
   total: number
 ) {
@@ -104,24 +78,15 @@ function buildStripeLineItems(
 async function createSessionFromDbCart(userId: string, userEmail?: string | null) {
   const { data: cartItems, error } = await supabaseAdmin
     .from('cart_items')
-    .select('quantity, product:products(id, name, price, images, slug)')
+    .select('product_id, quantity')
     .eq('user_id', userId)
 
   if (error || !cartItems || cartItems.length === 0) {
     throw new Error('Cart is empty')
   }
 
-  const lineItems = cartItems.map((item: any) => ({
-    price_data: {
-      currency: 'aed',
-      product_data: {
-        name: item.product.name,
-        images: resolveImageUrl(item.product.images?.[0]) ? [resolveImageUrl(item.product.images?.[0])!] : [],
-      },
-      unit_amount: Math.max(1, Math.round(toSafeNumber(item.product.price) * 100)),
-    },
-    quantity: Math.max(1, Math.floor(toSafeNumber(item.quantity))),
-  }))
+  const pricing = await resolveCheckoutPricing(cartItems, null)
+  const lineItems = buildStripeLineItems(pricing.items, pricing.subtotal, pricing.total)
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -144,49 +109,10 @@ async function createSessionFromPayload(
   userEmail: string | null | undefined,
   payload: CheckoutPayload
 ) {
-  const rawItems = Array.isArray(payload.items) ? payload.items : []
+  const pricing = await resolveCheckoutPricing(payload.items, payload.promo || null)
 
-  const items = rawItems
-    .map((item) => ({
-      product_id: String(item.product_id || '').trim(),
-      quantity: Math.max(1, Math.floor(toSafeNumber(item.quantity))),
-      unit_price: Math.max(0, toSafeNumber(item.unit_price)),
-    }))
-    .filter((item) => item.product_id && item.quantity > 0)
-
-  if (items.length === 0) {
-    throw new Error('Cart is empty')
-  }
-
-  const uniqueProductIds = Array.from(new Set(items.map((item) => item.product_id)))
-  const { data: productRows, error: productsError } = await supabaseAdmin
-    .from('products')
-    .select('id, name, slug, images')
-    .in('id', uniqueProductIds)
-
-  if (productsError) {
-    throw new Error(productsError.message)
-  }
-
-  const products = (productRows || []) as Array<{
-    id: string
-    name: string
-    slug: string | null
-    images: string[] | null
-  }>
-
-  const productMap = new Map(products.map((product) => [product.id, product]))
-  const missingProduct = uniqueProductIds.find((id) => !productMap.has(id))
-  if (missingProduct) {
-    throw new Error('One or more products are unavailable')
-  }
-
-  const subtotal = items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
-  const promoDiscount = calculatePromoDiscount(subtotal, payload.promo || null)
-  const total = Math.max(0, subtotal - promoDiscount)
-
-  if (total <= 0) {
-    throw new Error('Checkout total must be greater than zero for bank payment')
+  if (pricing.total <= 0) {
+    throw new CheckoutValidationError('Checkout total must be greater than zero for bank payment')
   }
 
   const orderNumber = generateOrderNumber()
@@ -197,10 +123,10 @@ async function createSessionFromPayload(
       user_id: userId,
       order_number: orderNumber,
       status: 'pending',
-      subtotal,
+      subtotal: pricing.subtotal,
       tax: 0,
       shipping_fee: 0,
-      total,
+      total: pricing.total,
       payment_method: 'card',
       shipping_address: payload.shipping_address || null,
     })
@@ -211,50 +137,59 @@ async function createSessionFromPayload(
     throw new Error(orderError?.message || 'Failed to create order')
   }
 
-  const orderItems = items.map((item) => {
-    const product = productMap.get(item.product_id)!
-    return {
-      order_id: order.id,
-      product_id: item.product_id,
-      product_name: product.name,
-      product_image: product.images?.[0] || null,
-      product_slug: product.slug || null,
-      price: item.unit_price,
-      quantity: item.quantity,
-    }
-  })
+  const orderItems = pricing.items.map((item) => ({
+    order_id: order.id,
+    product_id: item.product_id,
+    product_name: item.product_name,
+    product_image: item.product_image,
+    product_slug: item.product_slug,
+    price: item.price,
+    quantity: item.quantity,
+  }))
 
   const { error: orderItemsError } = await supabaseAdmin
     .from('order_items')
     .insert(orderItems)
 
   if (orderItemsError) {
+    await supabaseAdmin.from('orders').delete().eq('id', order.id)
     throw new Error(orderItemsError.message)
   }
 
-  const stripeLineItems = buildStripeLineItems(orderItems, subtotal, total)
+  const stripeLineItems = buildStripeLineItems(pricing.items, pricing.subtotal, pricing.total)
+  const metadata: Record<string, string> = {
+    order_id: order.id,
+    checkout_flow: 'direct_order',
+    expected_total_fils: String(getOrderAmountInFils(pricing.total)),
+  }
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    mode: 'payment',
-    line_items: stripeLineItems,
-    customer_email: userEmail || undefined,
-    metadata: {
-      user_id: userId,
-      order_id: order.id,
-      checkout_flow: 'direct_order',
-    },
-    shipping_address_collection: {
-      allowed_countries: ['AE', 'SA', 'BH', 'KW', 'OM', 'QA'],
-    },
-    success_url: `${process.env.FRONTEND_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
-    cancel_url: `${process.env.FRONTEND_URL}/checkout/cancel?order_id=${order.id}`,
-  })
+  if (userId) {
+    metadata.user_id = userId
+  }
 
-  return {
-    url: session.url,
-    sessionId: session.id,
-    orderId: order.id,
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: stripeLineItems,
+      customer_email: userEmail || undefined,
+      metadata,
+      shipping_address_collection: {
+        allowed_countries: ['AE', 'SA', 'BH', 'KW', 'OM', 'QA'],
+      },
+      success_url: `${process.env.FRONTEND_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
+      cancel_url: `${process.env.FRONTEND_URL}/checkout/cancel?order_id=${order.id}`,
+    })
+
+    return {
+      url: session.url,
+      sessionId: session.id,
+      orderId: order.id,
+    }
+  } catch (error) {
+    await supabaseAdmin.from('order_items').delete().eq('order_id', order.id)
+    await supabaseAdmin.from('orders').delete().eq('id', order.id)
+    throw error
   }
 }
 
@@ -266,6 +201,10 @@ paymentRoutes.post('/create-checkout-session', optionalAuthMiddleware, async (re
 
     const hasPayloadItems = Array.isArray(payload.items) && payload.items.length > 0
 
+    if (!hasPayloadItems && (!userId || !req.user?.email)) {
+      throw new CheckoutValidationError('Sign in is required to use saved cart checkout')
+    }
+
     const result = hasPayloadItems
       ? await createSessionFromPayload(userId, req.user?.email, payload)
       : await createSessionFromDbCart(userId!, req.user!.email)
@@ -273,7 +212,8 @@ paymentRoutes.post('/create-checkout-session', optionalAuthMiddleware, async (re
     res.json(result)
   } catch (error: any) {
     console.error('Checkout error:', error)
-    res.status(500).json({ error: error.message })
+    const statusCode = error instanceof CheckoutValidationError ? 400 : 500
+    res.status(statusCode).json({ error: error.message })
   }
 })
 

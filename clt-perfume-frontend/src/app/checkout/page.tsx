@@ -299,14 +299,10 @@ export default function CheckoutPage() {
         items: items.map((item) => ({
           product_id: item.product.id,
           quantity: item.quantity,
-          unit_price: Number(item.product.price),
-          original_unit_price: Number(item.originalUnitPrice ?? item.product.price),
         })),
         promo: promo
           ? {
               code: promo.code,
-              discountType: promo.discountType,
-              discountValue: promo.discountValue,
             }
           : null,
         shipping_address: {

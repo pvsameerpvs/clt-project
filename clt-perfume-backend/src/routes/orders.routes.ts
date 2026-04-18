@@ -2,52 +2,17 @@ import { Router, Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
 import { sendOrderConfirmationEmail } from '../services/email.service'
+import {
+  CheckoutValidationError,
+  resolveCheckoutPricing,
+  type CheckoutPayload,
+} from '../services/checkout.service'
 import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
 
 export const orderRoutes = Router()
 
-type PromoDiscountType = 'percentage' | 'fixed'
-
-type CodCheckoutItemPayload = {
-  product_id: string
-  quantity: number
-  unit_price: number
-  original_unit_price?: number
-}
-
-type CodCheckoutPayload = {
-  items?: CodCheckoutItemPayload[]
-  promo?: {
-    code?: string
-    discountType?: PromoDiscountType
-    discountValue?: number
-  } | null
-  shipping_address?: Record<string, unknown> | null
-}
-
 type ReturnRequestPayload = {
   reason?: string
-}
-
-function toSafeNumber(value: unknown) {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-function calculatePromoDiscount(
-  subtotal: number,
-  promo?: { discountType?: PromoDiscountType; discountValue?: number } | null
-) {
-  if (!promo?.discountType) return 0
-  const safeSubtotal = Math.max(0, toSafeNumber(subtotal))
-  const safeDiscountValue = Math.max(0, toSafeNumber(promo.discountValue))
-
-  if (promo.discountType === 'fixed') {
-    return Math.min(safeSubtotal, safeDiscountValue)
-  }
-
-  const percentage = Math.min(100, safeDiscountValue)
-  return (safeSubtotal * percentage) / 100
 }
 
 function generateOrderNumber() {
@@ -98,52 +63,8 @@ orderRoutes.get('/', authMiddleware, async (req: Request, res: Response) => {
 // POST /api/orders/cod-checkout — Create order from frontend cart (Cash on Delivery)
 orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, res: Response) => {
   try {
-    const payload = (req.body || {}) as CodCheckoutPayload
-    const rawItems = Array.isArray(payload.items) ? payload.items : []
-
-    const items = rawItems
-      .map((item) => ({
-        product_id: String(item.product_id || '').trim(),
-        quantity: Math.max(1, Math.floor(toSafeNumber(item.quantity))),
-        unit_price: Math.max(0, toSafeNumber(item.unit_price)),
-        original_unit_price: Math.max(0, toSafeNumber(item.original_unit_price ?? item.unit_price)),
-      }))
-      .filter((item) => item.product_id && item.quantity > 0)
-
-    if (items.length === 0) {
-      console.log('[Orders] Cart items empty for payload:', JSON.stringify(payload, null, 2))
-      res.status(400).json({ error: 'Cart is empty' })
-      return
-    }
-
-    const uniqueProductIds = Array.from(new Set(items.map((item) => item.product_id)))
-    const { data: productRows, error: productsError } = await supabaseAdmin
-      .from('products')
-      .select('id, name, slug, images')
-      .in('id', uniqueProductIds)
-
-    if (productsError) {
-      res.status(500).json({ error: productsError.message })
-      return
-    }
-
-    const products = (productRows || []) as Array<{
-      id: string
-      name: string
-      slug: string | null
-      images: string[] | null
-    }>
-
-    const productMap = new Map(products.map((product) => [product.id, product]))
-    const missingProduct = uniqueProductIds.find((id) => !productMap.has(id))
-    if (missingProduct) {
-      res.status(400).json({ error: 'One or more products are unavailable' })
-      return
-    }
-
-    const subtotal = items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
-    const promoDiscount = calculatePromoDiscount(subtotal, payload.promo || null)
-    const total = Math.max(0, subtotal - promoDiscount)
+    const payload = (req.body || {}) as CheckoutPayload
+    const pricing = await resolveCheckoutPricing(payload.items, payload.promo || null)
     const orderNumber = generateOrderNumber()
 
     const { data: order, error: orderError } = await supabaseAdmin
@@ -152,10 +73,10 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
         user_id: req.user?.id || null,
         order_number: orderNumber,
         status: 'pending',
-        subtotal,
+        subtotal: pricing.subtotal,
         tax: 0,
         shipping_fee: 0,
-        total,
+        total: pricing.total,
         payment_method: 'cash_on_delivery',
         shipping_address: payload.shipping_address || null,
       })
@@ -167,30 +88,28 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       return
     }
 
-    const orderItems = items.map((item) => {
-      const product = productMap.get(item.product_id)!
-      return {
-        order_id: order.id,
-        product_id: item.product_id,
-        product_name: product.name,
-        product_image: product.images?.[0] || null,
-        product_slug: product.slug || null,
-        price: item.unit_price,
-        quantity: item.quantity,
-      }
-    })
+    const orderItems = pricing.items.map((item) => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      product_name: item.product_name,
+      product_image: item.product_image,
+      product_slug: item.product_slug,
+      price: item.price,
+      quantity: item.quantity,
+    }))
 
     const { error: orderItemsError } = await supabaseAdmin
       .from('order_items')
       .insert(orderItems)
 
     if (orderItemsError) {
+      await supabaseAdmin.from('orders').delete().eq('id', order.id)
       res.status(500).json({ error: orderItemsError.message })
       return
     }
 
     const stockAdjustments = new Map<string, number>()
-    for (const item of items) {
+    for (const item of pricing.items) {
       stockAdjustments.set(
         item.product_id,
         (stockAdjustments.get(item.product_id) || 0) + item.quantity
@@ -211,7 +130,7 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       order_number: order.order_number,
       subtotal: Number(order.subtotal || 0),
       total: Number(order.total || 0),
-      promo_discount: promoDiscount,
+      promo_discount: pricing.promoDiscount,
       shipping_fee: Number(order.shipping_fee || 0),
       payment_method: order.payment_method,
       items: orderItems,
@@ -239,12 +158,13 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       order_number: order.order_number,
       status: order.status,
       subtotal: Number(order.subtotal || 0),
-      promo_discount: promoDiscount,
+      promo_discount: pricing.promoDiscount,
       total: Number(order.total || 0),
       payment_method: order.payment_method,
     })
   } catch (error: any) {
-    res.status(500).json({ error: error.message })
+    const statusCode = error instanceof CheckoutValidationError ? 400 : 500
+    res.status(statusCode).json({ error: error.message })
   }
 })
 

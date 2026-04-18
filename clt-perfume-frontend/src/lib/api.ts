@@ -16,16 +16,12 @@ export interface PromoValidationResponse {
 export interface CodCheckoutItemInput {
   product_id: string
   quantity: number
-  unit_price: number
-  original_unit_price?: number
 }
 
 export interface CodCheckoutPayload {
   items: CodCheckoutItemInput[]
   promo?: {
     code?: string
-    discountType?: PromoDiscountType
-    discountValue?: number
   } | null
   shipping_address?: Record<string, unknown> | null
 }

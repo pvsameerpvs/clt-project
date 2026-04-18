@@ -3,6 +3,7 @@ import express from 'express'
 import { stripe } from '../config/stripe'
 import { supabaseAdmin } from '../config/supabase'
 import Stripe from 'stripe'
+import { getOrderAmountInFils } from '../services/checkout.service'
 import { sendOrderConfirmationEmail } from '../services/email.service'
 import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
 
@@ -66,6 +67,27 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
 
   if (orderError || !order) {
     console.error('Direct checkout order not found:', orderError?.message || orderId)
+    return false
+  }
+
+  if (session.payment_status !== 'paid') {
+    console.error('Direct checkout session is not paid yet:', session.id, session.payment_status)
+    return false
+  }
+
+  const expectedAmountFils = getOrderAmountInFils(order.total)
+  const paidAmountFils = Math.max(0, Number(session.amount_total || 0))
+
+  if (paidAmountFils !== expectedAmountFils) {
+    console.error(
+      'Direct checkout amount mismatch:',
+      JSON.stringify({
+        orderId: order.id,
+        sessionId: session.id,
+        expectedAmountFils,
+        paidAmountFils,
+      })
+    )
     return false
   }
 
@@ -152,8 +174,11 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const isDirectOrderFlow =
+    session.metadata?.checkout_flow === 'direct_order' ||
+    Boolean(session.metadata?.order_id)
   const directHandled = await fulfillDirectOrderPayment(session)
-  if (directHandled) return
+  if (directHandled || isDirectOrderFlow) return
 
   const userId = session.metadata?.user_id
   if (!userId) return
