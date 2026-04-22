@@ -143,11 +143,9 @@ export function ProductInfo({ product }: { product: Product }) {
           <Badge variant="secondary" className="uppercase tracking-widest text-[10px] bg-neutral-100 text-neutral-600 rounded-sm px-2">
             {categoryLabel}
           </Badge>
-          {product.ml && (
-            <Badge variant="outline" className="uppercase tracking-widest text-[10px] border-neutral-200 text-neutral-600 rounded-sm px-2">
-              {product.ml}
-            </Badge>
-          )}
+          <Badge variant="outline" className="uppercase tracking-widest text-[10px] border-neutral-200 text-neutral-600 rounded-sm px-2">
+            {product.ml ? `${product.ml} ML` : ""}
+          </Badge>
         </div>
         <h1 className="text-4xl md:text-5xl font-serif font-medium text-neutral-900 mb-2">{product.name}</h1>
         
@@ -268,7 +266,7 @@ export function ProductInfo({ product }: { product: Product }) {
         {/* Personal Engraving Section */}
 
 
-        <div className="mb-8 p-6 border border-neutral-100 bg-neutral-50 rounded-2xl">
+        {/* <div className="mb-8 p-6 border border-neutral-100 bg-neutral-50 rounded-2xl">
           <div className="flex items-center gap-2 mb-4 text-neutral-900">
             <Edit3 className="h-4 w-4" />
             <span className="text-sm font-medium uppercase tracking-widest">Personal Engraving</span>
@@ -299,7 +297,7 @@ export function ProductInfo({ product }: { product: Product }) {
               </div>
             )}
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Actions */}

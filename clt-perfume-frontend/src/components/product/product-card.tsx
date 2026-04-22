@@ -140,8 +140,7 @@ export function ProductCard({ product }: { product: Product }) {
              <div>
                 <h3 className="font-serif text-lg text-neutral-900 leading-none group-hover:text-neutral-600 transition-colors">{product.name}</h3>
                 <p className="text-xs text-neutral-500 mt-1 uppercase tracking-wider">
-                   {product.scent}
-                   {product.ml && ` • ${product.ml}`}
+                   {[product.scent, `${product.ml || "100"} ML`].filter(Boolean).join(" • ")}
                 </p>
              </div>
              <span className="font-medium text-xs sm:text-sm text-neutral-900">AED {product.price}</span>
