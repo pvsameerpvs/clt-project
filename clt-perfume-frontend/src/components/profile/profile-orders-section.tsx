@@ -12,7 +12,7 @@ type ProfileOrdersSectionProps = {
   onReturnReasonChange: (orderId: string, reason: string) => void
   onCancelOrder: (orderId: string) => void
   onRequestReturn: (orderId: string) => void
-  hasOpenReturnRequest: (orderId: string) => boolean
+  getReturnRequestStatus: (orderId: string) => string | null
 }
 
 export function ProfileOrdersSection({
@@ -23,7 +23,7 @@ export function ProfileOrdersSection({
   onReturnReasonChange,
   onCancelOrder,
   onRequestReturn,
-  hasOpenReturnRequest,
+  getReturnRequestStatus,
 }: ProfileOrdersSectionProps) {
   function toMoney(value: number | string | null | undefined) {
     return Number(value || 0).toFixed(2)
@@ -151,7 +151,7 @@ export function ProfileOrdersSection({
                       {orderActionLoadingId === order.id ? "Cancelling..." : "Cancel Order"}
                     </button>
                   )}
-                  {canRequestReturn(order.status, order.delivered_at) && !hasOpenReturnRequest(order.id) && (
+                  {canRequestReturn(order.status, order.delivered_at) && !getReturnRequestStatus(order.id) && (
                     <button
                       type="button"
                       onClick={() => onRequestReturn(order.id)}
@@ -161,10 +161,23 @@ export function ProfileOrdersSection({
                       {orderActionLoadingId === order.id ? "Submitting..." : "Request Return"}
                     </button>
                   )}
-                  {canRequestReturn(order.status, order.delivered_at) && hasOpenReturnRequest(order.id) && (
+                  {getReturnRequestStatus(order.id) === 'pending' && (
                     <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">
                       Return Requested
                     </span>
+                  )}
+                  {getReturnRequestStatus(order.id) === 'approved' && (
+                    <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                      Return Approved
+                    </span>
+                  )}
+                  {getReturnRequestStatus(order.id) === 'rejected' && (
+                    <div className="flex flex-col gap-1">
+                      <span className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-red-700 w-fit">
+                        Return Rejected
+                      </span>
+                      <p className="text-[10px] text-neutral-500 italic ml-1">Check email for more info</p>
+                    </div>
                   )}
                 </div>
               </article>

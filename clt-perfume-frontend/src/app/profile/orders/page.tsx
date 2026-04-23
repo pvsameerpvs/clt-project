@@ -53,12 +53,9 @@ export default function OrdersPage() {
     return session.access_token
   }
 
-  function hasOpenReturnRequest(orderId: string) {
-    return returnRequests.some((request) => {
-      if (request.order_id !== orderId) return false
-      const status = normalizeReturnRequestStatus(request.status)
-      return status === "pending" || status === "approved"
-    })
+  function getReturnRequestStatus(orderId: string) {
+    const request = returnRequests.find((r) => r.order_id === orderId)
+    return request ? normalizeReturnRequestStatus(request.status) : null
   }
 
   function setOrderReturnReason(orderId: string, reason: string) {
@@ -115,7 +112,7 @@ export default function OrdersPage() {
         onReturnReasonChange={setOrderReturnReason}
         onCancelOrder={handleCancelOrder}
         onRequestReturn={handleOpenReturnModal}
-        hasOpenReturnRequest={hasOpenReturnRequest}
+        getReturnRequestStatus={getReturnRequestStatus}
       />
 
       <ReturnRequestModal

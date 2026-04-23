@@ -202,9 +202,9 @@ adminRoutes.get('/return-requests', async (req: Request, res: Response) => {
 adminRoutes.put('/return-requests/:id/status', async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const { status } = req.body
+    const { status, message } = req.body
 
-    const result = await ReturnService.updateRequestStatus(id as string, status as any)
+    const result = await ReturnService.updateRequestStatus(id as string, status as any, message as string)
 
     if (!result.success) {
       res.status(400).json({ error: result.error })

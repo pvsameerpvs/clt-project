@@ -102,8 +102,9 @@ export default function ReturnsPage() {
     }
   }
 
-  function hasOpenReturnRequest(orderId: string) {
-    return returnRequests.some(r => r.order_id === orderId && ["pending", "approved"].includes(normalizeReturnRequestStatus(r.status)))
+  function getReturnRequestStatus(orderId: string) {
+    const request = returnRequests.find(r => r.order_id === orderId)
+    return request ? normalizeReturnRequestStatus(request.status) : null
   }
 
   return (
@@ -118,7 +119,7 @@ export default function ReturnsPage() {
         onReturnReasonChange={setOrderReturnReason}
         onCancelOrder={handleCancelOrder}
         onRequestReturn={handleOpenReturnModal}
-        hasOpenReturnRequest={hasOpenReturnRequest}
+        getReturnRequestStatus={getReturnRequestStatus}
       />
 
       <ReturnRequestModal

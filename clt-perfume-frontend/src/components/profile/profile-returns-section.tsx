@@ -14,7 +14,7 @@ type ProfileReturnsSectionProps = {
   onReturnReasonChange: (orderId: string, reason: string) => void
   onCancelOrder: (orderId: string) => void
   onRequestReturn: (orderId: string) => void
-  hasOpenReturnRequest: (orderId: string) => boolean
+  getReturnRequestStatus: (orderId: string) => string | null
 }
 
 function returnStatusTone(status: string) {
@@ -24,9 +24,9 @@ function returnStatusTone(status: string) {
     case "completed":
       return "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100"
     case "rejected":
-      return "border-red-200 bg-red-50 text-red-700"
+      return "border-red-200 bg-red-50 text-red-700 shadow-sm shadow-red-100"
     default:
-      return "border-amber-200 bg-amber-50 text-amber-700"
+      return "border-amber-200 bg-amber-50 text-amber-700 shadow-sm shadow-amber-100"
   }
 }
 
@@ -40,7 +40,7 @@ export function ProfileReturnsSection({
   onReturnReasonChange,
   onCancelOrder,
   onRequestReturn,
-  hasOpenReturnRequest,
+  getReturnRequestStatus,
 }: ProfileReturnsSectionProps) {
   const cancellableOrders = orders.filter((order) => canCancelOrder(order.status))
   const returnEligibleOrders = orders.filter((order) => canRequestReturn(order.status, order.delivered_at))
@@ -152,6 +152,7 @@ export function ProfileReturnsSection({
                     </div>
                     <p className="mt-1 text-xs text-neutral-500">Requested on {new Date(request.created_at).toLocaleDateString("en-GB")}</p>
                     {request.reason && <p className="mt-2 text-xs text-neutral-600">Reason: {request.reason}</p>}
+                    {status === 'rejected' && <p className="mt-1 text-[10px] text-red-500 italic">Check email for more info</p>}
                   </div>
                 )
               })}
@@ -168,16 +169,29 @@ export function ProfileReturnsSection({
           <p className="text-sm text-neutral-600">No delivered orders available for return request.</p>
         ) : (
           <div className="space-y-3">
-            {returnEligibleOrders.map((order) => (
-              <div key={`return-${order.id}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-neutral-900">#{order.order_number || order.id.slice(0, 8).toUpperCase()}</p>
-                  <p className="text-xs text-neutral-500">AED {Number(order.total || 0).toFixed(2)}</p>
-                </div>
-                {hasOpenReturnRequest(order.id) ? (
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">Return request already submitted</p>
-                ) : (
-                  <>
+            {returnEligibleOrders.map((order) => {
+              const returnStatus = getReturnRequestStatus(order.id)
+              
+              return (
+                <div key={`return-${order.id}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-neutral-900">#{order.order_number || order.id.slice(0, 8).toUpperCase()}</p>
+                    <p className="text-xs text-neutral-500">AED {Number(order.total || 0).toFixed(2)}</p>
+                  </div>
+                  
+                  {returnStatus === 'pending' && (
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">Return request already submitted</p>
+                  )}
+                  {returnStatus === 'approved' && (
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">Return request approved</p>
+                  )}
+                  {returnStatus === 'rejected' && (
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-red-700">Return request rejected</p>
+                      <p className="text-[10px] text-neutral-500 italic mt-0.5">Check email for more info</p>
+                    </div>
+                  )}
+                  {!returnStatus && (
                     <button
                       type="button"
                       onClick={() => onRequestReturn(order.id)}
@@ -186,10 +200,10 @@ export function ProfileReturnsSection({
                     >
                       {orderActionLoadingId === order.id ? "Submitting..." : "Submit Return Request"}
                     </button>
-                  </>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

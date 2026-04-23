@@ -6,6 +6,8 @@ import { Loader2, ArrowLeft, RefreshCcw, ExternalLink, MessageSquare } from "luc
 import { getAdminReturnRequests, AdminReturnRequest, updateAdminReturnRequestStatus } from "@/lib/admin-api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
 export default function ReturnsPage() {
@@ -13,6 +15,10 @@ export default function ReturnsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  
+  // Rejection Modal State
+  const [rejectingRequest, setRejectingRequest] = useState<AdminReturnRequest | null>(null)
+  const [rejectionMessage, setRejectionMessage] = useState("")
 
   const stats = {
     pending: returns.filter(r => !r.status || r.status === 'pending').length,
@@ -32,10 +38,12 @@ export default function ReturnsPage() {
     }
   }
 
-  async function handleStatusUpdate(id: string, status: 'approved' | 'rejected') {
+  async function handleStatusUpdate(id: string, status: 'approved' | 'rejected', message?: string) {
     try {
       setProcessingId(id)
-      await updateAdminReturnRequestStatus(id, status)
+      await updateAdminReturnRequestStatus(id, status, message)
+      setRejectingRequest(null)
+      setRejectionMessage("")
       await loadReturns() // Refresh the list
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to update status")
@@ -190,10 +198,11 @@ export default function ReturnsPage() {
                           </span>
                         </div>
                         
-                        {request.message && (
-                          <div className="rounded-2xl bg-neutral-50/50 p-5 border border-neutral-100/50">
+                        {(request.message || request.status === 'rejected') && (
+                          <div className="rounded-2xl bg-neutral-50/50 p-5 border border-neutral-100/50 mt-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-2">Rejection Reason</p>
                             <p className="text-sm text-neutral-700 leading-relaxed italic font-light">
-                              &quot;{request.message}&quot;
+                              &quot;{request.message || "No specific reason provided by management."}&quot;
                             </p>
                           </div>
                         )}
@@ -218,15 +227,15 @@ export default function ReturnsPage() {
                            <Button 
                              variant="ghost" 
                              className="text-[10px] uppercase tracking-widest font-bold h-10 px-6 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors"
-                             onClick={() => handleStatusUpdate(request.id, 'rejected')}
-                             disabled={processingId === request.id || request.status === 'rejected'}
+                             onClick={() => setRejectingRequest(request)}
+                             disabled={processingId === request.id || (!!request.status && request.status !== 'pending')}
                            >
                              Reject Request
                            </Button>
                            <Button 
                              className="text-[10px] uppercase tracking-widest font-bold h-10 px-8 rounded-xl bg-black text-white hover:bg-neutral-800 transition-all shadow-lg shadow-neutral-200"
                              onClick={() => handleStatusUpdate(request.id, 'approved')}
-                             disabled={processingId === request.id || request.status === 'approved'}
+                             disabled={processingId === request.id || (!!request.status && request.status !== 'pending')}
                            >
                              {processingId === request.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve Refund"}
                            </Button>
@@ -240,6 +249,42 @@ export default function ReturnsPage() {
           ))}
         </div>
       )}
+
+      {/* Rejection Modal */}
+      <Dialog open={!!rejectingRequest} onOpenChange={(open) => !open && setRejectingRequest(null)}>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl border-neutral-100">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">Reject Return Request</DialogTitle>
+            <DialogDescription className="text-neutral-500 font-light italic mt-1">
+              Please provide a reason for rejecting the return for order #{rejectingRequest?.order?.order_number}. This will be emailed to the customer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="E.g., The return window has expired or the item shows signs of use..."
+              className="min-h-[120px] rounded-2xl border-neutral-200 focus:border-black transition-all text-sm resize-none"
+              value={rejectionMessage}
+              onChange={(e) => setRejectionMessage(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              className="rounded-xl border-neutral-200 font-bold text-[10px] uppercase tracking-widest"
+              onClick={() => setRejectingRequest(null)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-widest"
+              onClick={() => rejectingRequest && handleStatusUpdate(rejectingRequest.id, 'rejected', rejectionMessage)}
+              disabled={!rejectionMessage.trim() || processingId === rejectingRequest?.id}
+            >
+              {processingId === rejectingRequest?.id ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

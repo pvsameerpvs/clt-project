@@ -525,10 +525,10 @@ export function getAdminReturnRequests() {
   return adminFetch<AdminReturnRequest[]>("/api/admin/return-requests")
 }
 
-export function updateAdminReturnRequestStatus(id: string, status: 'approved' | 'rejected') {
+export function updateAdminReturnRequestStatus(id: string, status: 'approved' | 'rejected', message?: string) {
   return adminFetch<AdminReturnRequest>(`/api/admin/return-requests/${id}/status`, {
     method: "PUT",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, message }),
   })
 }
 

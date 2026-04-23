@@ -15,7 +15,8 @@ export class ReturnService {
    */
   static async updateRequestStatus(
     requestId: string, 
-    newStatus: 'approved' | 'rejected' | 'pending'
+    newStatus: 'approved' | 'rejected' | 'pending',
+    message?: string
   ): Promise<ReturnStatusUpdateResult> {
     try {
       // 1. Update the return request itself
@@ -23,6 +24,7 @@ export class ReturnService {
         .from('order_return_requests')
         .update({ 
           status: newStatus, 
+          message: message || null,
           updated_at: new Date().toISOString() 
         })
         .eq('id', requestId)
@@ -44,19 +46,18 @@ export class ReturnService {
         
         if (syncError) {
           console.error(`[ReturnService] Failed to sync order status for order ${updatedRequest.order_id}:`, syncError.message);
-          // We don't fail the whole operation, but we log the issue
         }
       }
 
       // 3. Automated Customer Notification
       const contactEmail = updatedRequest.order?.shipping_address?.contact_email;
       if (contactEmail && (newStatus === 'approved' || newStatus === 'rejected')) {
-        // We run this in the background to keep the response fast
         sendReturnStatusEmail(
           updatedRequest.order?.order_number || 'Order',
           newStatus,
           updatedRequest.reason || 'No reason provided',
-          contactEmail
+          contactEmail,
+          message // Pass the admin comment/message here
         ).catch(err => console.error('[ReturnService] Email notification failed:', err.message));
       }
 

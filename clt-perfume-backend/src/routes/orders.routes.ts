@@ -301,7 +301,6 @@ orderRoutes.post('/:id/return-request', authMiddleware, async (req: Request, res
       .select('id, status')
       .eq('order_id', orderId)
       .eq('user_id', req.user!.id)
-      .in('status', ['pending', 'approved'])
       .maybeSingle()
 
     if (existingRequest.error && !isMissingRelationError(existingRequest.error)) {
