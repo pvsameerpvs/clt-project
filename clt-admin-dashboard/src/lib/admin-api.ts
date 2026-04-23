@@ -18,6 +18,37 @@ export interface RecentOrder {
   createdAt: string
 }
 
+export interface ShippingAddress {
+  contact_email?: string
+  contact_whatsapp?: string
+  first_name?: string
+  last_name?: string
+  address?: string
+  city?: string
+  country?: string
+}
+
+export interface AdminReturnRequest {
+  id: string
+  order_id: string
+  reason: string
+  message: string | null
+  status: string
+  created_at: string
+  order?: {
+    id: string
+    order_number: string
+    total: number
+    status: string
+    shipping_address: ShippingAddress | null
+    profile?: {
+      first_name: string | null
+      last_name: string | null
+      email: string | null
+    }
+  }
+}
+
 export interface AdminDashboardData {
   totalProducts: number
   totalOrders: number
@@ -485,6 +516,17 @@ export function approveAdminReview(reviewId: string) {
 export function deleteAdminReview(reviewId: string) {
   return adminFetch<{ success: boolean }>(`/api/admin/reviews/${reviewId}`, {
     method: "DELETE",
+  })
+}
+
+export function getAdminReturnRequests() {
+  return adminFetch<AdminReturnRequest[]>("/api/admin/return-requests")
+}
+
+export function updateAdminReturnRequestStatus(id: string, status: 'approved' | 'rejected') {
+  return adminFetch<AdminReturnRequest>(`/api/admin/return-requests/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ status }),
   })
 }
 

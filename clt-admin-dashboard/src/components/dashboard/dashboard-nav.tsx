@@ -14,6 +14,7 @@ import {
   Mail,
   MessageSquare,
   Ticket,
+  RefreshCcw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,7 @@ export const menuItems = [
   { label: "Customers", href: "/dashboard/customers", icon: Users },
   { label: "Newsletter", href: "/dashboard/newsletter", icon: Mail },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
+  { label: "Returns", href: "/dashboard/returns", icon: RefreshCcw },
   { label: "Coupons", href: "/dashboard/coupons", icon: Ticket },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
@@ -40,6 +42,7 @@ interface DashboardNavProps {
 export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavProps) {
   const pathname = usePathname()
   const [newOrderCount, setNewOrderCount] = useState(0)
+  const [newReturnCount, setNewReturnCount] = useState(0)
 
   const incomingStatuses = useMemo(() => new Set(["pending", "confirmed", "processing"]), [])
 
@@ -48,13 +51,24 @@ export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavP
 
     async function loadNewOrderCount() {
       try {
-        const todayOrders = await getAdminOrders({ scope: "today" })
+        const [todayOrders, allReturns] = await Promise.all([
+          getAdminOrders({ scope: "today" }),
+          import("@/lib/admin-api").then(api => api.getAdminReturnRequests())
+        ])
+        
         if (!mounted) return
+        
+        // 1. Calculate new orders
         const incoming = todayOrders.filter((order) => incomingStatuses.has(String(order.status || "").toLowerCase()))
         setNewOrderCount(incoming.length)
+
+        // 2. Calculate pending returns
+        const pendingReturns = allReturns.filter(r => String(r.status || "").toLowerCase() === "pending")
+        setNewReturnCount(pendingReturns.length)
       } catch {
         if (!mounted) return
         setNewOrderCount(0)
+        setNewReturnCount(0)
       }
     }
 
@@ -100,6 +114,16 @@ export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavP
                   )}
                 >
                   {newOrderCount > 99 ? "99+" : newOrderCount}
+                </span>
+              )}
+              {item.href === "/dashboard/returns" && newReturnCount > 0 && (
+                <span
+                  className={cn(
+                    "ml-auto inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                    active ? "bg-white text-black" : "bg-red-100 text-red-700"
+                  )}
+                >
+                  {newReturnCount > 99 ? "99+" : newReturnCount}
                 </span>
               )}
             </Link>

@@ -58,6 +58,7 @@ export interface UserOrderRecord {
   total?: number | string | null
   status?: string | null
   created_at: string
+  delivered_at?: string | null
   items?: UserOrderItemRecord[] | null
   shipping_address?: {
     title?: string

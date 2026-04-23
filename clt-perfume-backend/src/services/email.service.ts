@@ -343,3 +343,73 @@ export async function sendAbandonedCartEmail(recipientEmail: string, items: any[
     return { ok: false, error: err.message }
   }
 }
+
+export async function sendReturnStatusEmail(
+  orderNumber: string,
+  status: 'approved' | 'rejected',
+  reason: string,
+  contactEmail?: string,
+  adminComment?: string
+): Promise<EmailSendResult> {
+  const recipientEmail = normalizeEmailAddress(contactEmail)
+  if (!recipientEmail) return { ok: false, error: 'No email provided' }
+
+  const isApproved = status === 'approved'
+  const subject = isApproved 
+    ? `Refund Request Approved - Order #${orderNumber}`
+    : `Refund Request Update - Order #${orderNumber}`
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafb; padding: 40px 0; margin: 0;">
+      <table align="center" width="100%" max-width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <tr>
+          <td style="background-color: #000000; padding: 40px 24px; text-align: center;">
+            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE DXB</div>
+            <div style="font-family: sans-serif; font-size: 10px; color: #ffffff; letter-spacing: 0.3em; text-transform: uppercase; margin: 8px 0 0 0; opacity: 0.8;">PERFUME</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px 24px; text-align: center;">
+            <h2 style="color: #111827; font-size: 22px; font-weight: 600; font-family: serif;">Refund Request Update</h2>
+            <p style="color: #4b5563; font-size: 16px;">Hello,</p>
+            <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+              Your request to return items from order <strong>#${orderNumber}</strong> has been <strong>${status}</strong>.
+            </p>
+            
+            <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 24px 0; text-align: left;">
+              <p style="margin: 0 0 8px; font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: bold;">Return Details</p>
+              <p style="margin: 0; font-size: 14px; color: #111827;"><strong>Reason:</strong> ${reason}</p>
+              ${adminComment ? `<p style="margin: 8px 0 0; font-size: 14px; color: #111827;"><strong>Note from Team:</strong> ${adminComment}</p>` : ''}
+            </div>
+
+            ${isApproved 
+              ? `<p style="color: #047857; font-weight: 600; font-size: 16px;">Our team will now proceed with your refund. You will receive the amount via your original payment method shortly.</p>`
+              : `<p style="color: #b91c1c; font-weight: 600; font-size: 16px;">Unfortunately, we are unable to approve your refund request at this time. If you believe this is an error, please contact our support team.</p>`
+            }
+            
+            <p style="color: #4b5563; font-size: 14px; margin-top: 32px;">Thank you for choosing CLE DXB.</p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'CLE DXB <info@cleparfum.com>',
+      to: recipientEmail,
+      bcc: 'infocleparfum@gmail.com',
+      subject: subject,
+      html: html,
+    })
+
+    if (error) throw error
+    return { ok: true }
+  } catch (err: any) {
+    console.error('[EmailService] Return Status Email Error:', err.message)
+    return { ok: false, error: err.message }
+  }
+}

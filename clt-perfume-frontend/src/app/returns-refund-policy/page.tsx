@@ -42,7 +42,7 @@ export default function ReturnsRefundPolicyPage() {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
-            {["30 Day Window", "Perfumes Only", "Official UAE Standard"].map((tag) => (
+            {["24 Hour Window", "Perfumes Only", "Official UAE Standard"].map((tag) => (
               <span key={tag} className="px-4 py-1.5 rounded-full border border-neutral-200 bg-white text-[10px] uppercase tracking-widest font-bold text-neutral-500 shadow-sm">
                 {tag}
               </span>
@@ -64,11 +64,11 @@ export default function ReturnsRefundPolicyPage() {
       <section className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-24">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <ContentCard
-            title="Eligibility Conditions"
+            title="Eligibility & 24H Window"
             paragraphs={[
-              "To be eligible for a return, perfumes must be entirely unused, unopened, and presented in their original factory-sealed packaging with all safety seals intact.",
-              "Due to hygiene, health protection, and pharmaceutical safety standards (UAE DED), opened or tried fragrances cannot be returned or exchanged under any circumstances.",
-              "A valid digital or physical receipt from Cle DXB is mandatory for all policy procedures."
+              "To maintain the highest standards of quality and hygiene, return requests must be submitted within exactly 24 hours of the delivery timestamp recorded by our logistics partner.",
+              "Perfumes must be entirely unused, unopened, and presented in their original factory-sealed packaging with all safety seals intact.",
+              "Due to health protection and pharmaceutical safety standards (UAE DED), opened fragrances cannot be returned or exchanged under any circumstances once the seal is broken."
             ]}
           />
 
@@ -83,7 +83,7 @@ export default function ReturnsRefundPolicyPage() {
           <ContentCard
             title="Defective Shipments"
             paragraphs={[
-              "In the rare event of a leak, pump failure, or damaged vessel upon arrival, please contact our concierge within 48 hours of delivery signature.",
+              "In the rare event of a leak, pump failure, or damaged vessel upon arrival, please contact our concierge immediately. The same 24-hour reporting window applies for these claims.",
               "Visual verification (photo/video) is required to initiate a high-priority exchange or a full refund to your original payment method.",
               "The replacement will be for the same olfactive reference, subject to boutique stock availability."
             ]}

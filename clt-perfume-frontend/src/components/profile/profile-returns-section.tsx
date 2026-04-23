@@ -20,11 +20,11 @@ type ProfileReturnsSectionProps = {
 function returnStatusTone(status: string) {
   switch (status) {
     case "approved":
-      return "border-blue-200 bg-blue-50 text-blue-700"
+    case "refunded":
+    case "completed":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100"
     case "rejected":
       return "border-red-200 bg-red-50 text-red-700"
-    case "completed":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700"
     default:
       return "border-amber-200 bg-amber-50 text-amber-700"
   }
@@ -43,7 +43,7 @@ export function ProfileReturnsSection({
   hasOpenReturnRequest,
 }: ProfileReturnsSectionProps) {
   const cancellableOrders = orders.filter((order) => canCancelOrder(order.status))
-  const returnEligibleOrders = orders.filter((order) => canRequestReturn(order.status))
+  const returnEligibleOrders = orders.filter((order) => canRequestReturn(order.status, order.delivered_at))
 
   return (
     <section>
@@ -54,7 +54,7 @@ export function ProfileReturnsSection({
         </div>
         <Link
           href="/returns-refund-policy"
-          className="inline-flex items-center rounded-full border border-black bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white hover:text-black"
+          className="inline-flex items-center rounded-full border border-black bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white hover:text-black shadow-lg shadow-black/5"
         >
           View Policy
         </Link>
@@ -66,14 +66,14 @@ export function ProfileReturnsSection({
             <ShieldCheck className="h-4 w-4" />
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-neutral-500">Policy Window</p>
-          <p className="mt-1 text-sm text-neutral-700">Returns accepted within 30 days for unopened perfumes.</p>
+          <p className="mt-1 text-sm text-neutral-700">Returns accepted within 24 hours of delivery only.</p>
         </article>
         <article className="rounded-2xl border border-neutral-200 bg-white p-4">
           <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 text-neutral-700">
             <PackageCheck className="h-4 w-4" />
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-neutral-500">Defect Reporting</p>
-          <p className="mt-1 text-sm text-neutral-700">Damaged or leaking products must be reported within 48 hours.</p>
+          <p className="mt-1 text-sm text-neutral-700">Damaged or leaking products must be reported within 24 hours.</p>
         </article>
         <article className="rounded-2xl border border-neutral-200 bg-white p-4">
           <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 text-neutral-700">

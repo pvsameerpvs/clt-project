@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
+import { ReturnService } from '../services/return.service'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
 import { sendOrderStatusEmail } from '../services/email.service'
 import { sendOrderStatusWhatsApp } from '../services/whatsapp.service'
@@ -166,6 +167,39 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
       revenueByMonth: monthBuckets,
       recentOrders,
     })
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// GET /api/admin/return-requests — List all return requests
+adminRoutes.get('/return-requests', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('order_return_requests')
+      .select('*, order:orders(*, profile:profiles(first_name, last_name))')
+      .order('created_at', { ascending: false })
+
+    res.json(data)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// PUT /api/admin/return-requests/:id/status
+adminRoutes.put('/return-requests/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const { status } = req.body
+
+    const result = await ReturnService.updateRequestStatus(id as string, status as any)
+
+    if (!result.success) {
+      res.status(400).json({ error: result.error })
+      return
+    }
+
+    res.json(result.data)
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }

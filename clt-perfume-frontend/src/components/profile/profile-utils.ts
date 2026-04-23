@@ -28,9 +28,20 @@ export function canCancelOrder(status?: string | null) {
   return normalized === "pending" || normalized === "confirmed" || normalized === "processing"
 }
 
-export function canRequestReturn(status?: string | null) {
-  // Returns are disabled for this store per business policy
-  return false
+export function canRequestReturn(status?: string | null, deliveredAt?: string | null) {
+  const normalized = normalizeOrderStatus(status)
+  
+  // 1. Must be delivered
+  if (normalized !== "delivered") return false
+
+  // 2. Must be within 24 hours of delivery
+  if (!deliveredAt) return false // Should not happen if delivered
+
+  const deliveryTime = new Date(deliveredAt).getTime()
+  const currentTime = new Date().getTime()
+  const hoursSinceDelivery = (currentTime - deliveryTime) / (1000 * 60 * 60)
+
+  return hoursSinceDelivery <= 24
 }
 
 export function normalizeReturnRequestStatus(status?: string | null) {

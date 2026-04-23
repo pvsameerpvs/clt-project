@@ -2,6 +2,7 @@ import Link from "next/link"
 import type { OrderRecord } from "./profile-types"
 import { canCancelOrder, canRequestReturn, normalizeOrderStatus } from "./profile-utils"
 import { OrderStatusStepper } from "./order-status-stepper"
+import { cn } from "@/lib/utils"
 
 type ProfileOrdersSectionProps = {
   ordersLoading: boolean
@@ -51,11 +52,25 @@ export function ProfileOrdersSection({
                   <p className="text-sm font-semibold text-neutral-900">
                     Order #{order.order_number || order.id.slice(0, 8).toUpperCase()}
                   </p>
-                  <p className="text-xs uppercase tracking-wide text-neutral-500">{normalizeOrderStatus(order.status) || "pending"}</p>
+                  <p className={cn(
+                    "text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border",
+                    normalizeOrderStatus(order.status) === 'refunded' 
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-100" 
+                      : "border-neutral-200 bg-neutral-50 text-neutral-500"
+                  )}>
+                    {normalizeOrderStatus(order.status) || "pending"}
+                  </p>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-5 text-sm text-neutral-600">
+                <div className="mt-2 flex flex-wrap gap-5 text-sm text-neutral-600 items-center">
                   <p>Date: {new Date(order.created_at).toLocaleDateString("en-GB")}</p>
-                  <p>Total: AED {toMoney(order.total)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-neutral-900">Total: AED {toMoney(order.total)}</p>
+                    {normalizeOrderStatus(order.status) === 'refunded' && (
+                      <span className="text-[10px] font-medium text-emerald-600 italic bg-emerald-50/50 px-2 py-0.5 rounded">
+                        (Refunded to original method)
+                      </span>
+                    )}
+                  </div>
                   {(order.shipping_address?.city || order.shipping_address?.country) && (
                     <p>
                       Delivery: {order.shipping_address?.city || ""}
@@ -136,7 +151,7 @@ export function ProfileOrdersSection({
                       {orderActionLoadingId === order.id ? "Cancelling..." : "Cancel Order"}
                     </button>
                   )}
-                  {canRequestReturn(order.status) && !hasOpenReturnRequest(order.id) && (
+                  {canRequestReturn(order.status, order.delivered_at) && !hasOpenReturnRequest(order.id) && (
                     <button
                       type="button"
                       onClick={() => onRequestReturn(order.id)}
@@ -146,13 +161,13 @@ export function ProfileOrdersSection({
                       {orderActionLoadingId === order.id ? "Submitting..." : "Request Return"}
                     </button>
                   )}
-                  {canRequestReturn(order.status) && hasOpenReturnRequest(order.id) && (
+                  {canRequestReturn(order.status, order.delivered_at) && hasOpenReturnRequest(order.id) && (
                     <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">
                       Return Requested
                     </span>
                   )}
                 </div>
-                {canRequestReturn(order.status) && !hasOpenReturnRequest(order.id) && (
+                {canRequestReturn(order.status, order.delivered_at) && !hasOpenReturnRequest(order.id) && (
                   <div className="mt-2">
                     <input
                       value={returnReasonByOrder[order.id] || ""}
