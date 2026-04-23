@@ -275,11 +275,9 @@ orderRoutes.post('/:id/return-request', authMiddleware, async (req: Request, res
       return
     }
 
-    const normalizedOrderStatus = normalizeOrderStatusForResponse(order.status)
-    if (normalizedOrderStatus !== 'delivered') {
-      res.status(400).json({ error: 'Only delivered orders are eligible for return requests' })
-      return
-    }
+    // Returns are currently disabled by policy
+    res.status(400).json({ error: 'Returns are currently not supported for this store.' })
+    return
 
     const existingRequest = await supabaseAdmin
       .from('order_return_requests')

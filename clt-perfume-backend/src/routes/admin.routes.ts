@@ -42,10 +42,11 @@ function normalizeOrderStatusForStorage(status: string) {
 }
 
 function getNotificationPaymentStatus(paymentMethod: string | null | undefined, status: string) {
-  const normalizedMethod = String(paymentMethod || '').toLowerCase()
+  const method = String(paymentMethod || '').toLowerCase().trim()
+  const isCOD = method.includes('cash') || method.includes('cod') || method === ''
   const normalizedStatus = String(status || '').toLowerCase()
 
-  if (normalizedMethod === 'cash_on_delivery') {
+  if (isCOD) {
     if (normalizedStatus === 'paid' || normalizedStatus === 'delivered') {
       return 'Paid'
     }
@@ -54,6 +55,18 @@ function getNotificationPaymentStatus(paymentMethod: string | null | undefined, 
   }
 
   return 'Paid'
+}
+
+import { calculateOrderStats } from '../utils/order-stats'
+
+function isPaidStatus(status: string) {
+  const s = status.toLowerCase()
+  return s === 'paid' || s === 'delivered'
+}
+
+function isUnpaidStatus(status: string) {
+  const s = status.toLowerCase()
+  return s === 'pending' || s === 'confirmed' || s === 'processing' || s === 'shipped'
 }
 
 function isValidDateInput(value: string) {
@@ -101,11 +114,10 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
       supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
     ])
 
-    const allOrders = (orders.data || []) as AdminOrder[]
+    const allOrders = (orders.data || []) as (AdminOrder & { payment_method?: string })[]
 
-    const totalRevenue = allOrders
-      .filter((order) => isRevenueOrder(order.status))
-      .reduce((sum, order) => sum + Number(order.total || 0), 0)
+    const stats = calculateOrderStats(allOrders)
+    const { totalRevenue, cardRevenue, codRevenue, pendingRevenue, totalPaidOrders, totalUnpaidOrders, totalVAT } = stats
 
     const now = new Date()
     const monthBuckets = Array.from({ length: 6 }, (_, index) => {
@@ -121,7 +133,7 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
     const bucketMap = new Map(monthBuckets.map((bucket) => [bucket.month, bucket]))
 
     for (const order of allOrders) {
-      if (!isRevenueOrder(order.status)) continue
+      if (!isPaidStatus(order.status)) continue
       const createdAt = new Date(order.created_at)
       if (Number.isNaN(createdAt.getTime())) continue
       const key = `${createdAt.getUTCFullYear()}-${String(createdAt.getUTCMonth() + 1).padStart(2, '0')}`
@@ -141,10 +153,16 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
       }))
 
     res.json({
-      totalProducts: products.count || 0,
-      totalOrders: orders.count || 0,
-      totalCustomers: customers.count || 0,
+      totalProducts: products?.count || 0,
+      totalOrders: orders?.count || 0,
+      totalCustomers: customers?.count || 0,
       totalRevenue,
+      cardRevenue,
+      codRevenue,
+      pendingRevenue,
+      totalVAT,
+      totalPaidOrders,
+      totalUnpaidOrders,
       revenueByMonth: monthBuckets,
       recentOrders,
     })
@@ -425,7 +443,7 @@ adminRoutes.get('/orders/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('orders')
-      .select('*, profile:profiles(*), items:order_items(*)')
+      .select('*, profile:profiles(*), items:order_items(*), return_requests:order_return_requests(*)')
       .eq('id', req.params.id)
       .single()
 
@@ -515,13 +533,38 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
 
     if (
       requestedStatus === 'delivered' &&
-      !['paid', 'processing', 'shipped', 'delivered'].includes(String(existingOrder.status || '').toLowerCase())
+      !['paid', 'confirmed', 'processing', 'shipped', 'delivered'].includes(String(existingOrder.status || '').toLowerCase())
     ) {
       res.status(400).json({ error: 'Delivered status can only be set after the order reaches the paid/confirmed stage.' })
       return
     }
 
     const statusToStore = normalizeOrderStatusForStorage(requestedStatus)
+    const oldStatus = String(existingOrder.status || '').toLowerCase()
+    
+    // Automatic Restocking Logic
+    const isNowCancelled = (statusToStore === 'cancelled' || statusToStore === 'refunded')
+    const wasAlreadyCancelled = (oldStatus === 'cancelled' || oldStatus === 'refunded')
+
+    if (isNowCancelled && !wasAlreadyCancelled) {
+      // Fetch items to restore stock
+      const { data: items } = await supabaseAdmin
+        .from('order_items')
+        .select('product_id, quantity')
+        .eq('order_id', req.params.id)
+
+      if (items && items.length > 0) {
+        for (const item of items) {
+          if (!item.product_id) continue
+          // Increment stock (using negative quantity in decrement_stock if increment_stock doesn't exist)
+          await supabaseAdmin.rpc('decrement_stock', {
+            p_product_id: item.product_id,
+            p_quantity: -Math.abs(item.quantity),
+          })
+        }
+      }
+    }
+
     const notificationStatus = requestedStatus
     const paymentStatus = getNotificationPaymentStatus(existingOrder.payment_method, requestedStatus)
     const updateData: any = { status: statusToStore }

@@ -29,7 +29,8 @@ export function canCancelOrder(status?: string | null) {
 }
 
 export function canRequestReturn(status?: string | null) {
-  return normalizeOrderStatus(status) === "delivered"
+  // Returns are disabled for this store per business policy
+  return false
 }
 
 export function normalizeReturnRequestStatus(status?: string | null) {

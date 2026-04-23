@@ -23,6 +23,12 @@ export interface AdminDashboardData {
   totalOrders: number
   totalCustomers: number
   totalRevenue: number
+  totalVAT: number
+  cardRevenue: number
+  codRevenue: number
+  pendingRevenue: number
+  totalPaidOrders: number
+  totalUnpaidOrders: number
   revenueByMonth: RevenueBucket[]
   recentOrders: RecentOrder[]
 }
@@ -153,6 +159,7 @@ export interface AdminOrder {
   status: string
   created_at: string
   shipping_address?: Record<string, unknown>
+  return_requests?: Array<{ id: string; reason?: string; status: string }>
   profile?:
     | { first_name?: string | null; last_name?: string | null; email?: string | null; phone?: string | null }
     | Array<{ first_name?: string | null; last_name?: string | null; email?: string | null; phone?: string | null }>

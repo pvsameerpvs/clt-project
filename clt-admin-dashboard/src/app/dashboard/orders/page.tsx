@@ -31,7 +31,13 @@ function formatUtcDate(dateString: string) {
 }
 
 function isRevenueOrder(status: string) {
-  return status !== "cancelled" && status !== "refunded"
+  const s = status.toLowerCase()
+  return s === "paid" || s === "delivered"
+}
+
+function isUnpaidStatus(status: string) {
+  const s = status.toLowerCase()
+  return s === "pending" || s === "confirmed" || s === "processing" || s === "shipped"
 }
 
 function statusTone(status: string) {
@@ -117,20 +123,28 @@ export default function OrdersPage() {
   }
 
   const stats = useMemo(() => {
-    const revenue = orders
-      .filter((order) => isRevenueOrder(order.status))
-      .reduce((sum, order) => sum + Number(order.total || 0), 0)
+    let revenue = 0
+    let pendingRevenue = 0
+    let pendingCount = 0
+    let fulfilledCount = 0
 
-    const pending = orders.filter(
-      (order) => order.status === "pending" || order.status === "confirmed" || order.status === "processing"
-    ).length
-    const fulfilled = orders.filter((order) => order.status === "delivered").length
+    for (const order of orders) {
+      const total = Number(order.total || 0)
+      if (isRevenueOrder(order.status)) {
+        revenue += total
+        if (order.status === "delivered") fulfilledCount++
+      } else if (isUnpaidStatus(order.status)) {
+        pendingRevenue += total
+        pendingCount++
+      }
+    }
 
     return {
       total: orders.length,
       revenue,
-      pending,
-      fulfilled,
+      pendingRevenue,
+      pendingCount,
+      fulfilledCount,
     }
   }, [orders])
 
@@ -173,15 +187,19 @@ export default function OrdersPage() {
         </article>
         <article className="stat-card">
           <p>Total Revenue</p>
-          <h3>AED {Math.round(stats.revenue).toLocaleString()}</h3>
+          <h3 className="text-emerald-600">AED {Math.round(stats.revenue).toLocaleString()}</h3>
         </article>
         <article className="stat-card">
-          <p>Pending / Processing</p>
-          <h3>{stats.pending}</h3>
+          <p>Pending Payment</p>
+          <h3 className="text-amber-600">AED {Math.round(stats.pendingRevenue).toLocaleString()}</h3>
+        </article>
+        <article className="stat-card">
+          <p>Pending Orders</p>
+          <h3>{stats.pendingCount}</h3>
         </article>
         <article className="stat-card">
           <p>Delivered</p>
-          <h3>{stats.fulfilled}</h3>
+          <h3>{stats.fulfilledCount}</h3>
         </article>
       </section>
 
@@ -341,8 +359,14 @@ export default function OrdersPage() {
         }
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 10px;
+        }
+        .text-emerald-600 {
+          color: #059669;
+        }
+        .text-amber-600 {
+          color: #d97706;
         }
         .stat-card {
           border: 1px solid #e5e7eb;

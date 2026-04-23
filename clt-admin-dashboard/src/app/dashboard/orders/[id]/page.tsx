@@ -311,6 +311,23 @@ export default function OrderDetailsPage() {
         </article>
       </section>
 
+      {order.return_requests && order.return_requests.length > 0 && (
+        <section className="panel return-panel" style={{ border: '1px solid #e5e7eb', borderRadius: '14px', background: '#fff', padding: '14px' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: '16px' }}>Return Requests</h3>
+          <div className="return-list" style={{ display: 'grid', gap: '12px' }}>
+            {order.return_requests.map((req) => (
+              <div key={req.id} className="return-item" style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '12px' }}>
+                <div className="return-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                  <span className={`status ${statusTone(req.status)}`}>{req.status}</span>
+                  <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#6b7280' }}>Reason for Return</label>
+                </div>
+                <p className="return-reason" style={{ fontSize: '14px', color: '#111827', margin: 0 }}>{req.reason || "No reason provided."}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="panel">
         <h3>Order Items ({items.length})</h3>
         {items.length === 0 ? (
