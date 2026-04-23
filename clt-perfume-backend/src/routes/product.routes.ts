@@ -201,3 +201,28 @@ productRoutes.get('/:slug', async (req, res) => {
     res.status(404).json({ error: 'Product not found' })
   }
 })
+// GET /api/products/:id/promotions — Get active promotions/gifts for a product
+productRoutes.get('/:id/promotions', async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('product_promotions')
+      .select('*, gift:products!child_id(*)')
+      .eq('parent_id', req.params.id)
+      .eq('is_active', true)
+
+    if (error) throw error
+    
+    // Map stock_quantity to stock for consistency
+    const mapped = (data || []).map((item: any) => {
+      if (item.gift) {
+        const { stock_quantity, ...rest } = item.gift
+        item.gift = { ...rest, stock: stock_quantity }
+      }
+      return item
+    })
+
+    res.json(mapped)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})

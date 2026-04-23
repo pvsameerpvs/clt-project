@@ -1,3 +1,12 @@
+export interface Promotion {
+  id: string
+  parent_id: string
+  child_id: string
+  discount_percentage: number
+  is_active: boolean
+  gift?: Product
+}
+
 export interface Review {
   id: string
   user: string

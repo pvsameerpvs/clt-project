@@ -1,6 +1,6 @@
 "use client"
 
-import { Product } from "@/lib/products"
+import { Product, Promotion } from "@/lib/products"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
@@ -10,7 +10,7 @@ import { ProductInfo } from "@/components/product/product-info"
 import { RelatedProducts } from "@/components/product/related-products"
 
 
-export function ProductDisplay({ product, relatedProducts }: { product: Product, relatedProducts: Product[] }) {
+export function ProductDisplay({ product, relatedProducts, promotions }: { product: Product, relatedProducts: Product[], promotions: Promotion[] }) {
   return (
     <div className="min-h-screen bg-white pb-20 pt-8">
       <div className="container mx-auto px-4 md:px-6">
@@ -33,7 +33,7 @@ export function ProductDisplay({ product, relatedProducts }: { product: Product,
           <ProductGallery product={product} relatedProducts={relatedProducts} />
 
           {/* Right Column: Product Info */}
-          <ProductInfo product={product} />
+          <ProductInfo product={product} promotions={promotions} />
         </div>
 
 

@@ -14,6 +14,9 @@ export interface CartBundleMeta {
 export interface AddToCartOptions {
   bundle?: CartBundleMeta
   originalUnitPrice?: number
+  parentId?: string
+  isGift?: boolean
+  replace?: boolean
 }
 
 export interface CartItem {
@@ -21,6 +24,8 @@ export interface CartItem {
   quantity: number
   bundle?: CartBundleMeta
   originalUnitPrice?: number
+  parentId?: string
+  isGift?: boolean
 }
 
 export type PromoDiscountType = "percentage" | "fixed"
@@ -155,21 +160,52 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (product: Product, quantity: number, options?: AddToCartOptions) => {
     setItems(prev => {
-      const targetLineKey = getCartLineKey(product.id, toPriceNumber(product.price), options?.bundle?.id)
-      const existing = prev.find(item => getItemLineKey(item) === targetLineKey)
-      if (existing) {
-        return prev.map(item => 
-          getItemLineKey(item) === targetLineKey
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        )
+      // 1. If adding a gift, remove any existing gift for the same parent first (Anti-Abuse)
+      let filtered = prev;
+      if (options?.isGift && options.parentId) {
+        filtered = prev.filter(item => !(item.isGift && item.parentId === options.parentId))
       }
+
+      const targetLineKey = getCartLineKey(
+        product.id, 
+        toPriceNumber(product.price), 
+        options?.bundle?.id || (options?.isGift ? `gift-${options.parentId}` : undefined)
+      )
+      
+      const existing = filtered.find(item => {
+        const itemKey = getCartLineKey(
+          item.product.id, 
+          toPriceNumber(item.product.price), 
+          item.bundle?.id || (item.isGift ? `gift-${item.parentId}` : undefined)
+        )
+        return itemKey === targetLineKey
+      })
+
+      if (existing) {
+        return filtered.map(item => {
+          const itemKey = getCartLineKey(
+            item.product.id, 
+            toPriceNumber(item.product.price), 
+            item.bundle?.id || (item.isGift ? `gift-${item.parentId}` : undefined)
+          )
+          if (itemKey === targetLineKey) {
+            return { 
+              ...item, 
+              quantity: options?.replace ? quantity : item.quantity + quantity 
+            }
+          }
+          return item
+        })
+      }
+
       return [
-        ...prev,
+        ...filtered,
         {
           product,
           quantity,
           bundle: options?.bundle,
+          parentId: options?.parentId,
+          isGift: options?.isGift,
           originalUnitPrice:
             options?.originalUnitPrice === undefined ? undefined : toPriceNumber(options.originalUnitPrice),
         },
@@ -179,7 +215,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const removeFromCart = (lineKey: string) => {
     setItems(prev => {
-      const next = prev.filter(item => getItemLineKey(item) !== lineKey)
+      // Find the item being removed
+      const itemToRemove = prev.find(item => {
+        const itemKey = getCartLineKey(
+          item.product.id, 
+          toPriceNumber(item.product.price), 
+          item.bundle?.id || (item.isGift ? `gift-${item.parentId}` : undefined)
+        )
+        return itemKey === lineKey
+      })
+
+      if (!itemToRemove) return prev
+
+      // Filter out the item and, if it's a parent, filter out its children (Linked Removal)
+      const next = prev.filter(item => {
+        const itemKey = getCartLineKey(
+          item.product.id, 
+          toPriceNumber(item.product.price), 
+          item.bundle?.id || (item.isGift ? `gift-${item.parentId}` : undefined)
+        )
+        const isTarget = itemKey === lineKey
+        const isChildOfTarget = item.parentId === itemToRemove.product.id
+        
+        return !isTarget && !isChildOfTarget
+      })
+
       if (next.length === 0) setPromo(null)
       return next
     })
@@ -190,9 +250,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeFromCart(lineKey)
       return
     }
-    setItems(prev => prev.map(item => 
-      getItemLineKey(item) === lineKey ? { ...item, quantity } : item
-    ))
+    setItems(prev => prev.map(item => {
+      const itemKey = getCartLineKey(
+        item.product.id, 
+        toPriceNumber(item.product.price), 
+        item.bundle?.id || (item.isGift ? `gift-${item.parentId}` : undefined)
+      )
+      return itemKey === lineKey ? { ...item, quantity } : item
+    }))
   }
 
   const clearCart = useCallback(async () => {

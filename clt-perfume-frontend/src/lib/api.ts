@@ -380,6 +380,17 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 }
 
+export async function getProductPromotions(productId: string) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/promotions`, { cache: 'no-store' })
+    if (!res.ok) return []
+    return res.json()
+  } catch (error) {
+    console.error(error)
+    return []
+  }
+}
+
 export async function getCategories() {
   try {
     const res = await fetch(`${API_BASE_URL}/api/products/categories`, { cache: 'no-store' })

@@ -80,6 +80,27 @@ export interface Category {
   created_at?: string
 }
 
+export interface Promotion {
+  id: string
+  parent_id: string
+  child_id: string
+  discount_percentage: number
+  is_active: boolean
+  created_at: string
+  parent?: {
+    name: string
+    slug: string
+    images?: string[]
+    description?: string
+  }
+  child?: {
+    name: string
+    slug: string
+    images?: string[]
+    description?: string
+  }
+}
+
 export interface AdminProduct {
   id: string
   slug: string
@@ -533,3 +554,29 @@ export function updateAdminReturnRequestStatus(id: string, status: 'approved' | 
   })
 }
 
+
+// === PRODUCT PROMOTIONS ===
+
+export function getAdminPromotions() {
+  return adminFetch<Promotion[]>("/api/admin/promotions")
+}
+
+export function createAdminPromotion(payload: Partial<Promotion>) {
+  return adminFetch<Promotion>("/api/admin/promotions", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateAdminPromotion(id: string, data: Partial<Omit<Promotion, 'id' | 'created_at'>>) {
+  return adminFetch<Promotion>(`/api/admin/promotions/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data)
+  })
+}
+
+export function deleteAdminPromotion(promotionId: string) {
+  return adminFetch<{ success: boolean }>(`/api/admin/promotions/${promotionId}`, {
+    method: "DELETE",
+  })
+}

@@ -904,3 +904,84 @@ adminRoutes.delete('/reviews/:id', async (req: Request, res: Response) => {
     res.status(400).json({ error: error.message })
   }
 })
+// === PRODUCT PROMOTIONS (GIFT SYSTEM) ===
+
+// GET /api/admin/promotions — List all promotions
+adminRoutes.get('/promotions', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('product_promotions')
+      .select('*, parent:products!parent_id(name, slug, images), child:products!child_id(name, slug, images)')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// POST /api/admin/promotions — Create promotion
+adminRoutes.post('/promotions', async (req: Request, res: Response) => {
+  try {
+    const { parent_id, child_id, discount_percentage, is_active } = req.body
+    
+    if (!parent_id || !child_id) {
+      return res.status(400).json({ error: 'Parent and Child products are required.' })
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('product_promotions')
+      .insert({
+        parent_id,
+        child_id,
+        discount_percentage: discount_percentage ?? 100,
+        is_active: is_active !== false
+      })
+      .select('*, parent:products!parent_id(name, slug, images), child:products!child_id(name, slug, images)')
+      .single()
+
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// PUT /api/admin/promotions/:id — Update promotion
+adminRoutes.put('/promotions/:id', async (req: Request, res: Response) => {
+  try {
+    const { discount_percentage, is_active } = req.body
+    
+    const { data, error } = await supabaseAdmin
+      .from('product_promotions')
+      .update({
+        discount_percentage,
+        is_active
+      })
+      .eq('id', req.params.id)
+      .select('*, parent:products!parent_id(name, slug, images), child:products!child_id(name, slug, images)')
+      .single()
+
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    console.error('DEBUG_PROMOTION_UPDATE_FAIL:', error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// DELETE /api/admin/promotions/:id — Delete promotion
+adminRoutes.delete('/promotions/:id', async (req: Request, res: Response) => {
+  try {
+    const { error } = await supabaseAdmin
+      .from('product_promotions')
+      .delete()
+      .eq('id', req.params.id)
+
+    if (error) throw error
+    res.json({ success: true })
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Product, getCategoryLabel } from "@/lib/products"
+import { Product, getCategoryLabel, Promotion } from "@/lib/products"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { 
@@ -12,16 +12,22 @@ import {
   ShieldCheck, 
   RotateCcw, 
   CreditCard,
-  Edit3
+  Edit3,
+  Sparkles,
+  Gift,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { getSiteSettings, getProducts } from "@/lib/api"
 import { isOfferActive } from "@/lib/offers"
+import { cn } from "@/lib/utils"
 
 import { useCart } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
+import { GiftSelector } from "./gift-selector"
 
 interface PromoOffer {
   title: string
@@ -70,7 +76,8 @@ function getOfferBestDiscount(offer: PromoOffer) {
   return discounts.length > 0 ? Math.max(...discounts) : 0
 }
 
-export function ProductInfo({ product }: { product: Product }) {
+export function ProductInfo({ product, promotions = [] }: { product: Product, promotions?: Promotion[] }) {
+  const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [engraving, setEngraving] = useState("")
   const [engravingFont, setEngravingFont] = useState("serif")
@@ -120,13 +127,40 @@ export function ProductInfo({ product }: { product: Product }) {
   }, [product.slug])
 
   const addCurrentProductToCart = () => {
+    // Add Main Product
     addToCart(
       {
         ...product,
         price: product.price + engravingPrice,
       },
-      quantity
+      quantity,
+      { replace: true } // Sync instead of additive
     )
+
+    // Add Selected Gift (if any)
+    if (selectedGiftId) {
+      const promo = promotions.find(p => p.child_id === selectedGiftId)
+      if (promo && promo.gift) {
+        const giftPrice = promo.discount_percentage === 100 
+          ? 0 
+          : (promo.gift.price * (100 - promo.discount_percentage)) / 100
+
+        addToCart(
+          {
+            ...promo.gift,
+            price: giftPrice,
+            name: `${promo.gift.name} (Gift)`,
+          },
+          quantity, // Matches main product quantity
+          { 
+            isGift: true, 
+            parentId: product.id,
+            originalUnitPrice: promo.gift.price,
+            replace: true // Sync instead of additive
+          }
+        )
+      }
+    }
   }
 
   const handleBuyNow = () => {
@@ -148,10 +182,6 @@ export function ProductInfo({ product }: { product: Product }) {
           </Badge>
         </div>
         <h1 className="text-4xl md:text-5xl font-serif font-medium text-neutral-900 mb-2">{product.name}</h1>
-        
-
-
-
         <div className="flex items-baseline gap-3 mb-6">
           <div className="text-3xl font-light text-neutral-900">AED {product.price + engravingPrice}</div>
           {engravingPrice > 0 && (
@@ -263,41 +293,13 @@ export function ProductInfo({ product }: { product: Product }) {
           ))}
         </div>
 
-        {/* Personal Engraving Section */}
-
-
-        {/* <div className="mb-8 p-6 border border-neutral-100 bg-neutral-50 rounded-2xl">
-          <div className="flex items-center gap-2 mb-4 text-neutral-900">
-            <Edit3 className="h-4 w-4" />
-            <span className="text-sm font-medium uppercase tracking-widest">Personal Engraving</span>
-            <Badge variant="outline" className="ml-auto text-[9px] uppercase tracking-widest border-amber-200 text-amber-700 bg-amber-50">Premium</Badge>
-          </div>
-          <p className="text-xs text-neutral-500 mb-4 font-light italic">Add a personal touch to your bottle with a custom name or message (max 15 chars).</p>
-          <div className="space-y-4">
-            <Input 
-              placeholder="Enter text to engrave..." 
-              maxLength={15}
-              value={engraving}
-              onChange={(e) => setEngraving(e.target.value)}
-              className="bg-white border-neutral-200 rounded-none h-12 text-sm tracking-widest focus-visible:ring-black"
-            />
-            {engraving && (
-              <div className="flex gap-2">
-                {['serif', 'sans', 'cursive'].map((font) => (
-                  <button
-                    key={font}
-                    onClick={() => setEngravingFont(font)}
-                    className={`flex-1 py-2 text-[10px] uppercase tracking-widest border transition-all ${
-                      engravingFont === font ? 'bg-black text-white border-black' : 'bg-white text-neutral-400 border-neutral-200 hover:border-neutral-400'
-                    }`}
-                  >
-                    {font}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div> */}
+        {/* Gift Selection Studio */}
+        <GiftSelector 
+          promotions={promotions}
+          selectedGiftId={selectedGiftId}
+          onSelect={setSelectedGiftId}
+          productName={product.name}
+        />
       </div>
 
       {/* Actions */}
@@ -325,9 +327,15 @@ export function ProductInfo({ product }: { product: Product }) {
         <div className="flex flex-col sm:flex-row gap-4">
           <Button 
             onClick={() => {
+              if (promotions.length > 0 && !selectedGiftId) {
+                toast.error("Please select your complimentary gift", {
+                  description: "Choose a scent to accompany your purchase."
+                })
+                return
+              }
               addCurrentProductToCart()
               toast.success(`${quantity}x ${product.name} added to bag`, {
-                description: engraving ? `Includes custom engraving: "${engraving}"` : "You can view your bag or continue shopping.",
+                description: selectedGiftId ? "Your complimentary gift has been included." : "You can view your bag or continue shopping.",
                 action: {
                   label: "View Bag",
                   onClick: () => window.location.href = '/cart'
@@ -340,7 +348,15 @@ export function ProductInfo({ product }: { product: Product }) {
             Add to Cart
           </Button>
           <Button
-            onClick={handleBuyNow}
+            onClick={() => {
+              if (promotions.length > 0 && !selectedGiftId) {
+                toast.error("Please select your complimentary gift", {
+                  description: "Choose a scent to accompany your purchase."
+                })
+                return
+              }
+              handleBuyNow()
+            }}
             disabled={isAuthLoading}
             className="h-14 flex-1 rounded-full bg-black hover:bg-neutral-800 text-white uppercase tracking-widest text-xs font-medium"
           >

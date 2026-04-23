@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Ticket,
   RefreshCcw,
+  Gift,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -30,6 +31,7 @@ export const menuItems = [
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { label: "Returns", href: "/dashboard/returns", icon: RefreshCcw },
   { label: "Coupons", href: "/dashboard/coupons", icon: Ticket },
+  { label: "Promotions", href: "/dashboard/promotions", icon: Gift },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 

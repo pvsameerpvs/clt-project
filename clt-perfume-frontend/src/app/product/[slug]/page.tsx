@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { getProductBySlug, getProducts } from "@/lib/api"
+import { getProductBySlug, getProducts, getProductPromotions } from "@/lib/api"
 import { ProductDisplay } from "@/components/product-display"
 import { Product, getCategorySlug } from "@/lib/products"
 
@@ -22,6 +22,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     notFound()
   }
 
+  // Fetch active promotions/gifts for this product
+  const promotions = await getProductPromotions(product.id)
+
   const currentCategoryId = typeof product.category_id === "string" ? product.category_id : ""
   const currentCategoryToken = normalizeToken(getCategorySlug(product.category) || "")
 
@@ -43,5 +46,5 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     .reverse() // Just reverse so it gives a different feel without being impure
     .slice(0, 5)
 
-  return <ProductDisplay product={product} relatedProducts={relatedProducts} />
+  return <ProductDisplay product={product} relatedProducts={relatedProducts} promotions={promotions} />
 }
