@@ -167,16 +167,6 @@ export function ProfileOrdersSection({
                     </span>
                   )}
                 </div>
-                {canRequestReturn(order.status, order.delivered_at) && !hasOpenReturnRequest(order.id) && (
-                  <div className="mt-2">
-                    <input
-                      value={returnReasonByOrder[order.id] || ""}
-                      onChange={(event) => onReturnReasonChange(order.id, event.target.value)}
-                      placeholder="Return reason (optional)"
-                      className="h-10 w-full rounded-xl border border-neutral-200 px-3 text-sm text-neutral-700 outline-none transition focus:border-black"
-                    />
-                  </div>
-                )}
               </article>
             )
           })}

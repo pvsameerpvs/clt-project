@@ -53,13 +53,16 @@ export default function DashboardOverviewPage() {
   const maxMonth = Math.max(...data.revenueByMonth.map((m) => m.total), 1)
 
   const stats = [
-    { label: "Total Revenue", value: `AED ${data.totalRevenue.toLocaleString()}`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Gross Revenue", value: `AED ${(data.totalRevenue + data.totalRefunds).toLocaleString()}`, icon: TrendingUp, color: "text-neutral-900", bg: "bg-neutral-50" },
+    { label: "Total Refunds", value: `AED ${data.totalRefunds.toLocaleString()}`, icon: RefreshCcw, color: "text-amber-600", bg: "bg-amber-50" },
+    { label: "Net Revenue", value: `AED ${data.totalRevenue.toLocaleString()}`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
     { label: "Total VAT Collected", value: `AED ${data.totalVAT.toLocaleString()}`, icon: ShoppingBag, color: "text-neutral-900", bg: "bg-neutral-100" },
     { label: "Card Payments", value: `AED ${data.cardRevenue.toLocaleString()}`, icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "COD Payments", value: `AED ${data.codRevenue.toLocaleString()}`, icon: RefreshCcw, color: "text-orange-600", bg: "bg-orange-50" },
     { label: "Pending Payment", value: `AED ${data.pendingRevenue.toLocaleString()}`, icon: Loader2, color: "text-amber-600", bg: "bg-amber-50" },
     { label: "Total Orders", value: data.totalOrders.toLocaleString(), icon: Package, color: "text-neutral-600", bg: "bg-neutral-50" },
     { label: "Paid Orders", value: data.totalPaidOrders.toLocaleString(), icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50/50" },
+    { label: "Refunded Orders", value: data.totalRefundedOrders.toLocaleString(), icon: RefreshCcw, color: "text-amber-700", bg: "bg-amber-50" },
     { label: "Unpaid Orders", value: data.totalUnpaidOrders.toLocaleString(), icon: Loader2, color: "text-red-400", bg: "bg-red-50" },
     { label: "Inventory", value: data.totalProducts.toLocaleString(), icon: Package, color: "text-purple-600", bg: "bg-purple-50" },
   ]
@@ -165,7 +168,10 @@ export default function DashboardOverviewPage() {
                     <p className="text-xs font-bold">AED {order.total}</p>
                     <span className={cn(
                       "inline-block rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest mt-1",
-                      order.status === 'delivered' ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"
+                      order.status === 'delivered' ? "bg-emerald-50 text-emerald-600" : 
+                      order.status === 'refunded' ? "bg-amber-50 text-amber-600" :
+                      order.status === 'cancelled' ? "bg-red-50 text-red-600" :
+                      "bg-neutral-100 text-neutral-500"
                     )}>
                       {order.status}
                     </span>

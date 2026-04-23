@@ -265,7 +265,7 @@ orderRoutes.post('/:id/return-request', authMiddleware, async (req: Request, res
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, status')
+      .select('id, status, delivered_at')
       .eq('id', orderId)
       .eq('user_id', req.user!.id)
       .single()
@@ -275,9 +275,26 @@ orderRoutes.post('/:id/return-request', authMiddleware, async (req: Request, res
       return
     }
 
-    // Returns are currently disabled by policy
-    res.status(400).json({ error: 'Returns are currently not supported for this store.' })
-    return
+    // 1. Must be delivered
+    if (order.status !== 'completed' && order.status !== 'delivered') {
+      res.status(400).json({ error: 'Only delivered orders can be returned.' })
+      return
+    }
+
+    // 2. Must be within 24 hours of delivery
+    if (!order.delivered_at) {
+      res.status(400).json({ error: 'Delivery timestamp missing. Please contact support.' })
+      return
+    }
+
+    const deliveryTime = new Date(order.delivered_at).getTime()
+    const currentTime = new Date().getTime()
+    const hoursSinceDelivery = (currentTime - deliveryTime) / (1000 * 60 * 60)
+
+    if (hoursSinceDelivery > 24) {
+      res.status(400).json({ error: 'Return window (24 hours) has expired for this order.' })
+      return
+    }
 
     const existingRequest = await supabaseAdmin
       .from('order_return_requests')

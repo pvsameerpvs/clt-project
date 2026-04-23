@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useProfile } from "@/contexts/profile-context"
 import { ProfileOrdersSection } from "@/components/profile/profile-orders-section"
+import { ReturnRequestModal } from "@/components/profile/return-request-modal"
 import { OrderRecord, ReturnRequestRecord } from "@/components/profile/profile-types"
 import { getMyOrders, getMyReturnRequests, cancelMyOrder, requestOrderReturn } from "@/lib/api"
 import { createClient } from "@/lib/supabase/client"
@@ -18,6 +19,8 @@ export default function OrdersPage() {
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [orderActionLoadingId, setOrderActionLoadingId] = useState<string | null>(null)
   const [returnReasonByOrder, setReturnReasonByOrder] = useState<Record<string, string>>({})
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false)
+  const [selectedOrderForReturn, setSelectedOrderForReturn] = useState<OrderRecord | null>(null)
 
   useEffect(() => {
     async function loadOrders() {
@@ -76,15 +79,25 @@ export default function OrdersPage() {
     }
   }
 
-  async function handleRequestReturn(orderId: string) {
+  function handleOpenReturnModal(orderId: string) {
+    const order = orders.find(o => o.id === orderId)
+    if (order) {
+      setSelectedOrderForReturn(order)
+      setIsReturnModalOpen(true)
+    }
+  }
+
+  async function handleRequestReturn(reason: string) {
+    if (!selectedOrderForReturn) return
+    const orderId = selectedOrderForReturn.id
+
     try {
       setOrderActionLoadingId(orderId)
       const token = await getAccessToken()
-      const reason = (returnReasonByOrder[orderId] || "").trim()
       const created = await requestOrderReturn(token, orderId, { reason })
       setReturnRequests((prev) => [created, ...prev])
-      setReturnReasonByOrder((prev) => ({ ...prev, [orderId]: "" }))
       toast.success("Return request submitted")
+      setIsReturnModalOpen(false)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to submit return request")
     } finally {
@@ -93,15 +106,25 @@ export default function OrdersPage() {
   }
 
   return (
-    <ProfileOrdersSection
-      ordersLoading={ordersLoading}
-      orders={orders}
-      orderActionLoadingId={orderActionLoadingId}
-      returnReasonByOrder={returnReasonByOrder}
-      onReturnReasonChange={setOrderReturnReason}
-      onCancelOrder={handleCancelOrder}
-      onRequestReturn={handleRequestReturn}
-      hasOpenReturnRequest={hasOpenReturnRequest}
-    />
+    <>
+      <ProfileOrdersSection
+        ordersLoading={ordersLoading}
+        orders={orders}
+        orderActionLoadingId={orderActionLoadingId}
+        returnReasonByOrder={returnReasonByOrder}
+        onReturnReasonChange={setOrderReturnReason}
+        onCancelOrder={handleCancelOrder}
+        onRequestReturn={handleOpenReturnModal}
+        hasOpenReturnRequest={hasOpenReturnRequest}
+      />
+
+      <ReturnRequestModal
+        isOpen={isReturnModalOpen}
+        onClose={() => setIsReturnModalOpen(false)}
+        onSubmit={handleRequestReturn}
+        orderNumber={selectedOrderForReturn?.order_number || selectedOrderForReturn?.id.slice(0, 8).toUpperCase() || ""}
+        isLoading={orderActionLoadingId === selectedOrderForReturn?.id}
+      />
+    </>
   )
 }

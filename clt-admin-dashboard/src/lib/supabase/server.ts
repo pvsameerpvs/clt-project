@@ -22,6 +22,9 @@ export async function createClient() {
           }
         },
       },
+      auth: {
+        storageKey: process.env.NEXT_PUBLIC_AUTH_STORAGE_KEY,
+      }
     }
   )
 }

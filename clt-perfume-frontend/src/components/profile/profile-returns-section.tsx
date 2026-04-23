@@ -178,12 +178,6 @@ export function ProfileReturnsSection({
                   <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">Return request already submitted</p>
                 ) : (
                   <>
-                    <input
-                      value={returnReasonByOrder[order.id] || ""}
-                      onChange={(event) => onReturnReasonChange(order.id, event.target.value)}
-                      placeholder="Return reason (optional)"
-                      className="mt-2 h-10 w-full rounded-xl border border-neutral-200 px-3 text-sm text-neutral-700 outline-none transition focus:border-black"
-                    />
                     <button
                       type="button"
                       onClick={() => onRequestReturn(order.id)}

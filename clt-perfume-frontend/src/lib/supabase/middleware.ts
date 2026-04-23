@@ -24,6 +24,9 @@ export async function updateSession(request: NextRequest) {
           )
         },
       },
+      auth: {
+        storageKey: process.env.NEXT_PUBLIC_AUTH_STORAGE_KEY,
+      }
     }
   )
 

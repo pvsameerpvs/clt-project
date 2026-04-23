@@ -118,7 +118,17 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
     const allOrders = (orders.data || []) as (AdminOrder & { payment_method?: string })[]
 
     const stats = calculateOrderStats(allOrders)
-    const { totalRevenue, cardRevenue, codRevenue, pendingRevenue, totalPaidOrders, totalUnpaidOrders, totalVAT } = stats
+    const { 
+      totalRevenue, 
+      cardRevenue, 
+      codRevenue, 
+      pendingRevenue, 
+      totalRefunds,
+      totalPaidOrders, 
+      totalUnpaidOrders, 
+      totalRefundedOrders,
+      totalVAT 
+    } = stats
 
     const now = new Date()
     const monthBuckets = Array.from({ length: 6 }, (_, index) => {
@@ -161,9 +171,11 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
       cardRevenue,
       codRevenue,
       pendingRevenue,
+      totalRefunds,
       totalVAT,
       totalPaidOrders,
       totalUnpaidOrders,
+      totalRefundedOrders,
       revenueByMonth: monthBuckets,
       recentOrders,
     })

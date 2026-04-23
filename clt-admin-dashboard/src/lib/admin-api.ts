@@ -55,11 +55,13 @@ export interface AdminDashboardData {
   totalCustomers: number
   totalRevenue: number
   totalVAT: number
+  totalRefunds: number
   cardRevenue: number
   codRevenue: number
   pendingRevenue: number
   totalPaidOrders: number
   totalUnpaidOrders: number
+  totalRefundedOrders: number
   revenueByMonth: RevenueBucket[]
   recentOrders: RecentOrder[]
 }
