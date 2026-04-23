@@ -8,6 +8,7 @@ export interface RevenueBucket {
   month: string
   label: string
   total: number
+  orders: number
 }
 
 export interface RecentOrder {

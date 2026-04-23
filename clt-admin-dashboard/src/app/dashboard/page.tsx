@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, Package, ShoppingBag, TrendingUp, Users, RefreshCcw } from "lucide-react"
+import { Loader2, Package, ShoppingBag, TrendingUp, RefreshCcw, TrendingDown } from "lucide-react"
 import { AdminDashboardData, getAdminDashboard } from "@/lib/admin-api"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -60,11 +60,11 @@ export default function DashboardOverviewPage() {
     { label: "Card Payments", value: `AED ${data.cardRevenue.toLocaleString()}`, icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "COD Payments", value: `AED ${data.codRevenue.toLocaleString()}`, icon: RefreshCcw, color: "text-orange-600", bg: "bg-orange-50" },
     { label: "Pending Payment", value: `AED ${data.pendingRevenue.toLocaleString()}`, icon: Loader2, color: "text-amber-600", bg: "bg-amber-50" },
-    { label: "Total Orders", value: data.totalOrders.toLocaleString(), icon: Package, color: "text-neutral-600", bg: "bg-neutral-50" },
-    { label: "Paid Orders", value: data.totalPaidOrders.toLocaleString(), icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50/50" },
-    { label: "Refunded Orders", value: data.totalRefundedOrders.toLocaleString(), icon: RefreshCcw, color: "text-amber-700", bg: "bg-amber-50" },
-    { label: "Unpaid Orders", value: data.totalUnpaidOrders.toLocaleString(), icon: Loader2, color: "text-red-400", bg: "bg-red-50" },
-    { label: "Inventory", value: data.totalProducts.toLocaleString(), icon: Package, color: "text-purple-600", bg: "bg-purple-50" },
+    { label: "Total Orders", value: (data.totalOrders || 0).toLocaleString(), icon: Package, color: "text-neutral-600", bg: "bg-neutral-50" },
+    { label: "Paid Orders", value: (data.totalPaidOrders || 0).toLocaleString(), icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50/50" },
+    { label: "Refunded Orders", value: (data.totalRefundedOrders || 0).toLocaleString(), icon: RefreshCcw, color: "text-amber-700", bg: "bg-amber-50" },
+    { label: "Unpaid Orders", value: (data.totalUnpaidOrders || 0).toLocaleString(), icon: Loader2, color: "text-red-400", bg: "bg-red-50" },
+    { label: "Total Products", value: (data.totalProducts || 0).toLocaleString(), icon: Package, color: "text-purple-600", bg: "bg-purple-50" },
   ]
 
   return (
@@ -119,21 +119,59 @@ export default function DashboardOverviewPage() {
             <CardDescription className="text-xs">Revenue performance over the last 6 months.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex h-[300px] items-end gap-3 sm:gap-6 pt-10">
-              {data.revenueByMonth.map((month) => {
-                const height = Math.max((month.total / maxMonth) * 100, month.total > 0 ? 5 : 2)
+            <div className="flex h-[350px] items-end gap-3 sm:gap-6 pt-12 pb-4">
+              {data.revenueByMonth.map((month, index) => {
+                const prevMonth = data.revenueByMonth[index - 1]
+                const growth = prevMonth && prevMonth.total > 0 
+                  ? Math.round(((month.total - prevMonth.total) / prevMonth.total) * 100)
+                  : null
+                
+                const height = Math.max((month.total / maxMonth) * 100, month.total > 0 ? 8 : 2)
+                
                 return (
-                  <div key={month.month} className="group/bar relative flex flex-1 flex-col items-center gap-3">
-                    <div className="absolute -top-10 opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap bg-black text-white px-2 py-1 rounded text-[10px] font-bold">
-                       AED {month.total.toLocaleString()}
+                  <div key={month.month} className="group/bar relative flex flex-1 flex-col items-center gap-4 h-full justify-end">
+                    {/* Growth Indicator */}
+                    {growth !== null && (
+                      <div className={cn(
+                        "absolute -top-6 flex items-center gap-1 text-[10px] font-bold tracking-tighter px-2 py-0.5 rounded-full z-10",
+                        growth >= 0 ? "text-emerald-600 bg-emerald-50" : "text-red-500 bg-red-50"
+                      )}>
+                        {growth >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+                        {Math.abs(growth)}%
+                      </div>
+                    )}
+
+                    {/* Tooltip */}
+                    <div className="absolute bottom-[100%] mb-4 opacity-0 group-hover/bar:opacity-100 transition-all duration-300 pointer-events-none z-20 translate-y-2 group-hover/bar:translate-y-0">
+                       <div className="bg-black text-white p-3 rounded-2xl shadow-2xl space-y-1 min-w-[120px]">
+                          <p className="text-[10px] font-black uppercase tracking-widest opacity-50">{month.label}</p>
+                          <div className="flex justify-between items-center gap-4">
+                            <span className="text-[10px] font-bold">Revenue</span>
+                            <span className="text-xs font-black">AED {month.total.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between items-center gap-4 pt-1 border-t border-white/10">
+                            <span className="text-[10px] font-bold">Orders</span>
+                            <span className="text-xs font-black">{month.orders}</span>
+                          </div>
+                       </div>
                     </div>
-                    <div className="relative w-full rounded-2xl bg-neutral-50 p-1 sm:p-2 h-full flex items-end border border-neutral-100">
+
+                    {/* Bar Container */}
+                    <div className="relative w-full rounded-3xl bg-neutral-50 p-1 sm:p-2 h-full flex items-end border border-neutral-100/50 group-hover/bar:border-black/10 transition-colors">
                       <div 
                         style={{ height: `${height}%` }} 
-                        className="w-full rounded-xl bg-black transition-all duration-700 ease-out group-hover/bar:bg-neutral-700 shadow-lg shadow-black/5" 
-                      />
+                        className={cn(
+                          "w-full rounded-2xl transition-all duration-1000 ease-out shadow-lg shadow-black/5 relative overflow-hidden group-hover/bar:shadow-xl",
+                          month.total === maxMonth ? "bg-black" : "bg-neutral-800"
+                        )}
+                      >
+                         {/* Subtle shine effect */}
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-50" />
+                         <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent" />
+                      </div>
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 group-hover/bar:text-black transition-colors">
+
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 group-hover/bar:text-black transition-colors">
                       {month.label}
                     </span>
                   </div>
@@ -165,7 +203,7 @@ export default function DashboardOverviewPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold">AED {order.total}</p>
+                    <p className="text-xs font-bold">AED {(order.total || 0).toLocaleString()}</p>
                     <span className={cn(
                       "inline-block rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest mt-1",
                       order.status === 'delivered' ? "bg-emerald-50 text-emerald-600" : 

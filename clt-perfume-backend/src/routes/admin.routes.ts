@@ -138,6 +138,7 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
         month: key,
         label: date.toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }),
         total: 0,
+        orders: 0,
       }
     })
 
@@ -149,7 +150,10 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
       if (Number.isNaN(createdAt.getTime())) continue
       const key = `${createdAt.getUTCFullYear()}-${String(createdAt.getUTCMonth() + 1).padStart(2, '0')}`
       const bucket = bucketMap.get(key)
-      if (bucket) bucket.total += Number(order.total || 0)
+      if (bucket) {
+        bucket.total += Number(order.total || 0)
+        bucket.orders += 1
+      }
     }
 
     const recentOrders = [...allOrders]
