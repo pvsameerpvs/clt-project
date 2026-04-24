@@ -22,7 +22,6 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
  
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
-  const supabase = createClient()
   const { user: authUser, isLoading: authLoading } = useAuth()
   
   const [user, setUser] = useState<User | null>(null)
@@ -33,6 +32,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const loadProfileData = useCallback(async (currentUser: User) => {
     try {
       setLoading(true)
+      const supabase = createClient()
       const [profileResult, addressResult] = await Promise.all([
         supabase.from("profiles").select("first_name,last_name,phone,date_of_birth,gender").eq("id", currentUser.id).maybeSingle(),
         supabase.from("user_addresses")
@@ -52,7 +52,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [])
  
   useEffect(() => {
     if (authLoading) {

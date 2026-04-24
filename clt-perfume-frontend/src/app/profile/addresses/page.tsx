@@ -10,7 +10,6 @@ import { toast } from "sonner"
 
 export default function AddressesPage() {
   const { user, fullName, profile, addresses: globalAddresses, loading, refreshProfile } = useProfile()
-  const supabase = createClient()
  
   const [addresses, setAddresses] = useState<AddressRecord[]>([])
   const [showAddressForm, setShowAddressForm] = useState(false)
@@ -94,61 +93,79 @@ export default function AddressesPage() {
     }
 
     setIsSavingAddress(true)
-    const payload = {
-      user_id: user.id,
-      title: newAddress.title.trim(),
-      address_type: newAddress.type,
-      contact_name: newAddress.contactName.trim(),
-      phone: newAddress.phone.trim(),
-      line1: newAddress.line1.trim(),
-      line2: newAddress.line2.trim(),
-      city: newAddress.city.trim(),
-      country: newAddress.country.trim(),
-      is_primary: editingAddressId ? undefined : addresses.length === 0,
-    }
+    try {
+      const supabase = createClient()
+      const payload = {
+        user_id: user.id,
+        title: newAddress.title.trim(),
+        address_type: newAddress.type,
+        contact_name: newAddress.contactName.trim(),
+        phone: newAddress.phone.trim(),
+        line1: newAddress.line1.trim(),
+        line2: newAddress.line2.trim(),
+        city: newAddress.city.trim(),
+        country: newAddress.country.trim(),
+        is_primary: editingAddressId ? undefined : addresses.length === 0,
+      }
 
-    const query = editingAddressId
-      ? supabase.from("user_addresses").update(payload).eq("id", editingAddressId).eq("user_id", user.id)
-      : supabase.from("user_addresses").insert(payload)
+      const query = editingAddressId
+        ? supabase.from("user_addresses").update(payload).eq("id", editingAddressId).eq("user_id", user.id)
+        : supabase.from("user_addresses").insert(payload)
 
-    const { data, error } = await query.select("*").single()
+      const { data, error } = await query.select("*").single()
 
-    if (error || !data) {
-      const msg = error?.message || "Failed to save address."
-      setAddressError(msg)
-      toast.error(msg)
+      if (error || !data) {
+        const msg = error?.message || "Failed to save address."
+        setAddressError(msg)
+        toast.error(msg)
+        return
+      }
+
+      await refreshProfile() // Update global pre-fetch
+      
+      if (editingAddressId) {
+        toast.success("Address updated")
+      } else {
+        toast.success("Address added")
+      }
+      setShowAddressForm(false)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save address."
+      setAddressError(message)
+      toast.error(message)
+    } finally {
       setIsSavingAddress(false)
-      return
     }
-
-    await refreshProfile() // Update global pre-fetch
-    
-    if (editingAddressId) {
-      toast.success("Address updated")
-    } else {
-      toast.success("Address added")
-    }
-    setShowAddressForm(false)
-    setIsSavingAddress(false)
   }
 
   async function setPrimaryAddress(addressId: string) {
     if (!user) return
     setUpdatingPrimaryId(addressId)
-    await supabase.from("user_addresses").update({ is_primary: false }).eq("user_id", user.id)
-    await supabase.from("user_addresses").update({ is_primary: true }).eq("id", addressId).eq("user_id", user.id)
-    
-    await refreshProfile() // Update global pre-fetch
-    setUpdatingPrimaryId(null)
-    toast.success("Primary address updated")
+    try {
+      const supabase = createClient()
+      await supabase.from("user_addresses").update({ is_primary: false }).eq("user_id", user.id)
+      await supabase.from("user_addresses").update({ is_primary: true }).eq("id", addressId).eq("user_id", user.id)
+      
+      await refreshProfile() // Update global pre-fetch
+      toast.success("Primary address updated")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update primary address")
+    } finally {
+      setUpdatingPrimaryId(null)
+    }
   }
 
   async function deleteAddress(addressId: string) {
     if (!user) return
-    const { error } = await supabase.from("user_addresses").delete().eq("id", addressId).eq("user_id", user.id)
-    if (!error) {
-      await refreshProfile() // Update global pre-fetch
-      toast.success("Address removed")
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from("user_addresses").delete().eq("id", addressId).eq("user_id", user.id)
+      if (!error) {
+        await refreshProfile() // Update global pre-fetch
+        toast.success("Address removed")
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to remove address")
     }
   }
 

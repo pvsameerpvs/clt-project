@@ -12,7 +12,6 @@ import { toast } from "sonner"
 
 export default function ReturnsPage() {
   const { user, loading: profileLoading } = useProfile()
-  const supabase = createClient()
  
   const [orders, setOrders] = useState<OrderRecord[]>([])
   const [returnRequests, setReturnRequests] = useState<ReturnRequestRecord[]>([])
@@ -28,6 +27,7 @@ export default function ReturnsPage() {
       
       try {
         setDataLoading(true)
+        const supabase = createClient()
         const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token
         if (!token) return
@@ -42,7 +42,7 @@ export default function ReturnsPage() {
       }
     }
     loadData()
-  }, [user, supabase])
+  }, [user])
 
   function setOrderReturnReason(orderId: string, reason: string) {
     setReturnReasonByOrder(prev => ({ ...prev, [orderId]: reason }))
@@ -50,6 +50,7 @@ export default function ReturnsPage() {
 
   async function handleCancelOrder(orderId: string) {
     try {
+      const supabase = createClient()
       setOrderActionLoadingId(orderId)
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -82,6 +83,7 @@ export default function ReturnsPage() {
 
     const orderId = selectedOrderForReturn.id
     try {
+      const supabase = createClient()
       setOrderActionLoadingId(orderId)
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token

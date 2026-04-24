@@ -12,7 +12,6 @@ import { Loader2 } from "lucide-react"
 
 export default function AccountPage() {
   const { user, profile, initials, loading, refreshProfile } = useProfile()
-  const supabase = createClient()
  
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
@@ -77,30 +76,34 @@ export default function AccountPage() {
 
     setIsSavingProfile(true)
     setProfileError("")
+    try {
+      const supabase = createClient()
+      const payload = {
+        first_name: profileForm.firstName.trim(),
+        last_name: profileForm.lastName.trim(),
+        phone: profileForm.phone.trim(),
+        date_of_birth: profileForm.dateOfBirth || null,
+        gender: (profileForm.gender || null) as ProfileGender | null,
+      }
 
-    const payload = {
-      first_name: profileForm.firstName.trim(),
-      last_name: profileForm.lastName.trim(),
-      phone: profileForm.phone.trim(),
-      date_of_birth: profileForm.dateOfBirth || null,
-      gender: (profileForm.gender || null) as ProfileGender | null,
-    }
+      const { error } = await supabase
+        .from("profiles")
+        .update(payload)
+        .eq("id", user.id)
 
-    const { error } = await supabase
-      .from("profiles")
-      .update(payload)
-      .eq("id", user.id)
+      if (error) {
+        setProfileError(error.message || "Failed to save profile.")
+        return
+      }
 
-    if (error) {
-      setProfileError(error.message || "Failed to save profile.")
+      await refreshProfile()
+      setIsEditingProfile(false)
+      toast.success("Profile updated")
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "Failed to save profile.")
+    } finally {
       setIsSavingProfile(false)
-      return
     }
-
-    await refreshProfile()
-    setIsEditingProfile(false)
-    setIsSavingProfile(false)
-    toast.success("Profile updated")
   }
 
   return (

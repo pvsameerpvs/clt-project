@@ -12,7 +12,6 @@ import { toast } from "sonner"
 
 export default function OrdersPage() {
   const { user } = useProfile()
-  const supabase = createClient()
 
   const [orders, setOrders] = useState<OrderRecord[]>([])
   const [returnRequests, setReturnRequests] = useState<ReturnRequestRecord[]>([])
@@ -27,6 +26,7 @@ export default function OrdersPage() {
       if (!user) return
       
       try {
+        const supabase = createClient()
         const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token
         if (!token) return
@@ -45,9 +45,10 @@ export default function OrdersPage() {
     }
  
     loadOrders()
-  }, [user, supabase])
+  }, [user])
 
   async function getAccessToken() {
+    const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.access_token) throw new Error("Please login again.")
     return session.access_token
