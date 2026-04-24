@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getAdminPromoCodes, createAdminPromoCode, deleteAdminPromoCode, PromoCode } from "@/lib/admin-api"
-import { Loader2, Ticket, Plus, Trash2 } from "lucide-react"
+import { getAdminPromoCodes, createAdminPromoCode, updateAdminPromoCode, deleteAdminPromoCode, PromoCode } from "@/lib/admin-api"
+import { Loader2, Ticket, Plus, Trash2, Edit2 } from "lucide-react"
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<PromoCode[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingCoupon, setEditingCoupon] = useState<PromoCode | null>(null)
   
   const [newCoupon, setNewCoupon] = useState({
     code: "",
@@ -31,21 +32,43 @@ export default function CouponsPage() {
     load()
   }, [])
 
-  async function handleCreate(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     try {
-      await createAdminPromoCode({
-        code: newCoupon.code,
-        discount_type: newCoupon.discount_type as 'percentage' | 'fixed',
-        discount_value: Number(newCoupon.discount_value),
-        expires_at: newCoupon.expires_at || undefined
-      })
+      if (editingCoupon) {
+        await updateAdminPromoCode(editingCoupon.id, {
+          code: newCoupon.code,
+          discount_type: newCoupon.discount_type as 'percentage' | 'fixed',
+          discount_value: Number(newCoupon.discount_value),
+          expires_at: newCoupon.expires_at || undefined
+        })
+      } else {
+        await createAdminPromoCode({
+          code: newCoupon.code,
+          discount_type: newCoupon.discount_type as 'percentage' | 'fixed',
+          discount_value: Number(newCoupon.discount_value),
+          expires_at: newCoupon.expires_at || undefined
+        })
+      }
       setShowForm(false)
+      setEditingCoupon(null)
       setNewCoupon({ code: "", discount_type: "percentage", discount_value: "", expires_at: "" })
       load()
     } catch (err) {
-      alert("Failed to create coupon")
+      alert(`Failed to ${editingCoupon ? 'update' : 'create'} coupon`)
     }
+  }
+
+  function startEdit(coupon: PromoCode) {
+    setEditingCoupon(coupon)
+    setNewCoupon({
+      code: coupon.code,
+      discount_type: coupon.discount_type,
+      discount_value: String(coupon.discount_value),
+      expires_at: coupon.expires_at ? new Date(coupon.expires_at).toISOString().split('T')[0] : ""
+    })
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function handleDelete(id: string) {
@@ -86,8 +109,8 @@ export default function CouponsPage() {
 
       {showForm && (
         <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 16, padding: 24, marginBottom: 32 }}>
-          <h3 style={{ margin: "0 0 20px" }}>Create New Discount</h3>
-          <form onSubmit={handleCreate} style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+          <h3 style={{ margin: "0 0 20px" }}>{editingCoupon ? `Edit Coupon: ${editingCoupon.code}` : 'Create New Discount'}</h3>
+          <form onSubmit={handleSave} style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
             <div>
               <label style={{ display: "block", fontSize: 13, color: "#6b7280", marginBottom: 6 }}>Coupon Code</label>
               <input 
@@ -130,8 +153,10 @@ export default function CouponsPage() {
               />
             </div>
             <div style={{ gridColumn: "span 2", display: "flex", gap: 12, marginTop: 8 }}>
-              <button type="submit" style={{ flex: 1, background: "#111", color: "#fff", padding: "12px", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: 600 }}>Save Coupon</button>
-              <button type="button" onClick={() => setShowForm(false)} style={{ flex: 0.5, background: "#fff", border: "1px solid #d1d5db", padding: "12px", borderRadius: 12, cursor: "pointer" }}>Cancel</button>
+              <button type="submit" style={{ flex: 1, background: "#111", color: "#fff", padding: "12px", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: 600 }}>
+                {editingCoupon ? 'Update Coupon' : 'Save Coupon'}
+              </button>
+              <button type="button" onClick={() => { setShowForm(false); setEditingCoupon(null); }} style={{ flex: 0.5, background: "#fff", border: "1px solid #d1d5db", padding: "12px", borderRadius: 12, cursor: "pointer" }}>Cancel</button>
             </div>
           </form>
         </div>
@@ -165,12 +190,26 @@ export default function CouponsPage() {
                 {coupon.expires_at && ` · Expires ${new Date(coupon.expires_at).toLocaleDateString()}`}
               </div>
 
-              <button 
-                onClick={() => handleDelete(coupon.id)}
-                style={{ position: "absolute", top: 20, right: 20, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: 5 }}
-              >
-                <Trash2 size={16} />
-              </button>
+              <div style={{ position: "absolute", top: 20, right: 20, display: "flex", gap: 8 }}>
+                <button 
+                  onClick={() => startEdit(coupon)}
+                  style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: 5, transition: "color 0.2s" }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#111"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = "#9ca3af"}
+                  title="Edit Coupon"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button 
+                  onClick={() => handleDelete(coupon.id)}
+                  style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: 5, transition: "color 0.2s" }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#ef4444"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = "#9ca3af"}
+                  title="Delete Coupon"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           ))
         )}

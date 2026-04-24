@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import type { OrderRecord } from "./profile-types"
 import { canCancelOrder, canRequestReturn, normalizeOrderStatus } from "./profile-utils"
 import { OrderStatusStepper } from "./order-status-stepper"
@@ -95,18 +96,30 @@ export function ProfileOrdersSection({
                         const quantity = Math.max(1, Number(item.quantity || 1))
                         const unitPrice = Number(item.price || 0)
                         const lineTotal = unitPrice * quantity
-                        const productName = item.product_name || "Product"
+                        const rawName = item.product_name || "Product"
+                        // Clean name for display: remove (Offer:...) or old (Offer)
+                        const productName = rawName.replace(/\(Offer:.*?:AED\s*[\d.]+\)/, '').replace(/\(Offer:AED\s*[\d.]+\)/, '').replace('(Offer)', '').trim()
+                        
+                        // Parse bundle title and original price
+                        const bundleMatch = rawName.match(/\(Offer:(.*?):AED\s*[\d.]+\)/)
+                        const bundleTitle = bundleMatch ? bundleMatch[1] : (rawName.includes('(Offer') ? 'Special Offer' : null)
+                        
+                        const priceMatch = rawName.match(/AED\s*([\d.]+)\)/)
+                        const originalPrice = priceMatch ? Number(priceMatch[1]) : null
+                        
+                        const isOffer = Boolean(bundleTitle)
                         const hasSlug = Boolean(item.product_slug)
 
                         return (
                           <div key={item.id} className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-2.5">
                             <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-neutral-200 bg-white">
                               {item.product_image ? (
-                                <img
+                                <Image
                                   src={item.product_image}
                                   alt={productName}
+                                  width={56}
+                                  height={56}
                                   className="h-full w-full object-cover"
-                                  loading="lazy"
                                 />
                               ) : (
                                 <div className="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-wide text-neutral-400">
@@ -134,12 +147,24 @@ export function ProfileOrdersSection({
                                     Free Gift
                                   </span>
                                 )}
+                                {isOffer && (
+                                  <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-700">
+                                    {bundleTitle}
+                                  </span>
+                                )}
                               </div>
                               <p className="text-xs text-neutral-500">
                                 {unitPrice === 0 ? (
                                   `Qty ${quantity} x Free`
                                 ) : (
-                                  `Qty ${quantity} x AED ${toMoney(unitPrice)}`
+                                  <span className="flex flex-col gap-0.5">
+                                    {originalPrice && (
+                                      <span className="text-[10px] text-neutral-400 line-through">
+                                        AED {toMoney(originalPrice)}
+                                      </span>
+                                    )}
+                                    <span>Qty {quantity} x AED {toMoney(unitPrice)}</span>
+                                  </span>
                                 )}
                               </p>
                             </div>

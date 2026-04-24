@@ -211,6 +211,8 @@ export interface AdminOrder {
   order_number?: string
   total: number
   subtotal: number
+  promo_code?: string | null
+  promo_discount?: number
   tax: number
   shipping_fee: number
   status: string
@@ -504,6 +506,13 @@ export function getAdminPromoCodes() {
 export function createAdminPromoCode(payload: Partial<PromoCode>) {
   return adminFetch<PromoCode>("/api/admin/promo-codes", {
     method: "POST",
+    body: JSON.stringify(payload)
+  })
+}
+
+export function updateAdminPromoCode(promoId: string, payload: Partial<PromoCode>) {
+  return adminFetch<PromoCode>(`/api/admin/promo-codes/${promoId}`, {
+    method: "PUT",
     body: JSON.stringify(payload)
   })
 }

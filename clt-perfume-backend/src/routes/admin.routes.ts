@@ -881,6 +881,21 @@ adminRoutes.post('/promo-codes', async (req: Request, res: Response) => {
   }
 })
 
+adminRoutes.put('/promo-codes/:id', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('promo_codes')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .select()
+      .single()
+    if (error) throw error
+    res.json(data)
+  } catch (error: any) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
 adminRoutes.delete('/promo-codes/:id', async (req: Request, res: Response) => {
   try {
     const { error } = await supabaseAdmin.from('promo_codes').delete().eq('id', req.params.id)

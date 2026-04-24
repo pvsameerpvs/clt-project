@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import {
@@ -10,6 +11,8 @@ import {
   ORDER_STATUSES,
   updateAdminOrderStatus,
 } from "@/lib/admin-api"
+import { Ticket } from "lucide-react"
+import { parseProductMetadata, formatAED } from "@/lib/format-utils"
 
 function toText(value: unknown) {
   return typeof value === "string" ? value.trim() : ""
@@ -48,9 +51,7 @@ function statusTone(status: string) {
   }
 }
 
-function formatMoney(value: number | string | null | undefined) {
-  return Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
+
 
 function getProfile(order: AdminOrder) {
   if (!order.profile) {
@@ -237,19 +238,19 @@ export default function OrderDetailsPage() {
         </article>
         <article className="summary-card">
           <p>Subtotal</p>
-          <h3>AED {formatMoney(order.subtotal)}</h3>
+          <h3>AED {formatAED(order.subtotal)}</h3>
         </article>
         <article className="summary-card">
           <p>Tax</p>
-          <h3>AED {formatMoney(order.tax)}</h3>
+          <h3>AED {formatAED(order.tax)}</h3>
         </article>
         <article className="summary-card">
           <p>Shipping</p>
-          <h3>AED {formatMoney(order.shipping_fee)}</h3>
+          <h3>AED {formatAED(order.shipping_fee)}</h3>
         </article>
         <article className="summary-card total">
           <p>Total</p>
-          <h3>AED {formatMoney(order.total)}</h3>
+          <h3>AED {formatAED(order.total)}</h3>
         </article>
       </section>
 
@@ -329,7 +330,16 @@ export default function OrderDetailsPage() {
       )}
 
       <section className="panel">
-        <h3>Order Items ({items.length})</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <h3 style={{ margin: 0 }}>Order Items ({items.length})</h3>
+          {order.promo_code && (
+            <span className="promo-tag" title={`Coupon: ${order.promo_code}`}>
+              <Ticket size={14} style={{ marginRight: '6px' }} />
+              PROMO: {order.promo_code}
+            </span>
+          )}
+        </div>
+
         {items.length === 0 ? (
           <div className="empty">No order items found.</div>
         ) : (
@@ -352,7 +362,13 @@ export default function OrderDetailsPage() {
                       <td>
                         <div className="item-thumb">
                           {item.product_image ? (
-                            <img src={item.product_image} alt={item.product_name} />
+                            <Image 
+                              src={item.product_image} 
+                              alt={item.product_name} 
+                              width={50}
+                              height={50}
+                              className="object-cover"
+                            />
                           ) : (
                             <div className="thumb-placeholder">No Image</div>
                           )}
@@ -360,33 +376,72 @@ export default function OrderDetailsPage() {
                       </td>
                       <td>
                         <div className="item-name">
-                          {item.product_name}
-                          {item.product_ml && (
-                            <span className="ml-badge">{item.product_ml} ML</span>
-                          )}
-                          {isGift && (
-                            <span className="gift-badge">GIFT</span>
-                          )}
+                          {(() => {
+                            const { cleanName, bundleTitle } = parseProductMetadata(item.product_name)
+                            return (
+                              <>
+                                {cleanName}
+                                {item.product_ml && <span className="ml-badge">{item.product_ml} ML</span>}
+                                {isGift && <span className="gift-badge">GIFT</span>}
+                                {bundleTitle && <span className="offer-badge">{bundleTitle.toUpperCase()}</span>}
+                              </>
+                            )
+                          })()}
                         </div>
                       </td>
                       <td>{item.quantity}</td>
                       <td>
-                        {isGift ? (
-                          <span className="text-emerald-600 font-bold">FREE</span>
-                        ) : (
-                          `AED ${formatMoney(item.price)}`
-                        )}
+                        <div className="price-display">
+                          {(() => {
+                            const { originalPrice } = parseProductMetadata(item.product_name)
+                            return (
+                              <>
+                                {originalPrice && (
+                                  <span className="original-price">AED {formatAED(originalPrice)}</span>
+                                )}
+                                <span className="current-price">AED {formatAED(item.price)}</span>
+                              </>
+                            )
+                          })()}
+                        </div>
                       </td>
                       <td className="item-total">
                         {isGift ? (
                           <span className="text-emerald-600 font-bold">FREE</span>
                         ) : (
-                          `AED ${formatMoney(Number(item.price || 0) * Number(item.quantity || 0))}`
+                          `AED ${formatAED(Number(item.price || 0) * Number(item.quantity || 0))}`
                         )}
                       </td>
                     </tr>
                   )
                 })}
+                
+                {/* Promo & Totals Summary Rows */}
+                {order.promo_code && (
+                  <>
+                    <tr className="summary-row">
+                      <td colSpan={4} style={{ textAlign: 'right', fontWeight: 600, color: '#6b7280' }}>Subtotal</td>
+                      <td className="item-total" style={{ fontWeight: 600 }}>AED {formatAED(order.subtotal)}</td>
+                    </tr>
+                    <tr className="summary-row">
+                      <td colSpan={4} style={{ textAlign: 'right', fontWeight: 600, color: '#059669' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                          <Ticket size={14} />
+                          Promo Discount ({order.promo_code})
+                        </div>
+                      </td>
+                      <td className="item-total" style={{ color: '#059669', fontWeight: 700 }}>
+                        - AED {formatAED(order.promo_discount)}
+                      </td>
+                    </tr>
+                    <tr className="summary-row total-row">
+                      <td colSpan={4} style={{ textAlign: 'right', fontWeight: 800, fontSize: '16px' }}>Order Total</td>
+                      <td className="item-total" style={{ fontWeight: 800, fontSize: '16px', borderTop: '2px solid #111827' }}>
+                        AED {formatAED(order.total)}
+                      </td>
+                    </tr>
+                  </>
+                )}
               </tbody>
             </table>
           </div>
@@ -567,6 +622,54 @@ export default function OrderDetailsPage() {
           letter-spacing: 0.05em;
           border: 1px solid #a7f3d0;
           white-space: nowrap;
+        }
+        .offer-badge {
+          background: #fffbeb;
+          color: #b45309;
+          padding: 2px 6px;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          border: 1px solid #fde68a;
+          white-space: nowrap;
+        }
+        .promo-tag {
+          display: inline-flex;
+          align-items: center;
+          background: #ecfdf5;
+          color: #059669;
+          padding: 4px 10px;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 700;
+          border: 1px solid #a7f3d0;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .summary-row td {
+          background: #fafafa;
+          border-bottom: none;
+          padding: 8px 12px;
+        }
+        .total-row td {
+          background: #fff;
+          padding-top: 16px;
+        }
+        .price-display {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .original-price {
+          text-decoration: line-through;
+          color: #a3a3a3;
+          font-size: 11px;
+          font-weight: 400;
+        }
+        .current-price {
+          font-weight: 600;
+          color: #171717;
         }
         .item-thumb {
           width: 50px;
