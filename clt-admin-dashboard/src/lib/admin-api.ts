@@ -141,6 +141,7 @@ export interface SiteSettings {
     image: string
     tagline: string
     headline: string
+    href: string
   }>
   ticker_text: string
   pocket_friendly_configs: number[]

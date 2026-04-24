@@ -109,7 +109,7 @@ interface NavSectionData {
 }
 
 interface SiteSettingsData {
-  hero_slides: Array<{ image: string; tagline: string; headline: string }>
+  hero_slides: Array<{ image: string; tagline: string; headline: string; href: string }>
   ticker_text: string
   pocket_friendly_configs: number[]
   collections: Array<{ href: string; image: string; cover_image?: string; subtitle: string; title: string; action: string; product_slugs?: string[] }>

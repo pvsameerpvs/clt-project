@@ -81,9 +81,16 @@ app.get('/api/health', (req, res) => {
 
 import { startAbandonedCartCron } from './services/cron.service'
 
-app.listen(PORT, () => {
-  console.log(`🚀 CLE Perfumes API running on port ${PORT}`)
-  
-  // Start the background cron worker for abandoned carts
-  startAbandonedCartCron()
-})
+
+// Export the app for Vercel
+export default app
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 CLE Perfumes API running on port ${PORT}`)
+    
+    // Start the background cron worker for abandoned carts
+    startAbandonedCartCron()
+  })
+}
+
