@@ -498,19 +498,20 @@ adminRoutes.get('/orders/:id', async (req: Request, res: Response) => {
         profile:profiles(*),
         items:order_items(
           *,
-          product:products(ml)
+          product:products(ml, images)
         ),
         return_requests:order_return_requests(*)
       `)
       .eq('id', req.params.id)
       .single()
 
-    if (error) throw error
+    if (error || !data) throw error
     
-    // Flatten the ml field for the frontend
+    // Flatten fields for the frontend
     const normalizedItems = (data.items || []).map((item: any) => ({
       ...item,
-      product_ml: item.product?.ml || null
+      product_ml: item.product?.ml || null,
+      product_image: item.product?.images?.[0] || null
     }))
 
     const { stock_quantity, ...rest } = data
@@ -536,7 +537,7 @@ adminRoutes.get('/orders/:id/invoice', async (req: Request, res: Response) => {
         profile:profiles(*),
         items:order_items(
           *,
-          product:products(ml)
+          product:products(ml, images)
         )
       `)
       .eq('id', req.params.id)

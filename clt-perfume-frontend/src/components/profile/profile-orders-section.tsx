@@ -115,24 +115,41 @@ export function ProfileOrdersSection({
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              {hasSlug ? (
-                                <Link
-                                  href={`/product/${item.product_slug}`}
-                                  className="block truncate text-sm font-semibold text-neutral-900 transition hover:underline"
-                                  title={productName}
-                                >
-                                  {productName}
-                                </Link>
-                              ) : (
-                                <p className="truncate text-sm font-semibold text-neutral-900" title={productName}>
-                                  {productName}
-                                </p>
-                              )}
+                              <div className="flex items-center gap-1">
+                                {hasSlug ? (
+                                  <Link
+                                    href={`/product/${item.product_slug}`}
+                                    className="block truncate text-sm font-semibold text-neutral-900 transition hover:underline"
+                                    title={productName}
+                                  >
+                                    {productName}
+                                  </Link>
+                                ) : (
+                                  <p className="truncate text-sm font-semibold text-neutral-900" title={productName}>
+                                    {productName}
+                                  </p>
+                                )}
+                                {unitPrice === 0 && (
+                                  <span className="ml-2 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-emerald-600 border border-emerald-100">
+                                    Free Gift
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-neutral-500">
-                                Qty {quantity} x AED {toMoney(unitPrice)}
+                                {unitPrice === 0 ? (
+                                  `Qty ${quantity} x Free`
+                                ) : (
+                                  `Qty ${quantity} x AED ${toMoney(unitPrice)}`
+                                )}
                               </p>
                             </div>
-                            <p className="text-sm font-semibold text-neutral-800">AED {toMoney(lineTotal)}</p>
+                            <p className="text-sm font-semibold text-neutral-800">
+                              {unitPrice === 0 ? (
+                                <span className="text-emerald-600 font-bold tracking-tight">FREE</span>
+                              ) : (
+                                `AED ${toMoney(lineTotal)}`
+                              )}
+                            </p>
                           </div>
                         )
                       })}

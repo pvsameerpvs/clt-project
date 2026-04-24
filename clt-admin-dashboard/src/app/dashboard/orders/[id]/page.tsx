@@ -337,6 +337,7 @@ export default function OrderDetailsPage() {
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: '80px' }}>Image</th>
                   <th>Product</th>
                   <th>Quantity</th>
                   <th>Price</th>
@@ -344,21 +345,48 @@ export default function OrderDetailsPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, index) => (
-                  <tr key={`${item.product_name}-${index}`}>
-                    <td>
-                      <div className="item-name">
-                        {item.product_name}
-                        {item.product_ml && (
-                          <span className="ml-badge">{item.product_ml} ML</span>
+                {items.map((item, index) => {
+                  const isGift = Number(item.price || 0) === 0;
+                  return (
+                    <tr key={`${item.product_name}-${index}`}>
+                      <td>
+                        <div className="item-thumb">
+                          {item.product_image ? (
+                            <img src={item.product_image} alt={item.product_name} />
+                          ) : (
+                            <div className="thumb-placeholder">No Image</div>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="item-name">
+                          {item.product_name}
+                          {item.product_ml && (
+                            <span className="ml-badge">{item.product_ml} ML</span>
+                          )}
+                          {isGift && (
+                            <span className="gift-badge">GIFT</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>{item.quantity}</td>
+                      <td>
+                        {isGift ? (
+                          <span className="text-emerald-600 font-bold">FREE</span>
+                        ) : (
+                          `AED ${formatMoney(item.price)}`
                         )}
-                      </div>
-                    </td>
-                    <td>{item.quantity}</td>
-                    <td>AED {formatMoney(item.price)}</td>
-                    <td className="item-total">AED {formatMoney(Number(item.price || 0) * Number(item.quantity || 0))}</td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="item-total">
+                        {isGift ? (
+                          <span className="text-emerald-600 font-bold">FREE</span>
+                        ) : (
+                          `AED ${formatMoney(Number(item.price || 0) * Number(item.quantity || 0))}`
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -516,6 +544,7 @@ export default function OrderDetailsPage() {
           display: flex;
           align-items: center;
           gap: 8px;
+          flex-wrap: wrap;
         }
         .ml-badge {
           background: #f3f4f6;
@@ -527,6 +556,43 @@ export default function OrderDetailsPage() {
           letter-spacing: 0.05em;
           border: 1px solid #e5e7eb;
           white-space: nowrap;
+        }
+        .gift-badge {
+          background: #ecfdf5;
+          color: #059669;
+          padding: 2px 6px;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          border: 1px solid #a7f3d0;
+          white-space: nowrap;
+        }
+        .item-thumb {
+          width: 50px;
+          height: 50px;
+          border-radius: 8px;
+          overflow: hidden;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+        }
+        .item-thumb img {
+          width: 100%;
+          height: 100%;
+          object-cover: cover;
+        }
+        .thumb-placeholder {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 8px;
+          color: #9ca3af;
+          text-align: center;
+          padding: 4px;
+          font-weight: 600;
+          text-transform: uppercase;
         }
         .item-total {
           font-weight: 700;

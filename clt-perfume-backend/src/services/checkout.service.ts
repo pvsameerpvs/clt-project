@@ -184,6 +184,27 @@ export async function resolveCheckoutPricing(
     }
   })
 
+  // === APPLY PRODUCT-TO-PRODUCT PROMOTIONS (GIFT SYSTEM) ===
+  const { data: activePromos } = await supabaseAdmin
+    .from('product_promotions')
+    .select('parent_id, child_id, discount_percentage')
+    .eq('is_active', true)
+
+  if (activePromos && activePromos.length > 0) {
+    for (const promo of activePromos) {
+      const parentInCart = orderItems.find(i => i.product_id === promo.parent_id)
+      const childInCart = orderItems.find(i => i.product_id === promo.child_id)
+
+      if (parentInCart && childInCart) {
+        // Apply discount to the child item based on the percentage
+        const discount = Math.min(100, Math.max(0, toSafeNumber(promo.discount_percentage)))
+        const originalPrice = childInCart.price
+        childInCart.price = roundCurrency(originalPrice * (1 - discount / 100))
+      }
+    }
+  }
+  // ========================================================
+
   const subtotal = roundCurrency(
     orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   )
