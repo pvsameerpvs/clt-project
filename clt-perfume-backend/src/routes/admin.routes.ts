@@ -493,14 +493,35 @@ adminRoutes.get('/orders/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('orders')
-      .select('*, profile:profiles(*), items:order_items(*), return_requests:order_return_requests(*)')
+      .select(`
+        *,
+        profile:profiles(*),
+        items:order_items(
+          *,
+          product:products(ml)
+        ),
+        return_requests:order_return_requests(*)
+      `)
       .eq('id', req.params.id)
       .single()
 
     if (error) throw error
+    
+    // Flatten the ml field for the frontend
+    const normalizedItems = (data.items || []).map((item: any) => ({
+      ...item,
+      product_ml: item.product?.ml || null
+    }))
+
     const { stock_quantity, ...rest } = data
-    res.json({ ...rest, stock: stock_quantity, status: normalizeOrderStatusForResponse(rest.status) })
+    res.json({ 
+      ...rest, 
+      items: normalizedItems,
+      stock: stock_quantity, 
+      status: normalizeOrderStatusForResponse(rest.status) 
+    })
   } catch (error: any) {
+    console.error('ORDER_DETAILS_FAIL:', error)
     res.status(404).json({ error: 'Order not found' })
   }
 })
@@ -510,7 +531,14 @@ adminRoutes.get('/orders/:id/invoice', async (req: Request, res: Response) => {
   try {
     const { data: order, error } = await supabaseAdmin
       .from('orders')
-      .select('*, profile:profiles(*), items:order_items(*)')
+      .select(`
+        *,
+        profile:profiles(*),
+        items:order_items(
+          *,
+          product:products(ml)
+        )
+      `)
       .eq('id', req.params.id)
       .single()
 
@@ -523,7 +551,7 @@ adminRoutes.get('/orders/:id/invoice', async (req: Request, res: Response) => {
       customerEmail: order.profile?.email || '',
       shippingAddress: order.shipping_address,
       items: order.items.map((item: any) => ({
-        name: item.product_name,
+        name: item.product?.ml ? `${item.product_name} (${item.product.ml} ML)` : item.product_name,
         quantity: item.quantity,
         price: item.price,
         total: item.price * item.quantity
@@ -911,7 +939,7 @@ adminRoutes.get('/promotions', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabaseAdmin
       .from('product_promotions')
-      .select('*, parent:products!parent_id(name, slug, images), child:products!child_id(name, slug, images)')
+      .select('*, parent:products!parent_id(name, slug, images, ml), child:products!child_id(name, slug, images, ml)')
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -938,7 +966,7 @@ adminRoutes.post('/promotions', async (req: Request, res: Response) => {
         discount_percentage: discount_percentage ?? 100,
         is_active: is_active !== false
       })
-      .select('*, parent:products!parent_id(name, slug, images), child:products!child_id(name, slug, images)')
+      .select('*, parent:products!parent_id(name, slug, images, ml), child:products!child_id(name, slug, images, ml)')
       .single()
 
     if (error) throw error
@@ -960,7 +988,7 @@ adminRoutes.put('/promotions/:id', async (req: Request, res: Response) => {
         is_active
       })
       .eq('id', req.params.id)
-      .select('*, parent:products!parent_id(name, slug, images), child:products!child_id(name, slug, images)')
+      .select('*, parent:products!parent_id(name, slug, images, ml), child:products!child_id(name, slug, images, ml)')
       .single()
 
     if (error) throw error

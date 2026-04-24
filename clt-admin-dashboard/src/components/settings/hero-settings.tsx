@@ -12,9 +12,16 @@ import { Button } from "@/components/ui/button"
 import { Plus, Trash2, Link2 } from "lucide-react"
 import { getAdminCategories, getAdminProducts, type Category, type AdminProduct } from "@/lib/admin-api"
 
+interface HeroSlide {
+  image: string
+  tagline: string
+  headline: string
+  href: string
+}
+
 interface HeroSettingsProps {
-  slides: any[]
-  onChange: (slides: any[]) => void
+  slides: HeroSlide[]
+  onChange: (slides: HeroSlide[]) => void
 }
 
 export function HeroSettings({ slides, onChange }: HeroSettingsProps) {
@@ -35,7 +42,7 @@ export function HeroSettings({ slides, onChange }: HeroSettingsProps) {
     if (isModalOpen) fetchData()
   }, [isModalOpen])
 
-  const updateSlide = (idx: number, field: string, value: any) => {
+  const updateSlide = (idx: number, field: keyof HeroSlide, value: string) => {
     const next = [...slides]
     next[idx] = { ...next[idx], [field]: value }
     onChange(next)
@@ -144,7 +151,9 @@ export function HeroSettings({ slides, onChange }: HeroSettingsProps) {
                           </optgroup>
                           <optgroup label="Products">
                             {products.map((prod) => (
-                              <option key={prod.id} value={`prod:${prod.slug}`}>{prod.name}</option>
+                              <option key={prod.id} value={`prod:${prod.slug}`}>
+                                {prod.name} {prod.ml ? `(${prod.ml} ML)` : ""}
+                              </option>
                             ))}
                           </optgroup>
                         </select>

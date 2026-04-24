@@ -92,12 +92,14 @@ export interface Promotion {
     slug: string
     images?: string[]
     description?: string
+    ml?: string | null
   }
   child?: {
     name: string
     slug: string
     images?: string[]
     description?: string
+    ml?: string | null
   }
 }
 
@@ -225,6 +227,7 @@ export interface AdminOrder {
     price: number
     product_image?: string | null
     product_slug?: string | null
+    product_ml?: string | null
   }>
 }
 

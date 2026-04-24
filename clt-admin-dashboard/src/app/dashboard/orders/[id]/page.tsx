@@ -347,7 +347,12 @@ export default function OrderDetailsPage() {
                 {items.map((item, index) => (
                   <tr key={`${item.product_name}-${index}`}>
                     <td>
-                      <div className="item-name">{item.product_name}</div>
+                      <div className="item-name">
+                        {item.product_name}
+                        {item.product_ml && (
+                          <span className="ml-badge">{item.product_ml} ML</span>
+                        )}
+                      </div>
                     </td>
                     <td>{item.quantity}</td>
                     <td>AED {formatMoney(item.price)}</td>
@@ -508,6 +513,20 @@ export default function OrderDetailsPage() {
         }
         .item-name {
           font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .ml-badge {
+          background: #f3f4f6;
+          color: #374151;
+          padding: 2px 6px;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          border: 1px solid #e5e7eb;
+          white-space: nowrap;
         }
         .item-total {
           font-weight: 700;

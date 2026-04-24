@@ -96,13 +96,17 @@ export function NavSettings({
         const slug = typeof product.slug === "string" ? product.slug.trim() : ""
         if (!slug || seenSlugs.has(slug)) return null
         seenSlugs.add(slug)
+        const ml = typeof product.ml === "string" ? product.ml.trim() : ""
         const name =
           typeof product.name === "string" && product.name.trim()
             ? product.name.trim()
             : slug
+        
+        const displayName = ml ? `${name} (${ml} ML)` : name
+
         return {
           slug,
-          name,
+          name: displayName,
           categoryName: getProductCategoryName(product),
         }
       })

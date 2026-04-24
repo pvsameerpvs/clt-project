@@ -134,7 +134,7 @@ export function ProductList({
                   <div className="mobile-meta">
                     <span>AED {money(product.price || 0)}</span>
                     <span>Stock: {product.stock || 0}</span>
-                    {product.ml && <span>{product.ml}</span>}
+                    {product.ml && <span className="ml-badge-mini">{product.ml} ML</span>}
                     <span>{statusLabel(product)}</span>
                   </div>
 
@@ -241,7 +241,13 @@ export function ProductList({
                         </span>
                       </td>
                       <td className="value">{statusLabel(product)}</td>
-                      <td className="value">{product.ml || "-"}</td>
+                      <td className="value">
+                        {product.ml ? (
+                          <span className="ml-badge-mini">{product.ml} ML</span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                       <td>
                         <div className="action-wrap">
                           <button
@@ -562,6 +568,17 @@ export function ProductList({
         .danger-stock {
           background: #fef2f2;
           color: #dc2626;
+        }
+        .ml-badge-mini {
+          background: #f3f4f6;
+          color: #374151;
+          padding: 2px 6px;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          border: 1px solid #e5e7eb;
+          white-space: nowrap;
         }
         .action-wrap {
           display: flex;

@@ -197,7 +197,10 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
     () =>
       sortedProducts.reduce<Record<string, string>>((acc, product) => {
         const slug = slugify(product.slug)
-        if (slug) acc[slug] = product.name
+        const ml = typeof product.ml === "string" ? product.ml.trim() : ""
+        if (slug) {
+          acc[slug] = ml ? `${product.name} (${ml} ML)` : product.name
+        }
         return acc
       }, {}),
     [sortedProducts]
@@ -509,7 +512,7 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
                               value={prod.slug}
                               disabled={selectedProductSlugs.has(slugify(prod.slug))}
                             >
-                              {prod.name}
+                              {prod.name} {prod.ml ? `(${prod.ml} ML)` : ""}
                             </option>
                           ))}
                         </select>
@@ -768,7 +771,7 @@ export function CollectionsSettings({ collections, offers, onCollectionsChange, 
                                       value={prod.slug}
                                       disabled={selectedProductSlugs.has(slugify(prod.slug))}
                                     >
-                                      {prod.name}
+                                      {prod.name} {prod.ml ? `(${prod.ml} ML)` : ""}
                                     </option>
                                   ))}
                                 </select>

@@ -112,6 +112,11 @@ export function PromotionForm({ products, isCreating, onCreate, existingPromotio
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold truncate">{p.name}</p>
+                        {p.ml && (
+                          <span className="text-[10px] font-black bg-neutral-100 text-neutral-400 px-1.5 py-0.5 rounded uppercase">
+                            {p.ml} ML
+                          </span>
+                        )}
                         {isAlreadyParent && (
                           <span className="text-[8px] font-black uppercase tracking-tighter bg-neutral-200 text-neutral-500 px-1.5 py-0.5 rounded">
                             Active Offer
@@ -141,12 +146,19 @@ export function PromotionForm({ products, isCreating, onCreate, existingPromotio
                     unoptimized
                   />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center text-white/20">P</div>
+                  <div className="h-full w-full flex items-center justify-center text-neutral-400">P</div>
                 )}
               </div>
-              <span className="text-sm font-bold truncate max-w-[200px]">
+              <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-neutral-900">
                 {products.find(p => p.id === parentId)?.name}
               </span>
+              {products.find(p => p.id === parentId)?.ml && (
+                <span className="text-[10px] font-black bg-black text-white px-1.5 py-0.5 rounded uppercase">
+                  {products.find(p => p.id === parentId)?.ml} ML
+                </span>
+              )}
+            </div>
             </div>
             <button type="button" onClick={() => {setParentId(""); setSearchParent("")}} className="hover:text-red-400 p-1">
               <X size={16} />
@@ -206,6 +218,11 @@ export function PromotionForm({ products, isCreating, onCreate, existingPromotio
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold truncate">{p.name}</p>
+                        {p.ml && (
+                          <span className="text-[10px] font-black bg-neutral-100 text-neutral-400 px-1.5 py-0.5 rounded uppercase">
+                            {p.ml} ML
+                          </span>
+                        )}
                         {isSelected && (
                           <span className="text-[8px] font-black uppercase tracking-tighter bg-black text-white px-1.5 py-0.5 rounded">
                             Added
@@ -252,7 +269,14 @@ export function PromotionForm({ products, isCreating, onCreate, existingPromotio
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-neutral-900 truncate max-w-[150px]">{gift.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-neutral-900 truncate max-w-[150px]">{gift.name}</p>
+                    {gift.ml && (
+                      <span className="text-[10px] font-black bg-neutral-100 text-neutral-400 px-1.5 py-0.5 rounded uppercase">
+                        {gift.ml} ML
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-medium">Selected Option</p>
                 </div>
               </div>

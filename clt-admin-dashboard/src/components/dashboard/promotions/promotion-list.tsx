@@ -64,7 +64,14 @@ export function PromotionList({ promotions, onUpdate, onDelete }: PromotionListP
                 )}
               </div>
               <div>
-                <h3 className="text-sm font-black text-neutral-900">{data.parent?.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-neutral-900">{data.parent?.name}</h3>
+                  {data.parent?.ml && (
+                    <span className="text-[10px] font-black bg-neutral-100 text-neutral-400 px-1.5 py-0.5 rounded uppercase">
+                      {data.parent.ml} ML
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Master Product</span>
                   <span className="h-1 w-1 rounded-full bg-neutral-200" />
@@ -101,7 +108,14 @@ export function PromotionList({ promotions, onUpdate, onDelete }: PromotionListP
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-neutral-800 truncate">{promo.child?.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-neutral-800 truncate">{promo.child?.name}</p>
+                      {promo.child?.ml && (
+                        <span className="text-[9px] font-black text-neutral-300 bg-neutral-50 px-1 py-0.5 rounded uppercase">
+                          {promo.child.ml} ML
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={cn(
                         "text-[9px] font-black px-2 py-0.5 rounded-full",
