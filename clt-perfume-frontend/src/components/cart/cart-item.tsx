@@ -35,7 +35,7 @@ export function CartItem({ item }: { item: CartLineItem }) {
               {item.product.ml && (
                 <>
                   <span className="mx-1.5 opacity-50">•</span>
-                  {item.product.ml}
+                  {item.product.ml}ML
                 </>
               )}
             </p>

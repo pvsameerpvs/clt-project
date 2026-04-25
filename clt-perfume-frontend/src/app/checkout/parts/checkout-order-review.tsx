@@ -62,7 +62,7 @@ export function CheckoutOrderReview({
                 <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-medium">Qty {item.quantity}</p>
                 {item.product.ml && (
                   <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-medium">
-                    <span className="mx-1">•</span> {item.product.ml}
+                    <span className="inline-block mx-1">•{item.product.ml}ML</span> 
                   </p>
                 )}
               </div>
