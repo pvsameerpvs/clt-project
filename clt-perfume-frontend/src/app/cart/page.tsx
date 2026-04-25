@@ -142,14 +142,18 @@ function CartPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white py-16">
+    <div className="min-h-screen bg-neutral-50/30 py-8 md:py-16">
       <div className="container mx-auto max-w-6xl px-4 md:px-6">
-        <div className="mb-10 flex items-center gap-4">
-          <Link href="/" className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm transition-colors hover:bg-neutral-50">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <h1 className="text-4xl font-serif text-neutral-900">Your Shopping Bag</h1>
-          <span className="ml-2 mt-2 text-sm font-light text-neutral-500">
+        <div className="mb-8 flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <Link href="/" className="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm transition-colors hover:bg-neutral-50">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <h1 className="max-w-[200px] font-serif text-3xl leading-tight text-neutral-900 md:max-w-none md:text-4xl">
+              Your <br className="md:hidden" /> Shopping Bag
+            </h1>
+          </div>
+          <span className="mt-2 text-sm font-light text-neutral-500 md:text-base">
             ({totalItems} {totalItems === 1 ? "item" : "items"})
           </span>
         </div>
@@ -160,8 +164,8 @@ function CartPageContent() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
-          <div className="h-fit rounded-2xl border border-neutral-100 bg-white p-6 shadow-sm md:p-10 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="h-fit rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm md:p-10 lg:col-span-2">
             <div className="space-y-2">
               {/* Refactored: Extracted Bundle Item Component */}
               {bundleGroups.map((bundleGroup) => (

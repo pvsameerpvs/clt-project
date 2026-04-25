@@ -24,12 +24,12 @@ export function CartBundleItem({ bundleGroup, onRemove, onUpdateQuantity, setQua
   const savings = Math.max(0, bundleGroup.originalTotal - bundleGroup.offerTotal)
 
   return (
-    <div className="mb-4 rounded-2xl border border-neutral-200 p-5 md:p-6">
+    <div className="mb-6 rounded-2xl border border-neutral-100 bg-white p-4 md:p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">Bundle Offer</p>
-          <h3 className="mt-1 text-xl font-serif text-neutral-900">{bundleGroup.name}</h3>
-          <p className="mt-1 text-xs text-neutral-500">
+          <h3 className="mt-1 font-serif text-lg md:text-xl text-neutral-900 leading-tight">{bundleGroup.name}</h3>
+          <p className="mt-1 text-[11px] text-neutral-500">
             {itemCount} items selected • {bundleGroup.discountPercent}% OFF
           </p>
         </div>
@@ -39,53 +39,56 @@ export function CartBundleItem({ bundleGroup, onRemove, onUpdateQuantity, setQua
               getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)
             ))
           }
-          className="text-neutral-400 transition-colors hover:text-black"
+          className="text-neutral-300 transition-colors hover:text-black"
           aria-label={`Remove ${bundleGroup.name}`}
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
         {bundleGroup.items.map((item) => (
-          <div key={getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)} className="rounded-xl border border-neutral-100 bg-neutral-50 p-2">
-            <div className="relative h-20 w-full overflow-hidden rounded-lg bg-white">
+          <div key={getCartLineKey(item.product.id, Number(item.product.price), item.bundle?.id)} className="rounded-xl border border-neutral-50 bg-neutral-50/50 p-1.5">
+            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-white">
               <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
             </div>
-            <p className="mt-2 line-clamp-1 text-xs text-neutral-700">{item.product.name}</p>
+            <p className="mt-1.5 line-clamp-1 text-[9px] text-neutral-500 text-center">{item.product.name}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-3 inline-flex items-center overflow-hidden rounded-full border border-neutral-300">
-        <button
-          type="button"
-          onClick={() => onUpdateQuantity(setQuantity - 1)}
-          disabled={setQuantity <= 1}
-          className="inline-flex h-8 w-8 items-center justify-center transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label={`Decrease ${bundleGroup.name} quantity`}
-        >
-          <Minus className="h-3 w-3" />
-        </button>
-        <span className="inline-flex h-8 min-w-8 items-center justify-center border-x border-neutral-300 px-2 text-sm font-medium">
-          {setQuantity}
-        </span>
-        <button
-          type="button"
-          onClick={() => onUpdateQuantity(setQuantity + 1)}
-          className="inline-flex h-8 w-8 items-center justify-center transition-colors hover:bg-neutral-50"
-          aria-label={`Increase ${bundleGroup.name} quantity`}
-        >
-          <Plus className="h-3 w-3" />
-        </button>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4 text-sm">
-        <div>
-          <span className="mr-2 text-neutral-500 line-through">AED {Math.round(bundleGroup.originalTotal)}</span>
-          <span className="font-semibold text-neutral-900">AED {Math.round(bundleGroup.offerTotal)}</span>
+      <div className="mt-6 flex items-center justify-between border-t border-neutral-100 pt-4">
+        <div className="flex items-center border border-neutral-200 rounded-full h-8 px-1">
+          <button
+            type="button"
+            onClick={() => onUpdateQuantity(setQuantity - 1)}
+            disabled={setQuantity <= 1}
+            className="w-8 flex items-center justify-center transition-colors hover:bg-neutral-50 rounded-full disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <Minus className="h-2.5 w-2.5" />
+          </button>
+          <span className="w-6 text-center text-xs font-medium">
+            {setQuantity}
+          </span>
+          <button
+            type="button"
+            onClick={() => onUpdateQuantity(setQuantity + 1)}
+            className="w-8 flex items-center justify-center transition-colors hover:bg-neutral-50 rounded-full"
+          >
+            <Plus className="h-2.5 w-2.5" />
+          </button>
         </div>
-        <span className="font-medium text-green-700">You save AED {Math.round(savings)}</span>
+
+        <div className="text-right">
+          <div className="flex items-center justify-end gap-2 text-[10px]">
+            <span className="text-neutral-400 line-through">AED {Math.round(bundleGroup.originalTotal)}</span>
+            <span className="text-green-600 font-medium">Save AED {Math.round(savings)}</span>
+          </div>
+          <div className="flex items-center justify-end gap-1">
+            <span className="text-[10px] text-neutral-500 font-medium">AED</span>
+            <span className="font-semibold text-base text-black">{Math.round(bundleGroup.offerTotal).toLocaleString()}</span>
+          </div>
+        </div>
       </div>
     </div>
   )
