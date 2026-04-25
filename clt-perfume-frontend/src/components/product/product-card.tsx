@@ -145,8 +145,7 @@ export function ProductCard({ product }: { product: Product }) {
                 </div>
              </div>
              <div className="flex flex-col sm:flex-row items-end sm:items-start text-right shrink-0">
-                <span className="text-[9px] sm:text-xs text-neutral-400 uppercase tracking-tighter sm:hidden">AED</span>
-                <span className="font-medium text-[11px] sm:text-sm text-neutral-900">{product.price}</span>
+                <span className="font-medium text-[11px] sm:text-sm text-neutral-900">AED {product.price}</span>
              </div>
           </div>
           <Button

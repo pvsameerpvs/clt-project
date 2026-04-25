@@ -4,8 +4,20 @@ import Image from "next/image"
 import { Edit3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+interface BrandFeature {
+  title: string
+  text: string
+}
+
+interface BrandStory {
+  image?: string
+  title?: string
+  description?: string
+  features?: BrandFeature[]
+}
+
 interface BrandPreviewProps {
-  story: any
+  story: BrandStory
   onEditClick: () => void
 }
 
@@ -35,7 +47,7 @@ export function BrandPreview({ story, onEditClick }: BrandPreviewProps) {
               </p>
               
               <div className="grid grid-cols-2 gap-6 py-6 border-t border-white/10 mt-6">
-                {story.features?.map((feat: any, idx: number) => (
+                {story.features?.map((feat, idx: number) => (
                   <div key={idx}>
                     <h4 className="text-white text-base font-serif mb-1">{feat.title}</h4>
                     <p className="text-neutral-500 text-[10px] leading-tight">{feat.text}</p>

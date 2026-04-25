@@ -269,7 +269,7 @@ export function OfferBundleBuilder({
                       <button
                         type="button"
                         onClick={() => removeSelectedProduct(product.slug)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-300 bg-white text-neutral-500 hover:border-red-400 hover:text-red-600"
+                        className="inline-flex h-8 w-8 items-center justify-center  text-neutral-500 hover:border-red-400 hover:text-red-600"
                         aria-label={`Unselect ${product.name}`}
                       >
                         <X className="h-4 w-4" />
