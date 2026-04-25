@@ -28,7 +28,6 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "@/components/ui/sonner";
-import { Chatbot } from "@/components/chat-bot";
 
 export default function RootLayout({
   children,
@@ -44,7 +43,7 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
-          <Chatbot />
+          {/* <Chatbot /> */}
           <Toaster  
             position="bottom-right" 
             toastOptions={{ 
