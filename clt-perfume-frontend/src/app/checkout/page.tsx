@@ -43,7 +43,7 @@ export default function CheckoutPage() {
     promoDiscountAmount,
     discountedTotal,
   } = useCart()
-  const { user, isLoading: isAuthLoading } = useAuth()
+  const { user, accessToken, isLoading: isAuthLoading } = useAuth()
   const { addresses: globalAddresses, profile, loading: isProfileLoading } = useProfile()
   const router = useRouter()
  
@@ -291,11 +291,6 @@ export default function CheckoutPage() {
 
     setIsPlacingOrder(true)
     try {
-      const supabase = createClient()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
       const payload = {
         items: items.map((item) => ({
           product_id: item.product.id,
@@ -339,7 +334,7 @@ export default function CheckoutPage() {
         address: selectedCheckoutAddress,
       })
 
-      const token = session?.access_token || null
+      const token = accessToken
 
       if (paymentMethod === "cod") {
         const order = await createCashOnDeliveryOrder(token, payload)

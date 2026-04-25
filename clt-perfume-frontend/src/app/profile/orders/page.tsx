@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { useProfile } from "@/contexts/profile-context"
+import { useAuth } from "@/contexts/auth-context"
 import { ProfileOrdersSection } from "@/components/profile/profile-orders-section"
 import { ReturnRequestModal } from "@/components/profile/return-request-modal"
 import { OrderRecord, ReturnRequestRecord } from "@/components/profile/profile-types"
 import { getMyOrders, getMyReturnRequests, cancelMyOrder, requestOrderReturn } from "@/lib/api"
-import { createClient } from "@/lib/supabase/client"
 import { normalizeReturnRequestStatus } from "@/components/profile/profile-utils"
 import { toast } from "sonner"
 
 export default function OrdersPage() {
   const { user } = useProfile()
+  const { accessToken } = useAuth()
 
   const [orders, setOrders] = useState<OrderRecord[]>([])
   const [returnRequests, setReturnRequests] = useState<ReturnRequestRecord[]>([])
@@ -23,17 +24,13 @@ export default function OrdersPage() {
 
   useEffect(() => {
     async function loadOrders() {
-      if (!user) return
+      if (!user || !accessToken) return
       
       try {
-        const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token
-        if (!token) return
-
+        setOrdersLoading(true)
         const [ordersData, returnsData] = await Promise.all([
-          getMyOrders(token),
-          getMyReturnRequests(token)
+          getMyOrders(accessToken),
+          getMyReturnRequests(accessToken)
         ])
         setOrders(ordersData)
         setReturnRequests(returnsData)
@@ -45,13 +42,11 @@ export default function OrdersPage() {
     }
  
     loadOrders()
-  }, [user])
+  }, [accessToken, user])
 
   async function getAccessToken() {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.access_token) throw new Error("Please login again.")
-    return session.access_token
+    if (!accessToken) throw new Error("Please login again.")
+    return accessToken
   }
 
   function getReturnRequestStatus(orderId: string) {

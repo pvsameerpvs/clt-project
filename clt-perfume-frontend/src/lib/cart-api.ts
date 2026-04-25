@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/client"
 import { CartItem } from "@/contexts/cart-context"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
@@ -6,19 +5,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 /**
  * Syncs the local storage cart to the database for Abandoned Cart Tracking
  */
-export async function syncCartToDatabase(items: CartItem[], totalPrice: number): Promise<void> {
+export async function syncCartToDatabase(
+  accessToken: string | null,
+  items: CartItem[],
+  totalPrice: number
+): Promise<void> {
   try {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    
     // Only logged in users can be tracked
-    if (!session?.access_token) return
+    if (!accessToken) return
 
     await fetch(`${API_URL}/api/cart/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
+        'Authorization': `Bearer ${accessToken}`
       },
       body: JSON.stringify({ items, totalPrice })
     })
@@ -30,18 +30,15 @@ export async function syncCartToDatabase(items: CartItem[], totalPrice: number):
 /**
  * Clears the user's cart in the database to stop the Abandoned Cart pipeline
  */
-export async function clearCartFromDatabase(): Promise<void> {
+export async function clearCartFromDatabase(accessToken: string | null): Promise<void> {
   try {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    
     // Only logged in users have records to clear
-    if (!session?.access_token) return
+    if (!accessToken) return
 
     await fetch(`${API_URL}/api/cart/clear`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${session.access_token}`
+        'Authorization': `Bearer ${accessToken}`
       }
     })
   } catch (err) {

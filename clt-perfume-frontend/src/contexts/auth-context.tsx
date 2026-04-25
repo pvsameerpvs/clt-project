@@ -5,7 +5,9 @@ import { createClient } from '@/lib/supabase/client'
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
 
 type AuthContextType = {
+  session: Session | null
   user: User | null
+  accessToken: string | null
   isLoading: boolean
   isAdmin: boolean
 }
@@ -13,7 +15,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -46,6 +48,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const finishLoading = () => {
       if (!isActive) return
+      if (loadingFallback) {
+        clearTimeout(loadingFallback)
+        loadingFallback = null
+      }
       setIsLoading(false)
     }
 
@@ -82,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const session: Session | null = sessionResult.data.session ?? null
 
         if (!isActive) return
-        setUser(session?.user ?? null)
+        setSession(session)
         finishLoading()
         void syncAdminRole(session?.user ?? null)
       } catch (error: unknown) {
@@ -97,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       if (!isActive) return
 
-      setUser(session?.user ?? null)
+      setSession(session)
       finishLoading()
       void syncAdminRole(session?.user ?? null)
     })
@@ -115,8 +121,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const user = session?.user ?? null
+  const accessToken = session?.access_token ?? null
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAdmin }}>
+    <AuthContext.Provider value={{ session, user, accessToken, isLoading, isAdmin }}>
       {children}
     </AuthContext.Provider>
   )

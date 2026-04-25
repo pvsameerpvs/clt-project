@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { useProfile } from "@/contexts/profile-context"
+import { useAuth } from "@/contexts/auth-context"
 import { ProfileReturnsSection } from "@/components/profile/profile-returns-section"
 import { ReturnRequestModal } from "@/components/profile/return-request-modal"
 import { OrderRecord, ReturnRequestRecord } from "@/components/profile/profile-types"
 import { getMyOrders, getMyReturnRequests, cancelMyOrder, requestOrderReturn } from "@/lib/api"
-import { createClient } from "@/lib/supabase/client"
 import { normalizeReturnRequestStatus } from "@/components/profile/profile-utils"
 import { toast } from "sonner"
 
 export default function ReturnsPage() {
-  const { user, loading: profileLoading } = useProfile()
+  const { user } = useProfile()
+  const { accessToken } = useAuth()
  
   const [orders, setOrders] = useState<OrderRecord[]>([])
   const [returnRequests, setReturnRequests] = useState<ReturnRequestRecord[]>([])
@@ -23,26 +24,22 @@ export default function ReturnsPage() {
  
   useEffect(() => {
     async function loadData() {
-      if (!user) return
+      if (!user || !accessToken) return
       
       try {
         setDataLoading(true)
-        const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token
-        if (!token) return
  
-        const [o, r] = await Promise.all([getMyOrders(token), getMyReturnRequests(token)])
+        const [o, r] = await Promise.all([getMyOrders(accessToken), getMyReturnRequests(accessToken)])
         setOrders(o)
         setReturnRequests(r)
-      } catch (e) {
-        console.error(e)
+      } catch (error) {
+        console.error(error)
       } finally {
         setDataLoading(false)
       }
     }
     loadData()
-  }, [user])
+  }, [accessToken, user])
 
   function setOrderReturnReason(orderId: string, reason: string) {
     setReturnReasonByOrder(prev => ({ ...prev, [orderId]: reason }))
@@ -50,20 +47,16 @@ export default function ReturnsPage() {
 
   async function handleCancelOrder(orderId: string) {
     try {
-      const supabase = createClient()
       setOrderActionLoadingId(orderId)
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-      
-      if (!token) {
+      if (!accessToken) {
         toast.error("Session expired. Please login again.")
         return
       }
 
-      const result = await cancelMyOrder(token, orderId)
+      const result = await cancelMyOrder(accessToken, orderId)
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: result.status } : o))
       toast.success("Order cancelled")
-    } catch (e) {
+    } catch {
       toast.error("Failed to cancel order")
     } finally {
       setOrderActionLoadingId(null)
@@ -83,21 +76,17 @@ export default function ReturnsPage() {
 
     const orderId = selectedOrderForReturn.id
     try {
-      const supabase = createClient()
       setOrderActionLoadingId(orderId)
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-      
-      if (!token) {
+      if (!accessToken) {
         toast.error("Session expired. Please login again.")
         return
       }
 
-      const created = await requestOrderReturn(token, orderId, { reason })
+      const created = await requestOrderReturn(accessToken, orderId, { reason })
       setReturnRequests(prev => [created, ...prev])
       toast.success("Return request submitted")
       setIsReturnModalOpen(false)
-    } catch (e) {
+    } catch {
       toast.error("Failed to submit return request")
     } finally {
       setOrderActionLoadingId(null)

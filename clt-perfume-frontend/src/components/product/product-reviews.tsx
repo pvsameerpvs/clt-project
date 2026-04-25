@@ -7,11 +7,10 @@ import { Star, X, CheckCircle2, LogIn } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import Link from "next/link"
 import { API_BASE_URL } from "@/lib/api"
-import { createClient } from "@/lib/supabase/client"
 
 export function ProductReviews({ product }: { product: Product }) {
   const staticReviews = product.reviews || []
-  const { user } = useAuth()
+  const { user, accessToken } = useAuth()
 
   const [liveReviews, setLiveReviews] = useState<{ id: string; product_id: string; product_name: string | null; user_name: string; user_avatar: string | null; rating: number; content: string; created_at: string }[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -65,14 +64,11 @@ export function ProductReviews({ product }: { product: Product }) {
     setSubmitting(true)
     setSubmitError("")
     try {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-      if (!token) throw new Error("Not authenticated")
+      if (!accessToken) throw new Error("Not authenticated")
 
       const res = await fetch(`${API_BASE_URL}/api/reviews`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({
           product_id: product.id,
           product_name: product.name,

@@ -57,10 +57,6 @@ export function getCartLineKey(productId: string, unitPrice: number, bundleId?: 
   return `${scope}::${productId}::${Math.round(toPriceNumber(unitPrice) * 100)}`
 }
 
-function getItemLineKey(item: CartItem) {
-  return getCartLineKey(item.product.id, toPriceNumber(item.product.price), item.bundle?.id)
-}
-
 interface CartContextType {
   items: CartItem[]
   addToCart: (product: Product, quantity: number, options?: AddToCartOptions) => void
@@ -80,11 +76,12 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 import { useAuth } from "./auth-context"
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
+  const { user, accessToken } = useAuth()
   const [items, setItems] = useState<CartItem[]>([])
   const [promo, setPromo] = useState<AppliedPromo | null>(null)
   const hasLoadedFromStorage = useRef(false)
   const prevUserRef = useRef<string | null>(null)
+  const cartSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Detect Logout - if we had a user and now we don't, clear the cart.
   useEffect(() => {
@@ -138,16 +135,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     hasLoadedFromStorage.current = true
   }, [])
 
-  // Save to LocalStorage and Sync to Backend for Abandoned Cart Trackng
+  // Save to LocalStorage and debounce syncs so rapid cart changes don't spam auth-dependent requests.
   useEffect(() => {
     if (!hasLoadedFromStorage.current) return
+
     localStorage.setItem("cle_cart", JSON.stringify(items))
 
-    if (items.length > 0) {
-      const totalPrice = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
-      syncCartToDatabase(items, totalPrice)
+    if (cartSyncTimeoutRef.current) {
+      clearTimeout(cartSyncTimeoutRef.current)
     }
-  }, [items])
+
+    cartSyncTimeoutRef.current = setTimeout(() => {
+      if (items.length > 0) {
+        const totalPrice = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
+        void syncCartToDatabase(accessToken, items, totalPrice)
+        return
+      }
+
+      void clearCartFromDatabase(accessToken)
+    }, 400)
+
+    return () => {
+      if (cartSyncTimeoutRef.current) {
+        clearTimeout(cartSyncTimeoutRef.current)
+        cartSyncTimeoutRef.current = null
+      }
+    }
+  }, [accessToken, items])
 
   useEffect(() => {
     if (!hasLoadedFromStorage.current) return
@@ -265,8 +279,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setPromo(null)
     
     // Clear the tracking on the backend so they don't get an abandoned cart email after buying
-    await clearCartFromDatabase()
-  }, [])
+    await clearCartFromDatabase(accessToken)
+  }, [accessToken])
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
   const totalPrice = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
