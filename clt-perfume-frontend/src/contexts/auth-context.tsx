@@ -20,63 +20,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isActive = true
     let unsubscribe = () => {}
+    let loadingFallback: ReturnType<typeof setTimeout> | null = null
     let supabase: ReturnType<typeof createClient> | null = null
+
     try {
       supabase = createClient()
     } catch (error) {
       console.error('Error creating auth client:', error)
-      setIsLoading(false)
+      queueMicrotask(() => {
+        if (isActive) {
+          setIsLoading(false)
+        }
+      })
       return
     }
 
     if (!supabase) {
-      setIsLoading(false)
+      queueMicrotask(() => {
+        if (isActive) {
+          setIsLoading(false)
+        }
+      })
       return
     }
 
-    const checkUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!isActive) return
-        setUser(user)
-        
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-          if (!isActive) return
-          setIsAdmin(profile?.role === 'admin')
-        } else {
-          setIsAdmin(false)
-        }
-      } catch (error) {
-        if (!isActive) return
-        console.error('Error checking auth state:', error)
-      } finally {
-        if (!isActive) return
-        setIsLoading(false)
-      }
+    const finishLoading = () => {
+      if (!isActive) return
+      setIsLoading(false)
     }
 
-    void checkUser()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
+    const syncAdminRole = async (nextUser: User | null) => {
       if (!isActive) return
-      setUser(session?.user ?? null)
-      if (session?.user) {
+
+      if (!nextUser) {
+        setIsAdmin(false)
+        return
+      }
+
+      try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', session.user.id)
-          .single()
+          .eq('id', nextUser.id)
+          .maybeSingle()
         if (!isActive) return
         setIsAdmin(profile?.role === 'admin')
-      } else {
+      } catch (error) {
+        if (!isActive) return
+        console.error('Error loading admin role:', error)
         setIsAdmin(false)
       }
-      setIsLoading(false)
+    }
+
+    loadingFallback = setTimeout(() => {
+      finishLoading()
+    }, 3000)
+
+    const bootstrapSession = async () => {
+      try {
+        const sessionResult = await supabase.auth.getSession()
+        const session: Session | null = sessionResult.data.session ?? null
+
+        if (!isActive) return
+        setUser(session?.user ?? null)
+        finishLoading()
+        void syncAdminRole(session?.user ?? null)
+      } catch (error: unknown) {
+        if (!isActive) return
+        console.error('Error checking auth state:', error)
+        finishLoading()
+      }
+    }
+
+    void bootstrapSession()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      if (!isActive) return
+
+      setUser(session?.user ?? null)
+      finishLoading()
+      void syncAdminRole(session?.user ?? null)
     })
 
     unsubscribe = () => {
@@ -85,6 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isActive = false
+      if (loadingFallback) {
+        clearTimeout(loadingFallback)
+      }
       unsubscribe()
     }
   }, [])

@@ -97,6 +97,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
   order_number TEXT UNIQUE,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded')),
   subtotal DECIMAL(10,2) NOT NULL,
+  promo_code TEXT,
+  promo_discount DECIMAL(10,2) DEFAULT 0,
   tax DECIMAL(10,2) DEFAULT 0,
   shipping_fee DECIMAL(10,2) DEFAULT 0,
   total DECIMAL(10,2) NOT NULL,

@@ -26,7 +26,6 @@ import { isOfferActive } from "@/lib/offers"
 import { cn } from "@/lib/utils"
 
 import { useCart } from "@/contexts/cart-context"
-import { useAuth } from "@/contexts/auth-context"
 import { GiftSelector } from "./gift-selector"
 
 interface PromoOffer {
@@ -84,7 +83,6 @@ export function ProductInfo({ product, promotions = [] }: { product: Product, pr
   const [matchingBundleOffer, setMatchingBundleOffer] = useState<PromoOffer | null>(null)
   const [variants, setVariants] = useState<Product[]>([])
   const { addToCart } = useCart()
-  const { user, isLoading: isAuthLoading } = useAuth()
   const router = useRouter()
 
   const engravingPrice = engraving ? 25 : 0
@@ -164,8 +162,6 @@ export function ProductInfo({ product, promotions = [] }: { product: Product, pr
   }
 
   const handleBuyNow = () => {
-    if (isAuthLoading) return
-
     addCurrentProductToCart()
     router.push("/checkout")
   }
@@ -357,10 +353,9 @@ export function ProductInfo({ product, promotions = [] }: { product: Product, pr
               }
               handleBuyNow()
             }}
-            disabled={isAuthLoading}
             className="h-14 flex-1 rounded-full bg-black hover:bg-neutral-800 text-white uppercase tracking-widest text-xs font-medium"
           >
-            {isAuthLoading ? "Checking..." : "Buy Now"}
+            Buy Now
           </Button>
         </div>
 

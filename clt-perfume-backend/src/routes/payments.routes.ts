@@ -124,6 +124,8 @@ async function createSessionFromPayload(
       order_number: orderNumber,
       status: 'pending',
       subtotal: pricing.subtotal,
+      promo_code: pricing.promoCode || null,
+      promo_discount: pricing.promoDiscount || 0,
       tax: 0,
       shipping_fee: 0,
       total: pricing.total,

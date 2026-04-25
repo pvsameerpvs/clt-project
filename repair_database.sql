@@ -29,5 +29,14 @@ ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES public.categories(id) ON DELE
 
 CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON public.categories(parent_id);
 
+-- Ensure orders can store promo snapshots used by checkout flows
+ALTER TABLE public.orders
+ADD COLUMN IF NOT EXISTS promo_code TEXT,
+ADD COLUMN IF NOT EXISTS promo_discount DECIMAL(10,2) DEFAULT 0;
+
+UPDATE public.orders
+SET promo_discount = 0
+WHERE promo_discount IS NULL;
+
 -- Refresh PostgREST schema cache (Supabase API)
 NOTIFY pgrst, 'reload schema';

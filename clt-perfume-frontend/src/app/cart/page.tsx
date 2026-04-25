@@ -4,7 +4,6 @@ import { Suspense, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getCartLineKey, useCart } from "@/contexts/cart-context"
-import { useAuth } from "@/contexts/auth-context"
 import { CartItem } from "@/components/cart/cart-item"
 import { CartOrderSummary } from "@/components/cart/cart-order-summary"
 import { ArrowLeft } from "lucide-react"
@@ -35,7 +34,6 @@ function CartPageContent() {
   } = useCart()
 
   const router = useRouter()
-  const { user, isLoading: isAuthLoading } = useAuth()
   const searchParams = useSearchParams()
   const bundleName = searchParams.get("bundle")?.trim() || ""
 
@@ -135,7 +133,6 @@ function CartPageContent() {
   }
 
   const handleProceedCheckout = () => {
-    if (isAuthLoading) return
     router.push("/checkout")
   }
 
@@ -199,10 +196,8 @@ function CartPageContent() {
                 onApplyPromo={applyPromo}
                 onRemovePromo={removePromo}
                 onProceedCheckout={handleProceedCheckout}
-                proceedButtonLabel={
-                  isAuthLoading ? "Loading..." : "Proceed to Checkout"
-                }
-                isProceedDisabled={isAuthLoading}
+                proceedButtonLabel="Proceed to Checkout"
+                isProceedDisabled={false}
                 showPromoInput={false}
               />
             </div>
@@ -212,4 +207,3 @@ function CartPageContent() {
     </div>
   )
 }
-
