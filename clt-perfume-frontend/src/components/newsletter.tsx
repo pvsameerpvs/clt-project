@@ -22,7 +22,7 @@ export function Newsletter() {
       } else {
         toast.error(res.error || "Subscription failed.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);

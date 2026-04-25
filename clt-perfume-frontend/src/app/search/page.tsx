@@ -6,11 +6,12 @@ import { getProducts } from "@/lib/api"
 import { ProductCard } from "@/components/product/product-card"
 import { Badge } from "@/components/ui/badge"
 import { Search } from "lucide-react"
+import type { Product } from "@/lib/products"
 
 function SearchContent() {
   const searchParams = useSearchParams()
   const query = searchParams.get("q")
-  const [products, setProducts] = useState<any[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -62,7 +63,7 @@ function SearchContent() {
             <Search className="h-12 w-12 text-neutral-200 mx-auto mb-4" />
             <h3 className="text-xl font-serif text-neutral-900 mb-2">No results found</h3>
             <p className="text-neutral-500 max-w-xs mx-auto font-light">
-              We couldn't find any fragrances matching your search. Try different keywords or browse our collections.
+              We could not find any fragrances matching your search. Try different keywords or browse our collections.
             </p>
           </div>
         )}

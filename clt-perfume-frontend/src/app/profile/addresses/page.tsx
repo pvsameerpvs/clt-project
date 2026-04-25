@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react"
 import { useProfile } from "@/contexts/profile-context"
 import { ProfileAddressesSection } from "@/components/profile/profile-addresses-section"
-import { AddressRecord, AddressFormState, UserAddressRow } from "@/components/profile/profile-types"
-import { mapAddressRow } from "@/components/profile/profile-utils"
+import { AddressRecord, AddressFormState } from "@/components/profile/profile-types"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 

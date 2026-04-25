@@ -18,7 +18,6 @@ export default function ReturnsPage() {
   const [returnRequests, setReturnRequests] = useState<ReturnRequestRecord[]>([])
   const [dataLoading, setDataLoading] = useState(false)
   const [orderActionLoadingId, setOrderActionLoadingId] = useState<string | null>(null)
-  const [returnReasonByOrder, setReturnReasonByOrder] = useState<Record<string, string>>({})
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false)
   const [selectedOrderForReturn, setSelectedOrderForReturn] = useState<OrderRecord | null>(null)
  
@@ -40,10 +39,6 @@ export default function ReturnsPage() {
     }
     loadData()
   }, [accessToken, user])
-
-  function setOrderReturnReason(orderId: string, reason: string) {
-    setReturnReasonByOrder(prev => ({ ...prev, [orderId]: reason }))
-  }
 
   async function handleCancelOrder(orderId: string) {
     try {
@@ -106,8 +101,6 @@ export default function ReturnsPage() {
         orders={orders}
         returnRequests={returnRequests}
         orderActionLoadingId={orderActionLoadingId}
-        returnReasonByOrder={returnReasonByOrder}
-        onReturnReasonChange={setOrderReturnReason}
         onCancelOrder={handleCancelOrder}
         onRequestReturn={handleOpenReturnModal}
         getReturnRequestStatus={getReturnRequestStatus}

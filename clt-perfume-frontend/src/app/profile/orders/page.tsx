@@ -18,7 +18,6 @@ export default function OrdersPage() {
   const [returnRequests, setReturnRequests] = useState<ReturnRequestRecord[]>([])
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [orderActionLoadingId, setOrderActionLoadingId] = useState<string | null>(null)
-  const [returnReasonByOrder, setReturnReasonByOrder] = useState<Record<string, string>>({})
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false)
   const [selectedOrderForReturn, setSelectedOrderForReturn] = useState<OrderRecord | null>(null)
 
@@ -52,10 +51,6 @@ export default function OrdersPage() {
   function getReturnRequestStatus(orderId: string) {
     const request = returnRequests.find((r) => r.order_id === orderId)
     return request ? normalizeReturnRequestStatus(request.status) : null
-  }
-
-  function setOrderReturnReason(orderId: string, reason: string) {
-    setReturnReasonByOrder((prev) => ({ ...prev, [orderId]: reason }))
   }
 
   async function handleCancelOrder(orderId: string) {
@@ -104,8 +99,6 @@ export default function OrdersPage() {
         ordersLoading={ordersLoading}
         orders={orders}
         orderActionLoadingId={orderActionLoadingId}
-        returnReasonByOrder={returnReasonByOrder}
-        onReturnReasonChange={setOrderReturnReason}
         onCancelOrder={handleCancelOrder}
         onRequestReturn={handleOpenReturnModal}
         getReturnRequestStatus={getReturnRequestStatus}

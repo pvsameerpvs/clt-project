@@ -1,7 +1,5 @@
 "use client"
 
-import { signOut } from "@/app/auth/actions"
-
 export default function PasswordPage() {
   return (
     <section>

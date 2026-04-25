@@ -11,19 +11,12 @@ import {
   Truck, 
   ShieldCheck, 
   RotateCcw, 
-  CreditCard,
-  Edit3,
-  Sparkles,
-  Gift,
-  CheckCircle2,
-  AlertCircle
+  CreditCard
 } from "lucide-react"
 import { toast } from "sonner"
-import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { getSiteSettings, getProducts } from "@/lib/api"
 import { isOfferActive } from "@/lib/offers"
-import { cn } from "@/lib/utils"
 
 import { useCart } from "@/contexts/cart-context"
 import { GiftSelector } from "./gift-selector"
@@ -78,14 +71,12 @@ function getOfferBestDiscount(offer: PromoOffer) {
 export function ProductInfo({ product, promotions = [] }: { product: Product, promotions?: Promotion[] }) {
   const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
-  const [engraving, setEngraving] = useState("")
-  const [engravingFont, setEngravingFont] = useState("serif")
   const [matchingBundleOffer, setMatchingBundleOffer] = useState<PromoOffer | null>(null)
   const [variants, setVariants] = useState<Product[]>([])
   const { addToCart } = useCart()
   const router = useRouter()
 
-  const engravingPrice = engraving ? 25 : 0
+  const engravingPrice = 0
   const categoryLabel = getCategoryLabel(product.category)
 
   useEffect(() => {

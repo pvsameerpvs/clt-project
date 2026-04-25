@@ -10,8 +10,6 @@ type ProfileReturnsSectionProps = {
   orders: OrderRecord[]
   returnRequests: ReturnRequestRecord[]
   orderActionLoadingId: string | null
-  returnReasonByOrder: Record<string, string>
-  onReturnReasonChange: (orderId: string, reason: string) => void
   onCancelOrder: (orderId: string) => void
   onRequestReturn: (orderId: string) => void
   getReturnRequestStatus: (orderId: string) => string | null
@@ -36,8 +34,6 @@ export function ProfileReturnsSection({
   orders,
   returnRequests,
   orderActionLoadingId,
-  returnReasonByOrder,
-  onReturnReasonChange,
   onCancelOrder,
   onRequestReturn,
   getReturnRequestStatus,

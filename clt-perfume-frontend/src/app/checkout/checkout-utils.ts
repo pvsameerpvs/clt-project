@@ -1,4 +1,4 @@
-import { CheckoutAddress, CheckoutAddressFormState, UserAddressRow, CheckoutAddressType } from "./checkout-types"
+import { CheckoutAddress, CheckoutAddressFormState, UserAddressRow } from "./checkout-types"
 
 export function mapUserAddressRow(address: UserAddressRow): CheckoutAddress {
   return {
