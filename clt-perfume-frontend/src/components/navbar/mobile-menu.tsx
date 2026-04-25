@@ -119,6 +119,7 @@ function buildStandardCategories(parentSlug: string, categories: ProductCategory
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const { user, isLoading } = useAuth()
+  const accountHref = user || isLoading ? "/profile/account" : "/login"
   const [activeMenu, setActiveMenu] = useState("main")
   const [navData, setNavData] = useState<MobileNavData | null>(null)
   const [catalogCategories, setCatalogCategories] = useState<ProductCategory[]>([])
@@ -195,8 +196,8 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             <div className="mt-8 pt-8 border-t border-neutral-100 space-y-6 pb-24">
               <Link
                 onClick={onClose}
-                href={user ? "/profile" : "/login"}
-                className={`flex items-center gap-3 text-sm uppercase tracking-wider text-neutral-700 font-bold ${isLoading ? "pointer-events-none opacity-60" : ""}`}
+                href={accountHref}
+                className="flex items-center gap-3 text-sm uppercase tracking-wider text-neutral-700 font-bold"
               >
                 <User className="w-5 h-5" /> {user ? "Account Center" : "Log In"}
               </Link>

@@ -1,13 +1,42 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react"
 import type { User } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "./auth-context"
 import { ProfileRecord } from "@/components/profile/profile-types"
 import { CheckoutAddress, UserAddressRow } from "@/app/checkout/checkout-types"
 import { mapUserAddressRow } from "@/app/checkout/checkout-utils"
+
+const PROFILE_QUERY_TIMEOUT_MS = 3000
+
+interface SupabaseResponse<T = unknown> {
+  data: T | null
+  error: unknown
+}
+
+async function withProfileQueryTimeout<T extends object>(
+  query: PromiseLike<T>,
+  label: string
+): Promise<T | null> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  try {
+    return await Promise.race([
+      Promise.resolve(query),
+      new Promise<null>((resolve) => {
+        timeoutId = setTimeout(() => {
+          console.warn(`[Profile] ${label} timed out after ${PROFILE_QUERY_TIMEOUT_MS}ms`)
+          resolve(null)
+        }, PROFILE_QUERY_TIMEOUT_MS)
+      }),
+    ])
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+  }
+}
 
 interface ProfileContextType {
   user: User | null
@@ -28,28 +57,58 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<ProfileRecord | null>(null)
   const [addresses, setAddresses] = useState<CheckoutAddress[]>([])
   const [loading, setLoading] = useState(true)
+  const requestIdRef = useRef(0)
  
   const loadProfileData = useCallback(async (currentUser: User) => {
+    const requestId = ++requestIdRef.current
+
     try {
-      setLoading(true)
-      const supabase = createClient()
-      const [profileResult, addressResult] = await Promise.all([
-        supabase.from("profiles").select("first_name,last_name,phone,date_of_birth,gender").eq("id", currentUser.id).maybeSingle(),
-        supabase.from("user_addresses")
-          .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
-          .eq("user_id", currentUser.id)
-          .order("created_at", { ascending: true })
-      ])
- 
       setUser(currentUser)
-      setProfile(profileResult.data as ProfileRecord | null)
-      
-      if (addressResult.data) {
-        setAddresses(addressResult.data.map((row: UserAddressRow) => mapUserAddressRow(row)))
+      setProfile(null)
+      setAddresses([])
+      setLoading(true)
+
+      const supabase = createClient()
+
+      const [profileResult, addressResult] = await Promise.all([
+        withProfileQueryTimeout(
+          supabase
+            .from("profiles")
+            .select("first_name,last_name,phone,date_of_birth,gender")
+            .eq("id", currentUser.id)
+            .maybeSingle(),
+          "Profile query"
+        ),
+        withProfileQueryTimeout(
+          supabase
+            .from("user_addresses")
+            .select("id,title,address_type,contact_name,phone,line1,line2,city,state,postal_code,country,landmark,is_primary")
+            .eq("user_id", currentUser.id)
+            .order("created_at", { ascending: true }),
+          "Address query"
+        )
+      ])
+
+      if (requestId !== requestIdRef.current) return
+
+      const pRes = profileResult as SupabaseResponse<ProfileRecord> | null
+      if (pRes?.error) {
+        console.error("Profile load error:", pRes.error)
+      } else if (pRes?.data) {
+        setProfile(pRes.data)
+      }
+
+      const aRes = addressResult as SupabaseResponse<UserAddressRow[]> | null
+      if (aRes?.error) {
+        console.error("Address load error:", aRes.error)
+      } else if (aRes?.data) {
+        setAddresses(aRes.data.map((row: UserAddressRow) => mapUserAddressRow(row)))
       }
     } catch (err) {
+      if (requestId !== requestIdRef.current) return
       console.error("Profile load data error:", err)
     } finally {
+      if (requestId !== requestIdRef.current) return
       setLoading(false)
     }
   }, [])
@@ -61,8 +120,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (authUser) {
-      loadProfileData(authUser)
+      void loadProfileData(authUser)
     } else {
+      requestIdRef.current += 1
       setUser(null)
       setProfile(null)
       setAddresses([])
