@@ -4,7 +4,9 @@ import { supabaseAdmin } from '../config/supabase'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
 import {
   CheckoutValidationError,
+  claimPromoCodeForOrder,
   getOrderAmountInFils,
+  releasePromoCodeReservation,
   resolveCheckoutPricing,
   type CheckoutOrderItem,
   type CheckoutPayload,
@@ -109,7 +111,7 @@ async function createSessionFromPayload(
   userEmail: string | null | undefined,
   payload: CheckoutPayload
 ) {
-  const pricing = await resolveCheckoutPricing(payload.items, payload.promo || null)
+  const pricing = await resolveCheckoutPricing(payload.items, payload.promo || null, userId)
 
   if (pricing.total <= 0) {
     throw new CheckoutValidationError('Checkout total must be greater than zero for bank payment')
@@ -124,6 +126,7 @@ async function createSessionFromPayload(
       order_number: orderNumber,
       status: 'pending',
       subtotal: pricing.subtotal,
+      promo_code_id: pricing.promoCodeId || null,
       promo_code: pricing.promoCode || null,
       promo_discount: pricing.promoDiscount || 0,
       tax: 0,
@@ -158,6 +161,13 @@ async function createSessionFromPayload(
     throw new Error(orderItemsError.message)
   }
 
+  try {
+    await claimPromoCodeForOrder(userId, pricing.promoCodeId, order.id, 'reserved')
+  } catch (error) {
+    await supabaseAdmin.from('orders').delete().eq('id', order.id)
+    throw error
+  }
+
   const stripeLineItems = buildStripeLineItems(pricing.items, pricing.subtotal, pricing.total)
   const metadata: Record<string, string> = {
     order_id: order.id,
@@ -189,6 +199,7 @@ async function createSessionFromPayload(
       orderId: order.id,
     }
   } catch (error) {
+    await releasePromoCodeReservation(order.id)
     await supabaseAdmin.from('order_items').delete().eq('order_id', order.id)
     await supabaseAdmin.from('orders').delete().eq('id', order.id)
     throw error

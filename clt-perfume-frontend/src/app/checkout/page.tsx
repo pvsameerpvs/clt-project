@@ -221,7 +221,7 @@ export default function CheckoutPage() {
     setPromoMessage("")
     setPromoError(false)
 
-    const result = await validatePromoCode(code, totalPrice)
+    const result = await validatePromoCode(code, totalPrice, accessToken)
     if (!result.valid || !result.discountType) {
       setPromoError(true)
       setPromoMessage(result.message || "Invalid promo code")

@@ -4,6 +4,7 @@ import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middl
 import { sendOrderConfirmationEmail } from '../services/email.service'
 import {
   CheckoutValidationError,
+  claimPromoCodeForOrder,
   resolveCheckoutPricing,
   type CheckoutPayload,
 } from '../services/checkout.service'
@@ -64,7 +65,7 @@ orderRoutes.get('/', authMiddleware, async (req: Request, res: Response) => {
 orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, res: Response) => {
   try {
     const payload = (req.body || {}) as CheckoutPayload
-    const pricing = await resolveCheckoutPricing(payload.items, payload.promo || null)
+    const pricing = await resolveCheckoutPricing(payload.items, payload.promo || null, req.user?.id || null)
     const orderNumber = generateOrderNumber()
 
     const { data: order, error: orderError } = await supabaseAdmin
@@ -74,6 +75,7 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
         order_number: orderNumber,
         status: 'pending',
         subtotal: pricing.subtotal,
+        promo_code_id: pricing.promoCodeId || null,
         promo_code: pricing.promoCode || null,
         promo_discount: pricing.promoDiscount || 0,
         tax: 0,
@@ -108,6 +110,13 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       await supabaseAdmin.from('orders').delete().eq('id', order.id)
       res.status(500).json({ error: orderItemsError.message })
       return
+    }
+
+    try {
+      await claimPromoCodeForOrder(req.user?.id || null, pricing.promoCodeId, order.id, 'redeemed')
+    } catch (error) {
+      await supabaseAdmin.from('orders').delete().eq('id', order.id)
+      throw error
     }
 
     const stockAdjustments = new Map<string, number>()

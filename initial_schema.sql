@@ -80,7 +80,20 @@ CREATE TABLE IF NOT EXISTS public.newsletter_subs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. CART ITEMS
+-- 5. PROMO CODES
+CREATE TABLE IF NOT EXISTS public.promo_codes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  code TEXT NOT NULL,
+  discount_type TEXT NOT NULL DEFAULT 'percentage' CHECK (discount_type IN ('percentage', 'fixed')),
+  discount_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+  active BOOLEAN DEFAULT TRUE,
+  expires_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_promo_codes_code_upper ON public.promo_codes (UPPER(code));
+
+-- 6. CART ITEMS
 CREATE TABLE IF NOT EXISTS public.cart_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
@@ -90,13 +103,14 @@ CREATE TABLE IF NOT EXISTS public.cart_items (
   UNIQUE(user_id, product_id)
 );
 
--- 6. ORDERS
+-- 7. ORDERS
 CREATE TABLE IF NOT EXISTS public.orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id),
   order_number TEXT UNIQUE,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded')),
   subtotal DECIMAL(10,2) NOT NULL,
+  promo_code_id UUID REFERENCES public.promo_codes(id) ON DELETE SET NULL,
   promo_code TEXT,
   promo_discount DECIMAL(10,2) DEFAULT 0,
   tax DECIMAL(10,2) DEFAULT 0,
@@ -111,7 +125,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 7. ORDER ITEMS
+-- 8. ORDER ITEMS
 CREATE TABLE IF NOT EXISTS public.order_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
@@ -123,7 +137,29 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   quantity INTEGER NOT NULL
 );
 
--- 8. FUNCTIONS & TRIGGERS
+-- 9. PROMO CODE REDEMPTIONS
+CREATE TABLE IF NOT EXISTS public.promo_code_redemptions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  promo_code_id UUID REFERENCES public.promo_codes(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'redeemed' CHECK (status IN ('reserved', 'redeemed', 'released')),
+  reserved_at TIMESTAMP WITH TIME ZONE,
+  redeemed_at TIMESTAMP WITH TIME ZONE,
+  expires_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(promo_code_id, user_id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_promo_code_redemptions_order_id
+  ON public.promo_code_redemptions(order_id)
+  WHERE order_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_promo_code_redemptions_user_id ON public.promo_code_redemptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_promo_code_redemptions_promo_code_id ON public.promo_code_redemptions(promo_code_id);
+
+-- 10. FUNCTIONS & TRIGGERS
 
 -- Function to decrement stock
 CREATE OR REPLACE FUNCTION decrement_stock(p_product_id UUID, p_quantity INT)
@@ -132,6 +168,72 @@ BEGIN
   UPDATE public.products
   SET stock_quantity = stock_quantity - p_quantity
   WHERE id = p_product_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to atomically reserve or redeem a one-use promo code.
+CREATE OR REPLACE FUNCTION public.claim_promo_code_redemption(
+  p_promo_code_id UUID,
+  p_user_id UUID,
+  p_order_id UUID,
+  p_status TEXT,
+  p_expires_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_now TIMESTAMP WITH TIME ZONE := NOW();
+  v_rows INTEGER := 0;
+BEGIN
+  IF p_status NOT IN ('reserved', 'redeemed') THEN
+    RAISE EXCEPTION 'Invalid promo redemption status: %', p_status;
+  END IF;
+
+  INSERT INTO public.promo_code_redemptions (
+    promo_code_id,
+    user_id,
+    order_id,
+    status,
+    reserved_at,
+    redeemed_at,
+    expires_at,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    p_promo_code_id,
+    p_user_id,
+    p_order_id,
+    p_status,
+    CASE WHEN p_status = 'reserved' THEN v_now ELSE NULL END,
+    CASE WHEN p_status = 'redeemed' THEN v_now ELSE NULL END,
+    p_expires_at,
+    v_now,
+    v_now
+  )
+  ON CONFLICT (promo_code_id, user_id)
+  DO UPDATE SET
+    order_id = EXCLUDED.order_id,
+    status = EXCLUDED.status,
+    reserved_at = CASE WHEN EXCLUDED.status = 'reserved' THEN v_now ELSE public.promo_code_redemptions.reserved_at END,
+    redeemed_at = CASE WHEN EXCLUDED.status = 'redeemed' THEN v_now ELSE public.promo_code_redemptions.redeemed_at END,
+    expires_at = EXCLUDED.expires_at,
+    updated_at = v_now
+  WHERE (
+      public.promo_code_redemptions.status = 'redeemed'
+      AND public.promo_code_redemptions.order_id = p_order_id
+      AND EXCLUDED.status = 'redeemed'
+    )
+    OR (
+      public.promo_code_redemptions.status <> 'redeemed'
+      AND (
+        public.promo_code_redemptions.status <> 'reserved'
+        OR public.promo_code_redemptions.expires_at <= v_now
+        OR public.promo_code_redemptions.order_id = p_order_id
+      )
+    );
+
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  RETURN v_rows > 0;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

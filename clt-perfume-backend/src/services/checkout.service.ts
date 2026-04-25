@@ -33,10 +33,19 @@ type ProductRow = {
 }
 
 type PromoCodeRow = {
+  id: string
   code: string
   discount_type: 'percentage' | 'fixed' | string
   discount_value: number | string
   active?: boolean | null
+  expires_at?: string | null
+}
+
+type PromoRedemptionStatus = 'reserved' | 'redeemed' | 'released'
+
+type PromoRedemptionRow = {
+  order_id?: string | null
+  status?: PromoRedemptionStatus | string | null
   expires_at?: string | null
 }
 
@@ -55,6 +64,7 @@ export type ResolvedCheckoutPricing = {
   promoDiscount: number
   total: number
   promoCode: string | null
+  promoCodeId: string | null
 }
 
 interface PromoOffer {
@@ -64,6 +74,8 @@ interface PromoOffer {
   bundle_discounts?: Record<string, number | string>
   is_active?: boolean
 }
+
+const PROMO_RESERVATION_MINUTES = 30
 
 // === UTILS ===
 
@@ -79,6 +91,20 @@ function roundCurrency(value: number) {
 function normalizePromoCode(code?: string | null) {
   const normalized = String(code || '').trim().toUpperCase()
   return normalized || null
+}
+
+function isFutureDate(value?: string | null) {
+  if (!value) return true
+  const parsed = new Date(value).getTime()
+  return Number.isNaN(parsed) || parsed > Date.now()
+}
+
+function redemptionBlocksPromoUse(redemption: PromoRedemptionRow | null, currentOrderId?: string | null) {
+  if (!redemption) return false
+  if (redemption.status === 'redeemed') return true
+  if (redemption.status !== 'reserved') return false
+  if (currentOrderId && redemption.order_id === currentOrderId) return false
+  return isFutureDate(redemption.expires_at)
 }
 
 // === CORE LOGIC ===
@@ -102,14 +128,38 @@ export function normalizeCheckoutItems(rawItems: unknown): Array<{ product_id: s
   }))
 }
 
-async function getValidatedPromoDiscount(code: string | null, subtotal: number) {
+async function assertPromoCodeAvailableForUser(promoCodeId: string, userId: string, currentOrderId?: string | null) {
+  const { data, error } = await supabaseAdmin
+    .from('promo_code_redemptions')
+    .select('order_id, status, expires_at')
+    .eq('promo_code_id', promoCodeId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+
+  if (redemptionBlocksPromoUse((data || null) as PromoRedemptionRow | null, currentOrderId)) {
+    throw new CheckoutValidationError('You have already used this promo code')
+  }
+}
+
+async function getValidatedPromoDiscount(
+  code: string | null,
+  subtotal: number,
+  userId?: string | null,
+  currentOrderId?: string | null
+) {
   if (!code) {
-    return { promoCode: null, promoDiscount: 0 }
+    return { promoCode: null, promoCodeId: null, promoDiscount: 0, discountType: null, discountValue: 0 }
+  }
+
+  if (!userId) {
+    throw new CheckoutValidationError('Sign in to use promo codes')
   }
 
   const { data, error } = await supabaseAdmin
     .from('promo_codes')
-    .select('*')
+    .select('id, code, discount_type, discount_value, active, expires_at')
     .ilike('code', code)
     .limit(1)
 
@@ -126,6 +176,8 @@ async function getValidatedPromoDiscount(code: string | null, subtotal: number) 
     }
   }
 
+  await assertPromoCodeAvailableForUser(promo.id, userId, currentOrderId)
+
   const safeSubtotal = Math.max(0, toSafeNumber(subtotal))
   const discountType = promo.discount_type === 'fixed' ? 'fixed' : 'percentage'
   const discountValue = Math.max(0, toSafeNumber(promo.discount_value))
@@ -136,7 +188,56 @@ async function getValidatedPromoDiscount(code: string | null, subtotal: number) 
       : (safeSubtotal * Math.min(100, discountValue)) / 100
   )
 
-  return { promoCode: code, promoDiscount }
+  return {
+    promoCode: normalizePromoCode(promo.code) || code,
+    promoCodeId: promo.id,
+    promoDiscount,
+    discountType,
+    discountValue: discountType === 'percentage' ? Math.min(100, discountValue) : discountValue,
+  }
+}
+
+export async function validatePromoCodeForUser(code: string | null, subtotal: number, userId?: string | null) {
+  return getValidatedPromoDiscount(normalizePromoCode(code), subtotal, userId)
+}
+
+export async function claimPromoCodeForOrder(
+  userId: string | null | undefined,
+  promoCodeId: string | null | undefined,
+  orderId: string,
+  status: Extract<PromoRedemptionStatus, 'reserved' | 'redeemed'>
+) {
+  if (!promoCodeId) return
+  if (!userId) throw new CheckoutValidationError('Sign in to use promo codes')
+
+  const expiresAt =
+    status === 'reserved'
+      ? new Date(Date.now() + PROMO_RESERVATION_MINUTES * 60 * 1000).toISOString()
+      : null
+
+  const { data, error } = await supabaseAdmin.rpc('claim_promo_code_redemption', {
+    p_promo_code_id: promoCodeId,
+    p_user_id: userId,
+    p_order_id: orderId,
+    p_status: status,
+    p_expires_at: expiresAt,
+  })
+
+  if (error) throw new Error(error.message)
+  if (data !== true) throw new CheckoutValidationError('You have already used this promo code')
+}
+
+export async function releasePromoCodeReservation(orderId: string) {
+  await supabaseAdmin
+    .from('promo_code_redemptions')
+    .update({
+      status: 'released',
+      order_id: null,
+      expires_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('order_id', orderId)
+    .eq('status', 'reserved')
 }
 
 /**
@@ -199,7 +300,8 @@ async function applyBundleOffers(orderItems: CheckoutOrderItem[]): Promise<void>
 
 export async function resolveCheckoutPricing(
   rawItems: unknown,
-  promo?: { code?: string | null } | null
+  promo?: { code?: string | null } | null,
+  userId?: string | null
 ): Promise<ResolvedCheckoutPricing> {
   const normalizedItems = normalizeCheckoutItems(rawItems)
   if (normalizedItems.length === 0) throw new CheckoutValidationError('Cart is empty')
@@ -258,10 +360,14 @@ export async function resolveCheckoutPricing(
   const subtotal = roundCurrency(orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0))
 
   // 4. Apply coupon code discount
-  const { promoCode, promoDiscount } = await getValidatedPromoDiscount(normalizePromoCode(promo?.code), subtotal)
+  const { promoCode, promoCodeId, promoDiscount } = await getValidatedPromoDiscount(
+    normalizePromoCode(promo?.code),
+    subtotal,
+    userId
+  )
   const total = roundCurrency(subtotal - promoDiscount)
 
-  return { items: orderItems, subtotal, promoDiscount, total, promoCode }
+  return { items: orderItems, subtotal, promoDiscount, total, promoCode, promoCodeId }
 }
 
 export function getOrderAmountInFils(total: number | string | null | undefined) {

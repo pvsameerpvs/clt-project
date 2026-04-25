@@ -3,7 +3,7 @@ import express from 'express'
 import { stripe } from '../config/stripe'
 import { supabaseAdmin } from '../config/supabase'
 import Stripe from 'stripe'
-import { getOrderAmountInFils } from '../services/checkout.service'
+import { claimPromoCodeForOrder, getOrderAmountInFils } from '../services/checkout.service'
 import { sendOrderConfirmationEmail } from '../services/email.service'
 import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
 
@@ -61,7 +61,7 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
 
   const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
-    .select('id, user_id, status, payment_method, shipping_address, order_number, subtotal, total, shipping_fee')
+    .select('id, user_id, status, payment_method, shipping_address, order_number, subtotal, total, shipping_fee, promo_code_id')
     .eq('id', orderId)
     .maybeSingle()
 
@@ -103,6 +103,15 @@ async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
   if (itemsError) {
     console.error('Failed to load direct checkout order items:', itemsError.message)
     return false
+  }
+
+  if (order.promo_code_id && order.user_id) {
+    try {
+      await claimPromoCodeForOrder(order.user_id, order.promo_code_id, order.id, 'redeemed')
+    } catch (error: any) {
+      console.error('Failed to finalize promo redemption:', error?.message || error)
+      return false
+    }
   }
 
   for (const item of orderItems || []) {

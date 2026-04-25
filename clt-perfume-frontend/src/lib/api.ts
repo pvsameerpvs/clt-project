@@ -426,11 +426,20 @@ export async function subscribeNewsletter(email: string) {
   }
 }
 
-export async function validatePromoCode(code: string, subtotal: number): Promise<PromoValidationResponse> {
+export async function validatePromoCode(
+  code: string,
+  subtotal: number,
+  accessToken?: string | null
+): Promise<PromoValidationResponse> {
   try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`
+    }
+
     const res = await fetch(`${API_BASE_URL}/api/promo-codes/validate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ code, subtotal }),
     })
 
