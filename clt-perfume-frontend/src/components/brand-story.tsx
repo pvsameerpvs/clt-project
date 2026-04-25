@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { getSiteSettings } from "@/lib/api"
@@ -70,8 +71,8 @@ export function BrandStory({ initialData }: BrandStoryProps) {
               ))}
             </div>
 
-            <Button variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-black rounded-none px-8 py-6 uppercase tracking-widest text-xs transition-colors duration-300">
-              Read Our Story
+            <Button asChild variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-black rounded-none px-8 py-6 uppercase tracking-widest text-xs transition-colors duration-300">
+              <Link href="/our-story">Read Our Story</Link>
             </Button>
           </div>
         </div>

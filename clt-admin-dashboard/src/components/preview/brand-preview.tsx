@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import { Edit3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -55,9 +56,12 @@ export function BrandPreview({ story, onEditClick }: BrandPreviewProps) {
                 ))}
               </div>
 
-              <Button variant="outline" className="bg-transparent text-white border-white/20 hover:bg-white hover:text-black rounded-none px-6 py-3 uppercase tracking-widest text-[10px] transition-colors">
+              <Link 
+                href="/our-story" 
+                className="inline-flex items-center justify-center bg-transparent text-white border border-white hover:bg-white hover:text-black rounded-none px-8 py-6 uppercase tracking-widest text-xs transition-colors duration-300"
+              >
                 Read Our Story
-              </Button>
+              </Link>
             </div>
           </div>
         </div>
