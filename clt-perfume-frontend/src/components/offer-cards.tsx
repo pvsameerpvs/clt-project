@@ -32,10 +32,16 @@ function resolveOfferHref(offer: PromoOffer) {
   return fallbackSlug ? `/offers/${fallbackSlug}` : "/offers"
 }
 
-export function OfferCards() {
-  const [offers, setOffers] = useState<PromoOffer[]>([])
+interface OfferCardsProps {
+  initialOffers?: PromoOffer[]
+}
+
+export function OfferCards({ initialOffers }: OfferCardsProps) {
+  const [offers, setOffers] = useState<PromoOffer[]>(initialOffers ? initialOffers.filter(isOfferActive) : [])
 
   useEffect(() => {
+    if (initialOffers !== undefined) return
+
     async function load() {
       const settings = await getSiteSettings()
       if (settings?.offers) {
@@ -43,7 +49,7 @@ export function OfferCards() {
       }
     }
     load()
-  }, [])
+  }, [initialOffers])
 
   const bgColors = ["bg-[#F3F0EA]", "bg-[#EBEFF5]", "bg-[#F5EBEB]"]
 

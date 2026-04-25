@@ -5,10 +5,28 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { getSiteSettings } from "@/lib/api"
 
-export function BrandStory() {
-  const [data, setData] = useState<any>(null)
+interface BrandStoryFeature {
+  title: string
+  text: string
+}
+
+interface BrandStoryData {
+  title: string
+  description: string
+  image: string
+  features: BrandStoryFeature[]
+}
+
+interface BrandStoryProps {
+  initialData?: BrandStoryData | null
+}
+
+export function BrandStory({ initialData }: BrandStoryProps) {
+  const [data, setData] = useState<BrandStoryData | null>(initialData ?? null)
 
   useEffect(() => {
+    if (initialData !== undefined) return
+
     async function load() {
       const settings = await getSiteSettings()
       if (settings?.brand_story) {
@@ -16,7 +34,7 @@ export function BrandStory() {
       }
     }
     load()
-  }, [])
+  }, [initialData])
 
   if (!data) return <div className="py-24 bg-neutral-900 h-96 animate-pulse" />
 
@@ -44,7 +62,7 @@ export function BrandStory() {
             </p>
             
             <div className="grid grid-cols-2 gap-8 py-8 border-t border-white/10 mt-8">
-              {data.features.map((feat: any, idx: number) => (
+              {data.features.map((feat, idx: number) => (
                 <div key={idx}>
                   <h4 className="text-white text-xl font-serif mb-2">{feat.title}</h4>
                   <p className="text-neutral-500 text-sm">{feat.text}</p>

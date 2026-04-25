@@ -21,13 +21,19 @@ interface HeroSlide {
   headline: string
 }
 
-export function Hero() {
-  const [slides, setSlides] = React.useState<HeroSlide[]>([])
+interface HeroProps {
+  initialSlides?: HeroSlide[]
+}
+
+export function Hero({ initialSlides }: HeroProps) {
+  const [slides, setSlides] = React.useState<HeroSlide[]>(initialSlides ?? [])
   const plugin = React.useRef(
     Autoplay({ delay: 5000, stopOnInteraction: false })
   )
 
   React.useEffect(() => {
+    if (initialSlides !== undefined) return
+
     async function load() {
       const settings = await getSiteSettings()
       if (settings?.hero_slides) {
@@ -35,7 +41,7 @@ export function Hero() {
       }
     }
     load()
-  }, [])
+  }, [initialSlides])
 
   if (slides.length === 0) return <div className="h-[70vh] bg-neutral-900 rounded-[2rem] mx-4 animate-pulse mb-16" />
 

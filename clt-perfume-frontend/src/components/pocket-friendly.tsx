@@ -5,22 +5,35 @@ import { ProductCard } from "@/components/product/product-card"
 import { getSiteSettings, getProducts } from "@/lib/api"
 import { Product } from "@/lib/products"
 
-export function PocketFriendly() {
+interface PocketFriendlyProps {
+  initialPricePoints?: number[]
+  initialProducts?: Product[]
+}
+
+export function PocketFriendly({ initialPricePoints, initialProducts }: PocketFriendlyProps) {
   const [selectedPrice, setSelectedPrice] = useState<number | null>(null)
-  const [pricePoints, setPricePoints] = useState<number[]>([])
-  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [pricePoints, setPricePoints] = useState<number[]>(initialPricePoints ?? [])
+  const [allProducts, setAllProducts] = useState<Product[]>(initialProducts ?? [])
 
   useEffect(() => {
+    if (initialPricePoints !== undefined && initialProducts !== undefined) return
+
     async function load() {
-      const settings = await getSiteSettings()
-      if (settings?.pocket_friendly_configs) {
+      const [settings, productsData] = await Promise.all([
+        initialPricePoints === undefined ? getSiteSettings() : Promise.resolve(null),
+        initialProducts === undefined ? getProducts() : Promise.resolve(initialProducts),
+      ])
+
+      if (initialPricePoints === undefined && settings?.pocket_friendly_configs) {
         setPricePoints(settings.pocket_friendly_configs)
       }
-      const productsData = (await getProducts()) as Product[]
-      setAllProducts(productsData || [])
+
+      if (initialProducts === undefined) {
+        setAllProducts((productsData as Product[]) || [])
+      }
     }
     load()
-  }, [])
+  }, [initialPricePoints, initialProducts])
 
   const filteredProducts = selectedPrice 
     ? allProducts.filter(p => Number(p.price) <= selectedPrice)

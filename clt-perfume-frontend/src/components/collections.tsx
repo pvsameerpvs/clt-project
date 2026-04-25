@@ -41,11 +41,17 @@ function buildCollectionHref(collection: CuratedCollectionItem) {
   return "/collections/all"
 }
 
-export function Collections() {
-  const [collections, setCollections] = useState<CuratedCollectionItem[]>([])
-  const [loading, setLoading] = useState(true)
+interface CollectionsProps {
+  initialCollections?: CuratedCollectionItem[]
+}
+
+export function Collections({ initialCollections }: CollectionsProps) {
+  const [collections, setCollections] = useState<CuratedCollectionItem[]>(initialCollections ?? [])
+  const [loading, setLoading] = useState(initialCollections === undefined)
 
   useEffect(() => {
+    if (initialCollections !== undefined) return
+
     async function load() {
       const settings = await getSiteSettings()
       if (settings?.collections) {
@@ -54,7 +60,7 @@ export function Collections() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [initialCollections])
 
   if (loading) return <div className="py-24 animate-pulse"><div className="container mx-auto px-4 h-96 bg-neutral-50 rounded-[2rem]" /></div>
 

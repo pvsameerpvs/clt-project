@@ -1,7 +1,10 @@
 import { OfferCards } from "@/components/offer-cards"
 import { Sparkles } from "lucide-react"
+import { getSiteSettings } from "@/lib/api"
 
-export default function OffersPage() {
+export default async function OffersPage() {
+  const settings = await getSiteSettings()
+
   return (
     <div className="min-h-screen bg-white text-black pt-32 pb-12">
       <div className="container mx-auto px-4 md:px-6 mb-8 text-center">
@@ -16,7 +19,7 @@ export default function OffersPage() {
         </p>
       </div>
       
-      <OfferCards />
+      <OfferCards initialOffers={settings?.offers} />
     </div>
   )
 }

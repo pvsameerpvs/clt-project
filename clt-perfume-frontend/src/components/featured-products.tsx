@@ -5,19 +5,26 @@ import { Button } from "@/components/ui/button"
 import { ProductCard } from "@/components/product/product-card"
 import { getProducts } from "@/lib/api"
 import Link from "next/link"
+import { Product } from "@/lib/products"
 
-export function FeaturedProducts() {
-  const [products, setProducts] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+interface FeaturedProductsProps {
+  initialProducts?: Product[]
+}
+
+export function FeaturedProducts({ initialProducts }: FeaturedProductsProps) {
+  const [products, setProducts] = useState<Product[]>(initialProducts ?? [])
+  const [loading, setLoading] = useState(initialProducts === undefined)
 
   useEffect(() => {
+    if (initialProducts !== undefined) return
+
     async function load() {
       const data = await getProducts()
       setProducts(data || [])
       setLoading(false)
     }
     load()
-  }, [])
+  }, [initialProducts])
 
   if (loading) return (
     <div className="py-24 container mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
