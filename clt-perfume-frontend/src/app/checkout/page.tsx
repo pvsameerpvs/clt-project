@@ -400,15 +400,17 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white py-10 md:py-14">
+    <div className="min-h-screen bg-neutral-50/30 py-8 md:py-14">
       <div className="mx-auto max-w-6xl px-4 md:px-6">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-8 flex items-start justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Secure Checkout</p>
-            <h1 className="mt-1 font-serif text-3xl text-neutral-900 md:text-4xl">Delivery & Payment</h1>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 font-medium">Secure Checkout</p>
+            <h1 className="mt-1 font-serif text-3xl text-neutral-900 md:text-4xl leading-tight">
+              Delivery <br className="md:hidden" /> & Payment
+            </h1>
           </div>
-          <Link href="/cart" className="rounded-full border border-neutral-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-neutral-700 transition hover:border-black hover:text-black">
-            Back to Cart
+          <Link href="/cart" className="mt-2 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400 border-b border-neutral-200 pb-0.5 hover:text-black hover:border-black transition-all">
+            Back to Bag
           </Link>
         </div>
 

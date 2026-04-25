@@ -30,7 +30,15 @@ export function CartItem({ item }: { item: CartLineItem }) {
                 {item.product.name}
               </Link>
             </h3>
-            <p className="text-[10px] uppercase tracking-widest text-neutral-400 mt-1">{categoryLabel}</p>
+            <p className="text-[10px] uppercase tracking-widest text-neutral-400 mt-1">
+              {categoryLabel}
+              {item.product.ml && (
+                <>
+                  <span className="mx-1.5 opacity-50">•</span>
+                  {item.product.ml}
+                </>
+              )}
+            </p>
           </div>
           <button 
             onClick={() => removeFromCart(lineKey)}

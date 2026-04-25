@@ -52,7 +52,12 @@ export function CartBundleItem({ bundleGroup, onRemove, onUpdateQuantity, setQua
             <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-white">
               <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
             </div>
-            <p className="mt-1.5 line-clamp-1 text-[9px] text-neutral-500 text-center">{item.product.name}</p>
+            <p className="mt-1.5 line-clamp-1 text-[9px] text-neutral-500 text-center font-medium">
+              {item.product.name}
+              {item.product.ml && (
+                <span className="block text-[8px] text-neutral-400 mt-0.5">{item.product.ml}</span>
+              )}
+            </p>
           </div>
         ))}
       </div>

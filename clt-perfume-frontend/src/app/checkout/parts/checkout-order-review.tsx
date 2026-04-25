@@ -44,20 +44,33 @@ export function CheckoutOrderReview({
   paymentMethod
 }: CheckoutOrderReviewProps) {
   return (
-    <aside className="h-fit rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 lg:sticky lg:top-24">
-      <h2 className="mb-4 border-b border-neutral-100 pb-3 font-serif text-2xl text-neutral-900">4. Review Order</h2>
+    <aside className="h-fit rounded-2xl border border-neutral-100 bg-white p-5 md:p-6 lg:sticky lg:top-24 shadow-sm">
+      <h2 className="mb-6 border-b border-neutral-100 pb-4 font-serif text-xl md:text-2xl text-neutral-900 flex items-center gap-3">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-900 text-[10px] text-white font-sans font-bold">4</span>
+        Review Order
+      </h2>
 
-      <div className="mb-4 space-y-2">
+      <div className="mb-6 space-y-3">
         {items.map((item) => (
-          <div key={`${item.product.id}-${item.bundle?.id || "single"}`} className="flex items-center gap-3 rounded-lg border border-neutral-100 p-2">
-            <div className="relative h-12 w-12 overflow-hidden rounded-md bg-neutral-100">
+          <div key={`${item.bundle?.id || "single"}::${item.product.id}::${item.product.price}`} className="flex items-center gap-3">
+            <div className="relative h-14 w-12 overflow-hidden rounded-lg bg-neutral-50 border border-neutral-100 flex-shrink-0">
               <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-neutral-900">{item.product.name}</p>
-              <p className="text-xs text-neutral-500">Qty {item.quantity}</p>
+              <p className="truncate text-xs font-medium text-neutral-900 leading-none">{item.product.name}</p>
+              <div className="mt-1 flex items-center gap-2">
+                <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-medium">Qty {item.quantity}</p>
+                {item.product.ml && (
+                  <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-medium">
+                    <span className="mx-1">•</span> {item.product.ml}
+                  </p>
+                )}
+              </div>
             </div>
-            <p className="text-sm font-semibold text-neutral-800">{formatPrice(Number(item.product.price) * item.quantity)}</p>
+            <div className="text-right">
+              <span className="text-[9px] text-neutral-400 block leading-none font-medium">AED</span>
+              <span className="text-xs font-semibold text-neutral-800">{formatPrice(Number(item.product.price) * item.quantity).replace("AED", "").trim()}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -96,17 +109,19 @@ export function CheckoutOrderReview({
         </div>
       )}
 
-      <div className="space-y-3 text-sm text-neutral-600">
-        <div className="flex justify-between"><span>Items ({totalItems})</span><span className="font-medium text-black">{formatPrice(totalPrice)}</span></div>
+      <div className="space-y-3 text-[11px] uppercase tracking-wider text-neutral-500 font-medium">
+        <div className="flex justify-between"><span>Items ({totalItems})</span><span className="text-neutral-900">{formatPrice(totalPrice)}</span></div>
         {promo && promoDiscountAmount > 0 && (
-          <div className="flex justify-between text-emerald-700"><span>Promo Discount</span><span>- {formatPrice(promoDiscountAmount)}</span></div>
+          <div className="flex justify-between text-emerald-600"><span>Promo Discount</span><span>- {formatPrice(promoDiscountAmount)}</span></div>
         )}
-        <div className="flex justify-between"><span>Shipping</span><span className="font-medium text-green-700">FREE</span></div>
+        <div className="flex justify-between"><span>Shipping</span><span className="text-green-600">FREE</span></div>
       </div>
 
-      <div className="mt-5 flex items-end justify-between border-t border-neutral-100 pt-5">
-        <span className="font-serif text-lg">Total</span>
-        <span className="font-serif text-2xl">{formatPrice(discountedTotal)}</span>
+      <div className="mt-8 flex items-center justify-between border-t border-neutral-100 pt-6">
+        <div className="text-left">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 font-bold leading-none mb-1">Grand Total</p>
+          <p className="font-serif text-3xl text-neutral-900 leading-none">{formatPrice(discountedTotal)}</p>
+        </div>
       </div>
 
       <Button

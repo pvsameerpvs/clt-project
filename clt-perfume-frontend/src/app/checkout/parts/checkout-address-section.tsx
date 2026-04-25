@@ -31,10 +31,13 @@ export function CheckoutAddressSection({
   contactWhatsapp
 }: CheckoutAddressSectionProps) {
   return (
-    <article className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="font-serif text-2xl text-neutral-900">2. Delivery Address</h2>
-        <span className="text-xs text-neutral-500">{shippingAddresses.length} saved</span>
+    <article className="rounded-2xl border border-neutral-100 bg-white p-5 md:p-6 shadow-sm">
+      <div className="mb-6 flex items-center justify-between gap-2">
+        <h2 className="font-serif text-xl md:text-2xl text-neutral-900 flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-900 text-[10px] text-white font-sans font-bold">2</span>
+          Delivery Address
+        </h2>
+        <span className="text-[10px] uppercase tracking-widest text-neutral-400 font-medium">{shippingAddresses.length} saved</span>
       </div>
 
       <div className="space-y-2">
@@ -47,33 +50,36 @@ export function CheckoutAddressSection({
               key={address.id}
               type="button"
               onClick={() => setSelectedAddressId(address.id)}
-              className={`w-full rounded-xl border px-3 py-3 text-left transition ${
+              className={`w-full rounded-xl border p-4 text-left transition-all ${
                 isSelected
-                  ? "border-black bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.04)]"
-                  : "border-neutral-200 bg-white hover:border-neutral-300"
+                  ? "border-neutral-900 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.05)]"
+                  : "border-neutral-100 bg-neutral-50/50 hover:border-neutral-200"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700">
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${isSelected ? "bg-neutral-900 border-neutral-900 text-white" : "border-neutral-200 bg-white text-neutral-400"}`}>
                     <Icon className="h-3.5 w-3.5" />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-neutral-900">{address.title}</p>
-                    <p className="text-xs text-neutral-500">{address.contactName}</p>
+                    <p className={`text-[11px] uppercase tracking-widest font-bold ${isSelected ? "text-neutral-900" : "text-neutral-500"}`}>{address.title}</p>
+                    <p className="text-[10px] text-neutral-400 mt-0.5">{address.contactName}</p>
                   </div>
                 </div>
                 {isSelected && (
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-black text-white">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white">
                     <Check className="h-3 w-3" />
                   </span>
                 )}
               </div>
-              <p className="mt-2 text-xs text-neutral-600">
+              <p className="mt-3 text-[11px] text-neutral-600 leading-relaxed pr-6">
                 {address.line1}
                 {address.line2 ? `, ${address.line2}` : ""}, {address.city}, {address.country}
               </p>
-              <p className="mt-1 text-xs text-neutral-500">{address.phone}</p>
+              <div className="mt-2 flex items-center gap-2 text-[10px] text-neutral-400">
+                <span className="uppercase tracking-widest font-medium">Contact:</span>
+                <span>{address.phone}</span>
+              </div>
             </button>
           )
         })}
@@ -90,36 +96,61 @@ export function CheckoutAddressSection({
             }
             setShowAddressForm(true)
           }}
-          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-300 bg-white px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black hover:text-black"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-200 bg-white px-4 py-4 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400 transition-all hover:border-neutral-900 hover:text-neutral-900"
         >
           <PlusCircle className="h-4 w-4" />
-          Add New Address
+          Add New Delivery Address
         </button>
       ) : (
-        <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-3">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <input value={addressForm.title} onChange={(event) => updateAddressField("title", event.target.value)} placeholder="Address Title (Home, Office...)" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black sm:col-span-2" />
-            <select value={addressForm.type} onChange={(event) => updateAddressField("type", event.target.value as CheckoutAddressType)} className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black">
-              <option value="home">Home</option>
-              <option value="office">Office</option>
-              <option value="other">Other</option>
-            </select>
-            <input value={addressForm.postalCode} onChange={(event) => updateAddressField("postalCode", event.target.value)} placeholder="Postal Code" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-            <input value={addressForm.contactName} onChange={(event) => updateAddressField("contactName", event.target.value)} placeholder="Contact Name" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-            <input value={addressForm.phone} onChange={(event) => updateAddressField("phone", event.target.value)} placeholder="Phone Number" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-            <input value={addressForm.line1} onChange={(event) => updateAddressField("line1", event.target.value)} placeholder="Address Line 1" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black sm:col-span-2" />
-            <input value={addressForm.line2} onChange={(event) => updateAddressField("line2", event.target.value)} placeholder="Address Line 2 (Optional)" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black sm:col-span-2" />
-            <input value={addressForm.city} onChange={(event) => updateAddressField("city", event.target.value)} placeholder="City" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-            <input value={addressForm.state} onChange={(event) => updateAddressField("state", event.target.value)} placeholder="State" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-            <input value={addressForm.country} onChange={(event) => updateAddressField("country", event.target.value)} placeholder="Country" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
-            <input value={addressForm.landmark} onChange={(event) => updateAddressField("landmark", event.target.value)} placeholder="Landmark (Optional)" className="h-10 rounded-lg border border-neutral-300 px-3 text-sm outline-none transition focus:border-black" />
+        <div className="mt-4 rounded-xl border border-neutral-100 bg-neutral-50/50 p-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Address Label</label>
+              <input value={addressForm.title} onChange={(event) => updateAddressField("title", event.target.value)} placeholder="e.g. Home, Office, Parents House" className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-black" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Type</label>
+              <select value={addressForm.type} onChange={(event) => updateAddressField("type", event.target.value as CheckoutAddressType)} className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-black">
+                <option value="home">Home</option>
+                <option value="office">Office</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Postal Code</label>
+              <input value={addressForm.postalCode} onChange={(event) => updateAddressField("postalCode", event.target.value)} placeholder="00000" className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-black" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Receiver Name</label>
+              <input value={addressForm.contactName} onChange={(event) => updateAddressField("contactName", event.target.value)} placeholder="Full Name" className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-black" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Receiver Phone</label>
+              <input value={addressForm.phone} onChange={(event) => updateAddressField("phone", event.target.value)} placeholder="+971" className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-black" />
+            </div>
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Street Address</label>
+              <input value={addressForm.line1} onChange={(event) => updateAddressField("line1", event.target.value)} placeholder="Building name, Street, Apartment..." className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-black" />
+            </div>
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Apartment / Suite (Optional)</label>
+              <input value={addressForm.line2} onChange={(event) => updateAddressField("line2", event.target.value)} placeholder="Apt 101" className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-black" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold ml-1">City</label>
+              <input value={addressForm.city} onChange={(event) => updateAddressField("city", event.target.value)} placeholder="Dubai" className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-black" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Country</label>
+              <input value={addressForm.country} onChange={(event) => updateAddressField("country", event.target.value)} placeholder="United Arab Emirates" className="h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-black" />
+            </div>
           </div>
-          {addressFormError && <p className="mt-2 text-xs text-red-600">{addressFormError}</p>}
-          <div className="mt-3 flex gap-2">
-            <button type="button" onClick={onSaveAddress} disabled={isSavingAddress} className="h-10 flex-1 rounded-lg bg-black px-3 text-xs font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-neutral-800 disabled:opacity-60">
+          {addressFormError && <p className="mt-3 text-[10px] text-red-500 font-bold uppercase tracking-widest">{addressFormError}</p>}
+          <div className="mt-6 flex gap-3">
+            <button type="button" onClick={onSaveAddress} disabled={isSavingAddress} className="h-12 flex-1 rounded-xl bg-neutral-900 px-4 text-[11px] font-bold uppercase tracking-[0.15em] text-white transition hover:bg-black disabled:opacity-60">
               {isSavingAddress ? "Saving..." : "Save Address"}
             </button>
-            <button type="button" onClick={() => { if (isSavingAddress) return; setShowAddressForm(false); setAddressFormError("") }} className="h-10 flex-1 rounded-lg border border-neutral-300 bg-white px-3 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700 transition hover:border-black hover:text-black">
+            <button type="button" onClick={() => { if (isSavingAddress) return; setShowAddressForm(false); setAddressFormError("") }} className="h-12 flex-1 rounded-xl border border-neutral-200 bg-white px-4 text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-400 transition hover:border-neutral-900 hover:text-neutral-900">
               Cancel
             </button>
           </div>
