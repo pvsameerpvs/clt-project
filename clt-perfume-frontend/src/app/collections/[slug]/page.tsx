@@ -226,7 +226,7 @@ export default async function CollectionPage({
           </div>
 
           {visibleProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
               {visibleProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
@@ -243,7 +243,7 @@ export default async function CollectionPage({
                 <h3 className="text-xl font-serif">{relatedTitle} ({relatedProducts.length})</h3>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">Smart Rotation</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
                 {relatedProducts.map((product) => (
                   <ProductCard key={`related-${product.id}`} product={product} />
                 ))}
@@ -383,7 +383,7 @@ export default async function CollectionPage({
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
           {visibleProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -401,7 +401,7 @@ export default async function CollectionPage({
               <h3 className="text-xl font-serif">{relatedTitle} ({relatedProducts.length})</h3>
               <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">Smart Rotation</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
               {relatedProducts.map((product) => (
                 <ProductCard key={`related-${product.id}`} product={product} />
               ))}

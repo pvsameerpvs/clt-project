@@ -27,7 +27,7 @@ export function FeaturedProducts({ initialProducts }: FeaturedProductsProps) {
   }, [initialProducts])
 
   if (loading) return (
-    <div className="py-24 container mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+    <div className="py-24 container mx-auto px-4 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
       {[1,2,3,4].map(i => <div key={i} className="aspect-[4/5] bg-neutral-50 animate-pulse rounded-lg" />)}
     </div>
   )
@@ -51,7 +51,7 @@ export function FeaturedProducts({ initialProducts }: FeaturedProductsProps) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
           {products.length > 0 ? (
             products.slice(0, 8).map((product) => (
               <ProductCard key={product.id} product={product} />
