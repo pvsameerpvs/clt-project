@@ -197,17 +197,17 @@ export default async function OfferPage({ params }: { params: Promise<{ slug: st
 
       <div className="bg-neutral-50 py-24 border-t border-neutral-100" id="eligible-items">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-            <div className="space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-400">Shop The Offer</span>
-              <h2 className="text-3xl md:text-5xl font-serif font-medium tracking-tight text-neutral-900">Eligible Items</h2>
+          <div className="flex items-end justify-between mb-10 gap-4">
+            <div className="space-y-1.5">
+              <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-400">Shop The Offer</span>
+              <h2 className="text-2xl md:text-5xl font-serif font-medium tracking-tight text-neutral-900 leading-tight">Eligible Items</h2>
             </div>
-            <Button asChild variant="link" className="text-black underline-offset-4 hover:text-neutral-600 px-0">
+            <Button asChild variant="link" className="text-black underline-offset-4 hover:text-neutral-600 px-0 h-auto pb-1 text-xs md:text-sm">
               <Link href={buildProductsHref(Array.from(selectedProductSlugs))}>View All Eligible</Link>
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {eligibleProducts.slice(0, 8).map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
