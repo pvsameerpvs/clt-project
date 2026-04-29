@@ -106,9 +106,9 @@ export function Footer() {
           <div className="space-y-6">
             <h4 className="font-semibold text-white uppercase tracking-widest text-xs">Company</h4>
             <ul className="space-y-3">
-              <li><Link href="/about" className="hover:text-white transition-colors">About Cle DXB</Link></li>
+              <li><Link href="/about" className="hover:text-white transition-colors">About CLE Perfume</Link></li>
               <li><Link href="/our-story" className="hover:text-white transition-colors">Our Story</Link></li>
-              <li><Link href="/why-cle-dxb" className="hover:text-white transition-colors">Why Cle DXB</Link></li>
+              <li><Link href="/why-cle-perfume" className="hover:text-white transition-colors">Why CLE Perfume</Link></li>
               <li><Link href="/bottle-design" className="hover:text-white transition-colors">Bottle Design</Link></li>
               <li><Link href="/clean-eau-de-parfum" className="hover:text-white transition-colors">Clean Eau De Parfum</Link></li>
               <li><Link href="/sustainability" className="hover:text-white transition-colors">Sustainability</Link></li>

@@ -3,8 +3,8 @@ import Link from "next/link"
 import { ContentCard } from "@/components/company/content-card"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | CLE DXB Perfumes",
-  description: "Privacy policy overview for Cle DXB website customers.",
+  title: "Privacy Policy | CLE Perfume",
+  description: "Privacy policy overview for CLE Perfume website customers.",
 }
 
 export default function PrivacyPolicyPage() {
@@ -28,7 +28,7 @@ export default function PrivacyPolicyPage() {
           </h1>
           
           <p className="text-lg md:text-xl font-light text-neutral-600 leading-relaxed mb-10 max-w-2xl mx-auto">
-            Your trust is our most valuable asset. This policy outlines how Cle DXB handles your personal information 
+            Your trust is our most valuable asset. This policy outlines how CLE Perfume handles your personal information 
             with the highest standards of security and transparency.
           </p>
 

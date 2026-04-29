@@ -9,19 +9,12 @@ import {
   type CheckoutPayload,
 } from '../services/checkout.service'
 import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
+import { generateOrderNumber } from '../utils/order-number'
 
 export const orderRoutes = Router()
 
 type ReturnRequestPayload = {
   reason?: string
-}
-
-function generateOrderNumber() {
-  const stamp = Date.now().toString(36).toUpperCase()
-  const suffix = Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, '0')
-  return `CLT-${stamp}-${suffix}`
 }
 
 function normalizeOrderStatusForResponse(status: string) {

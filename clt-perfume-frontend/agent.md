@@ -1,7 +1,7 @@
-# CLE Perfumes — AI Agent Context
+# CLE Perfume — AI Agent Context
 
 ## Project Summary
-CLE Perfumes is a luxury perfume e-commerce website based in UAE. Currency is AED.
+CLE Perfume is a luxury perfume e-commerce website based in UAE. Currency is AED.
 Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui.
 Backend uses Supabase (PostgreSQL + Auth) and a separate Node.js Express API for payments.
 

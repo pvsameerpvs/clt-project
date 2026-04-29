@@ -12,20 +12,13 @@ import {
   type CheckoutPayload,
 } from '../services/checkout.service'
 import { buildFrontendUrl } from '../config/public-urls'
+import { generateOrderNumber } from '../utils/order-number'
 
 export const paymentRoutes = Router()
 
 function toSafeNumber(value: unknown) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : 0
-}
-
-function generateOrderNumber() {
-  const stamp = Date.now().toString(36).toUpperCase()
-  const suffix = Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, '0')
-  return `CLT-${stamp}-${suffix}`
 }
 
 function resolveImageUrl(image?: string | null) {
@@ -188,7 +181,9 @@ async function createSessionFromPayload(
       shipping_address_collection: {
         allowed_countries: ['AE', 'SA', 'BH', 'KW', 'OM', 'QA'],
       },
-      success_url: buildFrontendUrl(`/checkout/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`),
+      success_url: buildFrontendUrl(
+        `/checkout/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}`
+      ),
       cancel_url: buildFrontendUrl(`/checkout/cancel?order_id=${order.id}`),
     })
 
@@ -196,6 +191,7 @@ async function createSessionFromPayload(
       url: session.url,
       sessionId: session.id,
       orderId: order.id,
+      orderNumber: order.order_number,
     }
   } catch (error) {
     await releasePromoCodeReservation(order.id)

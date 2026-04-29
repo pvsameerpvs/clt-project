@@ -75,7 +75,7 @@ export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<E
       <table align="center" width="100%" max-width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <tr>
           <td style="background-color: #000000; padding: 40px 24px; text-align: center;">
-            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE DXB</div>
+            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE Perfume</div>
             <div style="font-family: sans-serif; font-size: 10px; color: #ffffff; letter-spacing: 0.3em; text-transform: uppercase; margin: 8px 0 0 0; opacity: 0.8;">PERFUME</div>
           </td>
         </tr>
@@ -83,7 +83,7 @@ export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<E
           <td style="padding: 32px 24px; text-align: center;">
             <p style="color: #4b5563; font-size: 16px; margin-top: 0;">Hi there,</p>
             <p style="color: #111827; font-size: 18px; font-weight: 600;">We've received your order!</p>
-            <p style="color: #4b5563; font-size: 16px; margin-bottom: 24px;">Thank you for shopping at CLE DXB. We are processing your order and will let you know once it's on the way.</p>
+            <p style="color: #4b5563; font-size: 16px; margin-bottom: 24px;">Thank you for shopping at CLE Perfume. We are processing your order and will let you know once it's on the way.</p>
             
             <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
               <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Order Number</p>
@@ -123,7 +123,7 @@ export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<E
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE DXB <info@cleparfum.com>',
+      from: 'CLE Perfume <info@cleparfum.com>',
       to: recipientEmail,
       bcc: 'infocleparfum@gmail.com', // ⬅️ Sent copy to client
       subject: `Order Confirmation #${order.order_number}`,
@@ -162,15 +162,15 @@ export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
       <table align="center" width="100%" max-width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <tr>
           <td style="background-color: #000000; padding: 40px 24px; text-align: center;">
-            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE DXB</div>
+            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE Perfume</div>
             <div style="font-family: sans-serif; font-size: 10px; color: #ffffff; letter-spacing: 0.3em; text-transform: uppercase; margin: 8px 0 0 0; opacity: 0.8;">PERFUME</div>
           </td>
         </tr>
         <tr>
           <td style="padding: 32px 24px; text-align: center;">
             <p style="color: #4b5563; font-size: 16px; margin-top: 0;">Hi ${customerName},</p>
-            <p style="color: #111827; font-size: 18px; font-weight: 600;">Thank you for joining CLE DXB.</p>
-            <p style="color: #4b5563; font-size: 16px; margin-bottom: 16px;">Your account is ready and ${sourceLabel} is now connected to CLE DXB.</p>
+            <p style="color: #111827; font-size: 18px; font-weight: 600;">Thank you for joining CLE Perfume.</p>
+            <p style="color: #4b5563; font-size: 16px; margin-bottom: 16px;">Your account is ready and ${sourceLabel} is now connected to CLE Perfume.</p>
             <p style="color: #4b5563; font-size: 16px; margin-bottom: 24px;">You can now sign in, manage your profile, track orders, and continue shopping with a saved account.</p>
             <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
               <p style="margin: 0; font-size: 14px; color: #6b7280;">Account email</p>
@@ -186,9 +186,9 @@ export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE DXB <info@cleparfum.com>',
+      from: 'CLE Perfume <info@cleparfum.com>',
       to: details.email,
-      subject: 'Welcome to CLE DXB',
+      subject: 'Welcome to CLE Perfume',
       html,
     })
 
@@ -225,7 +225,7 @@ export async function sendOrderStatusEmail(
       <table align="center" width="100%" max-width="600" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <tr>
           <td style="background-color: #000000; padding: 40px 24px; text-align: center;">
-            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE DXB</div>
+            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE Perfume</div>
             <div style="font-family: sans-serif; font-size: 10px; color: #ffffff; letter-spacing: 0.3em; text-transform: uppercase; margin: 8px 0 0 0; opacity: 0.8;">PERFUME</div>
           </td>
         </tr>
@@ -245,7 +245,7 @@ export async function sendOrderStatusEmail(
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE DXB <info@cleparfum.com>',
+      from: 'CLE Perfume <info@cleparfum.com>',
       to: recipientEmail,
       bcc: 'infocleparfum@gmail.com', // Sent copy to admin
       subject: `Order Update #${orderNumber} - ${formattedStatus}`,
@@ -281,7 +281,7 @@ export async function sendAbandonedCartEmail(recipientEmail: string, items: any[
   } else if (stage === 2) {
     subject = "Your CLE Perfume is still waiting for you 🖤"
     heading = "Your Cart is Expiring Soon"
-    text = "We wanted to remind you that your favorite scents are still in your cart. Come back to CLE DXB to complete your order."
+    text = "We wanted to remind you that your favorite scents are still in your cart. Come back to CLE Perfume to complete your order."
   } else {
     subject = "Still thinking about it? ✨"
     heading = "Take another look"
@@ -305,7 +305,7 @@ export async function sendAbandonedCartEmail(recipientEmail: string, items: any[
         <tr>
           <!-- Navbar with Logo -->
           <td style="background-color: #000000; padding: 40px 24px; text-align: center;">
-            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE DXB</div>
+            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE Perfume</div>
             <div style="font-family: sans-serif; font-size: 10px; color: #ffffff; letter-spacing: 0.3em; text-transform: uppercase; margin: 8px 0 0 0; opacity: 0.8;">PERFUME</div>
           </td>
         </tr>
@@ -330,7 +330,7 @@ export async function sendAbandonedCartEmail(recipientEmail: string, items: any[
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE DXB <info@cleparfum.com>',
+      from: 'CLE Perfume <info@cleparfum.com>',
       to: email,
       subject: subject,
       html: html,
@@ -367,7 +367,7 @@ export async function sendReturnStatusEmail(
       <table align="center" width="100%" max-width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <tr>
           <td style="background-color: #000000; padding: 40px 24px; text-align: center;">
-            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE DXB</div>
+            <div style="font-family: Georgia, serif; font-size: 28px; color: #ffffff; letter-spacing: 0.1em; text-transform: uppercase; margin: 0;">CLE Perfume</div>
             <div style="font-family: sans-serif; font-size: 10px; color: #ffffff; letter-spacing: 0.3em; text-transform: uppercase; margin: 8px 0 0 0; opacity: 0.8;">PERFUME</div>
           </td>
         </tr>
@@ -390,7 +390,7 @@ export async function sendReturnStatusEmail(
               : `<p style="color: #b91c1c; font-weight: 600; font-size: 16px;">Unfortunately, we are unable to approve your refund request at this time. If you believe this is an error, please contact our support team.</p>`
             }
             
-            <p style="color: #4b5563; font-size: 14px; margin-top: 32px;">Thank you for choosing CLE DXB.</p>
+            <p style="color: #4b5563; font-size: 14px; margin-top: 32px;">Thank you for choosing CLE Perfume.</p>
           </td>
         </tr>
       </table>
@@ -400,7 +400,7 @@ export async function sendReturnStatusEmail(
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE DXB <info@cleparfum.com>',
+      from: 'CLE Perfume <info@cleparfum.com>',
       to: recipientEmail,
       bcc: 'infocleparfum@gmail.com',
       subject: subject,

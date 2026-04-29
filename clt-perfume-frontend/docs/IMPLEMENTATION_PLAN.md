@@ -1,4 +1,4 @@
-# 🚀 CLE Perfumes — Full-Stack Implementation Plan
+# 🚀 CLE Perfume — Full-Stack Implementation Plan
 
 > **Goal:** Turn the existing frontend into a complete, production-ready e-commerce store  
 > **Frontend:** Next.js 16 (App Router) — already built ✅  

@@ -63,7 +63,7 @@ ${itemsText || 'Details in email'}
 
 *Total:* AED ${Math.round(order.total)}
 
-Thank you for shopping at CLE DXB. We are processing your order and will let you know once it's on the way.`
+Thank you for shopping at CLE Perfume. We are processing your order and will let you know once it's on the way.`
 
   try {
     const logMsg = `[${new Date().toISOString()}] Attempting to send to ${formattedNumber} (Order: ${order.order_number})\n`
@@ -115,7 +115,7 @@ export async function sendOrderStatusWhatsApp(
     : ''
   const messageText = `*Order Update:* #${orderNumber} 🎉
 
-Hi there! The status of your CLE DXB order is now: *${formattedStatus}*.
+Hi there! The status of your CLE Perfume order is now: *${formattedStatus}*.
 ${paymentLine}
 
 Thank you for shopping with us!`

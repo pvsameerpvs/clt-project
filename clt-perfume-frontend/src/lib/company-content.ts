@@ -1,6 +1,6 @@
 export const companyPageLinks = [
   {
-    title: "About Cle DXB",
+    title: "About CLE Perfume",
     href: "/about",
     description: "Overview of our fragrance philosophy and brand direction.",
   },
@@ -10,8 +10,8 @@ export const companyPageLinks = [
     description: "How the debut collection and brand journey were created.",
   },
   {
-    title: "Why Cle DXB",
-    href: "/why-cle-dxb",
+    title: "Why CLE Perfume",
+    href: "/why-cle-perfume",
     description: "Our approach to personalization, creativity, and education.",
   },
   {
@@ -32,7 +32,7 @@ export const companyPageLinks = [
   {
     title: "Ingredients",
     href: "/ingredients",
-    description: "Complete ingredient declaration for Cle perfumes.",
+    description: "Complete ingredient declaration for CLE Perfume fragrances.",
   },
   {
     title: "Returns & Refund Policy",

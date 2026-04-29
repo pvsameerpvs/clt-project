@@ -1,4 +1,4 @@
-# CLE Perfumes — Complete Database Schema
+# CLE Perfume — Complete Database Schema
 
 ## Overview
 - **Database:** Supabase (PostgreSQL 17)

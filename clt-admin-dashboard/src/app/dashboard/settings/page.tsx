@@ -161,7 +161,7 @@ export default function SettingsPage() {
       <Card className="relative overflow-hidden rounded-3xl">
         <div className="pointer-events-none absolute -right-24 top-0 h-56 w-56 rounded-full bg-neutral-200/50 blur-3xl" />
         <CardHeader className="relative">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-neutral-500 font-bold">CLE Perfumes</p>
+          <p className="text-[10px] uppercase tracking-[0.24em] text-neutral-500 font-bold">CLE Perfume</p>
           <CardTitle className="mt-3 text-3xl sm:text-4xl">Homepage Settings Studio</CardTitle>
           <CardDescription className="mt-3 max-w-2xl font-light italic">
             Synchronize your visual presence and brand identity directly with your storefront.

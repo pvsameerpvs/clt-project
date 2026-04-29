@@ -1,6 +1,6 @@
-# CLT Perfume Platform: Complete Database Architecture Documentation
+# CLE Perfume Platform: Complete Database Architecture Documentation
 
-This document provides a comprehensive overview of the database design for the **CLT Perfume** platform. The system is built on **Supabase (PostgreSQL)** and follows a modular schema to support E-commerce, Admin Management, and Secure Payments.
+This document provides a comprehensive overview of the database design for the **CLE Perfume** platform. The system is built on **Supabase (PostgreSQL)** and follows a modular schema to support E-commerce, Admin Management, and Secure Payments.
 
 ---
 

@@ -1,4 +1,4 @@
-# 📖 CLE Perfumes — Complete Full-Stack Documentation
+# 📖 CLE Perfume — Complete Full-Stack Documentation
 
 ## Part 1: Foundation (Database + Authentication)
 
@@ -19,7 +19,7 @@
 
 ## 1. Project Overview
 
-**CLE Perfumes** is a luxury perfume e-commerce platform based in the UAE, selling premium fragrances with prices in AED.
+**CLE Perfume** is a luxury perfume e-commerce platform based in the UAE, selling premium fragrances with prices in AED.
 
 ### Current State (Frontend Only)
 - 10 pages, 17 components

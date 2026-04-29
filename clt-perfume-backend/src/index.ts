@@ -80,7 +80,7 @@ export default app
 
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
-    console.log(`🚀 CLE Perfumes API running on port ${PORT}`)
+    console.log(`🚀 CLE Perfume API running on port ${PORT}`)
     
     // Start the background cron worker for abandoned carts
     startAbandonedCartCron()

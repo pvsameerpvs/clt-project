@@ -5,8 +5,8 @@ import { RelatedPages } from "@/components/company/related-pages"
 import { companyPageLinks } from "@/lib/company-content"
 
 export const metadata: Metadata = {
-  title: "Bottle Design | CLE DXB Perfumes",
-  description: "The Cle DXB bottle concept: art, function, and sustainability.",
+  title: "Bottle Design | CLE Perfume",
+  description: "The CLE Perfume bottle concept: art, function, and sustainability.",
 }
 
 export default function BottleDesignPage() {
@@ -15,12 +15,12 @@ export default function BottleDesignPage() {
       <PageHero
         eyebrow="Bottle Design"
         title="A Bottle Beyond Convention"
-        description="At Cle DXB, we believe the bottle should be as expressive as the scent itself. After one year of design and development, we created a sculptural vessel that combines artistry, function, sustainability, and creative expression."
+        description="At CLE Perfume, we believe the bottle should be as expressive as the scent itself. After one year of design and development, we created a sculptural vessel that combines artistry, function, sustainability, and creative expression."
         imageSrc="/prfume-bannar-2.jpg"
-        imageAlt="Cle DXB bottle design concept"
+        imageAlt="CLE Perfume bottle design concept"
         tags={["Art Meets Essence", "One Year Development", "Sculptural Form"]}
         primaryAction={{ label: "Our Story", href: "/our-story" }}
-        secondaryAction={{ label: "Why Cle DXB", href: "/why-cle-dxb" }}
+        secondaryAction={{ label: "Why CLE Perfume", href: "/why-cle-perfume" }}
       />
 
       <section className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-12 md:px-8 md:py-16 lg:grid-cols-2">

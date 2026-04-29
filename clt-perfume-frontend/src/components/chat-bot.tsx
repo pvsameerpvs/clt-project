@@ -12,7 +12,7 @@ type Message = {
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: "Welcome to CLE DXB Perfumes. How can I assist you with our luxury collection today?", isBot: true }
+    { id: '1', text: "Welcome to CLE Perfume. How can I assist you with our luxury collection today?", isBot: true }
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)

@@ -5,8 +5,8 @@ import { RelatedPages } from "@/components/company/related-pages"
 import { companyPageLinks } from "@/lib/company-content"
 
 export const metadata: Metadata = {
-  title: "Sustainability | CLE DXB Perfumes",
-  description: "Cle DXB sustainability and transparency statement.",
+  title: "Sustainability | CLE Perfume",
+  description: "CLE Perfume sustainability and transparency statement.",
 }
 
 export default function SustainabilityPage() {

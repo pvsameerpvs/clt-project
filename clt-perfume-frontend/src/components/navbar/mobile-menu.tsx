@@ -152,7 +152,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           {activeMenu === 'main' ? (
             <Link href="/" onClick={onClose} className="flex-shrink-0 flex items-center">
               <div className="flex flex-col items-center">
-                 <Image src="/perfume-sam.png" alt="CLE DXB Perfumes" width={140} height={50} className="object-contain w-auto h-11" priority />
+                 <Image src="/perfume-sam.png" alt="CLE Perfume" width={140} height={50} className="object-contain w-auto h-11" priority />
                  <span className="text-[10px] tracking-[0.3em] uppercase mt-1">Perfumes</span>
               </div>
             </Link>

@@ -3,8 +3,8 @@ import Link from "next/link"
 import { ContentCard } from "@/components/company/content-card"
 
 export const metadata: Metadata = {
-  title: "Terms of Service | CLE DXB Perfumes",
-  description: "Terms and conditions for purchasing Cle DXB products.",
+  title: "Terms of Service | CLE Perfume",
+  description: "Terms and conditions for purchasing CLE Perfume products.",
 }
 
 export default function TermsOfServicePage() {
@@ -28,7 +28,7 @@ export default function TermsOfServicePage() {
           </h1>
           
           <p className="text-lg md:text-xl font-light text-neutral-600 leading-relaxed mb-10 max-w-2xl mx-auto">
-            These terms govern the use of the Cle DXB digital platform and the purchase of our signature fragrances. 
+            These terms govern the use of the CLE Perfume digital platform and the purchase of our signature fragrances. 
             By interacting with our boutique, you agree to these legal standards.
           </p>
 
@@ -56,9 +56,9 @@ export default function TermsOfServicePage() {
           <ContentCard
             title="Commercial Agreements"
             paragraphs={[
-              "By initializing a transaction with Cle DXB, you affirm that all billing and logistics details submitted are accurate and legitimate.",
+              "By initializing a transaction with CLE Perfume, you affirm that all billing and logistics details submitted are accurate and legitimate.",
               "Product availability and boutique pricing are subject to adjustment based on global essence sourcing and production limited-edition cycles.",
-              "Cle DXB reserves the right to decline any order suspected of fraudulent intent or unauthorized commercial resale."
+              "CLE Perfume reserves the right to decline any order suspected of fraudulent intent or unauthorized commercial resale."
             ]}
           />
           <ContentCard

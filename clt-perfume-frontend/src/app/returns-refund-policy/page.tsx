@@ -5,8 +5,8 @@ import { RelatedPages } from "@/components/company/related-pages"
 import { companyPageLinks } from "@/lib/company-content"
 
 export const metadata: Metadata = {
-  title: "Returns & Refund Policy | CLE DXB Perfumes",
-  description: "Returns and refund policy for Cle DXB perfumes.",
+  title: "Returns & Refund Policy | CLE Perfume",
+  description: "Returns and refund policy for CLE Perfume products.",
 }
 
 const nonReturnableItems = [
@@ -37,7 +37,7 @@ export default function ReturnsRefundPolicyPage() {
           </h1>
           
           <p className="text-lg md:text-xl font-light text-neutral-600 leading-relaxed mb-10 max-w-2xl mx-auto">
-            Our commitment to quality ensures every bottle of Cle DXB meets the highest standards. 
+            Our commitment to quality ensures every bottle of CLE Perfume meets the highest standards. 
             All returns are processed in accordance with UAE consumer protection regulations.
           </p>
 
@@ -54,7 +54,7 @@ export default function ReturnsRefundPolicyPage() {
                 Submit A Request
              </Link>
              <Link href="/about" className="w-full sm:w-auto px-10 py-4 border border-neutral-200 bg-white text-neutral-700 rounded-full text-xs uppercase tracking-[0.15em] font-bold hover:border-black hover:text-black transition-all">
-                The Cle Story
+                The CLE Perfume Story
              </Link>
           </div>
         </div>

@@ -1,4 +1,4 @@
-# 📖 CLE Perfumes — Complete Full-Stack Documentation
+# 📖 CLE Perfume — Complete Full-Stack Documentation
 
 ## Part 2: Features (Products, Cart, Payments, Orders, Admin, Search, Deploy)
 
@@ -26,7 +26,7 @@
 ### File: `src/lib/types.ts` (NEW)
 ```typescript
 // ============================================
-// Database Types for CLE Perfumes
+// Database Types for CLE Perfume
 // ============================================
 
 export interface Category {
@@ -650,7 +650,7 @@ app.get('/api/health', (req, res) => {
 })
 
 app.listen(PORT, () => {
-  console.log(`🚀 CLE Perfumes API running on port ${PORT}`)
+  console.log(`🚀 CLE Perfume API running on port ${PORT}`)
 })
 ```
 

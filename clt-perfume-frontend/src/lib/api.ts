@@ -42,6 +42,7 @@ export interface BankCheckoutSessionResponse {
   url: string
   sessionId: string
   orderId?: string
+  orderNumber?: string
 }
 
 export interface UserOrderItemRecord {

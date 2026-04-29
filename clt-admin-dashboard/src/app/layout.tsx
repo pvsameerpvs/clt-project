@@ -17,7 +17,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "CLE Perfume Dashboard",
-  description: "Advanced management interface for CLE Perfumes",
+  description: "Advanced management interface for CLE Perfume operations.",
 }
 
 export default function RootLayout({

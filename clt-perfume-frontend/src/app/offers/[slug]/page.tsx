@@ -87,7 +87,7 @@ function getOfferBundleDiscounts(offer: PromoOffer) {
 
 function buildDetails(offer: PromoOffer, selectedCount: number) {
   const cleanedDescription = stripHtml(offer.description)
-  const details = [cleanedDescription || "Discover this curated offer from CLE DXB Perfumes."]
+  const details = [cleanedDescription || "Discover this curated offer from CLE Perfume."]
   const bundleSizes = getOfferBundleSizes(offer)
   const bundleDiscounts = getOfferBundleDiscounts(offer)
 

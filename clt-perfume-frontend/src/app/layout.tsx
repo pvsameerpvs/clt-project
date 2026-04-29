@@ -18,7 +18,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "CLE DXB Perfumes | The Essence of Elegance",
+  title: "CLE Perfume | The Essence of Elegance",
   description: "Discover luxury fragrances crafted for the modern individual.",
   icons: {
     icon: "/logo-cle-favicon.png",

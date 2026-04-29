@@ -1,6 +1,6 @@
-# 🦅 CLE Perfumes — Full-Stack Master Hub
+# 🦅 CLE Perfume — Full-Stack Master Hub
 
-Welcome to the complete project repository for CLE Perfumes. This project is structured as a **Consolidated Workspace** to keep the Frontend, Backend, and Database perfectly organized.
+Welcome to the complete project repository for CLE Perfume This project is structured as a **Consolidated Workspace** to keep the Frontend, Backend, and Database perfectly organized.
 
 ## 📁 Project Structure
 ```text

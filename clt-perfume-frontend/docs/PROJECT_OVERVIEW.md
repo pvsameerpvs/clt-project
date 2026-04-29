@@ -1,4 +1,4 @@
-# 🏛️ CLE Perfumes — Complete Project Overview
+# 🏛️ CLE Perfume — Complete Project Overview
 
 > **Project:** `clt-perfume-frontend` — A luxury perfume e-commerce frontend  
 > **Tech Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui  

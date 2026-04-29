@@ -1,4 +1,4 @@
--- CLT Perfume Platform - Initial Database Schema
+-- CLE Perfume Platform - Initial Database Schema
 -- Paste this into your Supabase SQL Editor (https://supabase.com/dashboard/project/_/sql)
 
 -- 1. PROFILES (Extends Supabase Auth)

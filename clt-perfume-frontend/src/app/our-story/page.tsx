@@ -5,8 +5,8 @@ import { RelatedPages } from "@/components/company/related-pages"
 import { companyPageLinks } from "@/lib/company-content"
 
 export const metadata: Metadata = {
-  title: "Our Story | CLE DXB Perfumes",
-  description: "The brand story and launch vision behind Cle DXB.",
+  title: "Our Story | CLE Perfume",
+  description: "The brand story and launch vision behind CLE Perfume",
 }
 
 export default function OurStoryPage() {
@@ -14,12 +14,12 @@ export default function OurStoryPage() {
     <div className="bg-white text-black">
       <PageHero
         eyebrow="Our Story"
-        title="The Debut Of Cle DXB"
-        description="Cle DXB launches with a curated collection of five signature fragrances, offered in 50 ml and 100 ml. The project was built to bring luxury fragrance quality into a cleaner, more transparent customer experience."
+        title="The Debut Of CLE Perfume"
+        description="CLE Perfume launches with a curated collection of five signature fragrances, offered in 50 ml and 100 ml. The project was built to bring luxury fragrance quality into a cleaner, more transparent customer experience."
         imageSrc="/our-story.jpeg"
-        imageAlt="Cle DXB story visual"
+        imageAlt="CLE Perfume story visual"
         tags={["Curated Launch", "Signature Fragrances", "Dubai"]}
-        primaryAction={{ label: "Why Cle DXB", href: "/why-cle-dxb" }}
+        primaryAction={{ label: "Why CLE Perfume", href: "/why-cle-perfume" }}
         secondaryAction={{ label: "About", href: "/about" }}
       />
 
@@ -43,7 +43,7 @@ export default function OurStoryPage() {
 
       <RelatedPages
         title="Continue Exploring"
-        pages={companyPageLinks.filter((item) => ["/why-cle-dxb", "/bottle-design", "/clean-eau-de-parfum"].includes(item.href))}
+        pages={companyPageLinks.filter((item) => ["/why-cle-perfume", "/bottle-design", "/clean-eau-de-parfum"].includes(item.href))}
       />
     </div>
   )

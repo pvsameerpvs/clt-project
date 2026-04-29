@@ -35,7 +35,7 @@ export function DashboardShell({
         {/* Mobile Header */}
         <header className="flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-6 shrink-0 md:hidden">
           <div className="flex items-center gap-2">
-            <span className="font-serif font-bold italic text-neutral-900 text-xl tracking-tight">CLE Perfume.</span>
+            <span className="font-serif font-bold italic text-neutral-900 text-xl tracking-tight">CLE Perfume</span>
           </div>
           <Button 
             variant="ghost" 

@@ -1,4 +1,4 @@
-# 🚀 CLT Perfume Platform: Complete A-Z Setup Guide
+# 🚀 CLE Perfume Platform: Complete A-Z Setup Guide
 
 Welcome! This guide will take you from a blank database to a fully functioning luxury perfume shop. Follow these steps in order.
 
@@ -28,7 +28,7 @@ To let customers log in with Google, you need to connect Google to Supabase.
 
 ### 1. Google Cloud Console
 *   Go to [Google Cloud Console](https://console.cloud.google.com/).
-*   **Create a new project** named "CLT Perfume".
+*   **Create a new project** named "CLE Perfume".
 *   Go to **Google Auth Platform** -> **Branding**. Set the app name to `CLE Parfum`, add your support email, homepage (`https://cleparfum.com`), privacy policy, and terms URL.
 *   Add `cleparfum.com` under **Authorized domains**.
 *   Submit/publish the branding verification if Google asks for it. Until this is verified, Google can show the domain instead of the app name.

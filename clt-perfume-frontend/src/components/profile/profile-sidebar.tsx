@@ -96,7 +96,7 @@ export function ProfileSidebar({ initials, fullName }: ProfileSidebarProps) {
             </div>
             <h3 className="mb-2 text-center text-xl font-bold text-neutral-900 font-serif">Sign Out</h3>
             <p className="mb-8 text-center text-neutral-500 leading-relaxed">
-              Are you sure you want to log out of your <br/> CLE DXB account?
+              Are you sure you want to log out of your <br/> CLE Perfume account?
             </p>
             <div className="flex flex-col gap-3">
               <button 

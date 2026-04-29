@@ -359,6 +359,7 @@ export default function CheckoutPage() {
       storeCheckoutSuccessSnapshot({
         ...baseSuccessSnapshot,
         orderId: checkoutSession.orderId,
+        orderNumber: checkoutSession.orderNumber || checkoutSession.orderId,
         paymentMethod: "bank",
       })
       window.location.href = checkoutSession.url

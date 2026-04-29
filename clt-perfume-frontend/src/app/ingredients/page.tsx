@@ -15,8 +15,8 @@ import { RelatedPages } from "@/components/company/related-pages"
 import { companyPageLinks, perfumeIngredients } from "@/lib/company-content"
 
 export const metadata: Metadata = {
-  title: "Ingredients | CLE DXB Perfumes",
-  description: "Full ingredients list for Cle DXB perfumes.",
+  title: "Ingredients | CLE Perfume",
+  description: "Full ingredients list for CLE Perfume fragrances.",
 }
 
 const ingredientGroups = [
@@ -99,7 +99,7 @@ export default function IngredientsPage() {
               Full Formula Transparency, Structured For Clarity
             </h1>
             <p className="max-w-xl text-sm leading-relaxed text-neutral-700 md:text-base">
-              Cle DXB publishes the full perfume declaration in a premium, readable format. Review each ingredient
+              CLE Perfume publishes the full perfume declaration in a premium, readable format. Review each ingredient
               category with confidence before selecting your fragrance.
             </p>
 
