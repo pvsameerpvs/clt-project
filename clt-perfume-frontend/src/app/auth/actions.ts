@@ -7,6 +7,7 @@ import {
   findExistingAccountByEmail,
   sendWelcomeEmail,
 } from "@/lib/auth/account-service"
+import { getApiUrl, getSiteUrl } from "@/lib/public-config"
 
 function sanitizeNextPath(nextPath: string | null): string {
   if (!nextPath || !nextPath.startsWith("/")) {
@@ -18,11 +19,7 @@ function sanitizeNextPath(nextPath: string | null): string {
 
 async function getBaseUrl() {
   const headerStore = await headers()
-  return (
-    headerStore.get("origin") ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000"
-  )
+  return getSiteUrl(headerStore.get("origin"))
 }
 
 function getFriendlyAuthErrorMessage(message: string) {
@@ -94,10 +91,7 @@ export async function signup(formData: FormData) {
     redirect("/signup?error=Email%20and%20password%20are%20required")
   }
 
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.API_URL ||
-    "http://localhost:4000"
+  const apiBaseUrl = (process.env.API_URL || getApiUrl()).replace(/\/+$/, "")
 
   let signupPayload: {
     user?: {

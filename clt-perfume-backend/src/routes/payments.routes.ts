@@ -11,6 +11,7 @@ import {
   type CheckoutOrderItem,
   type CheckoutPayload,
 } from '../services/checkout.service'
+import { buildFrontendUrl } from '../config/public-urls'
 
 export const paymentRoutes = Router()
 
@@ -29,9 +30,7 @@ function generateOrderNumber() {
 
 function resolveImageUrl(image?: string | null) {
   if (!image) return undefined
-  if (image.startsWith('http://') || image.startsWith('https://')) return image
-  if (!process.env.FRONTEND_URL) return undefined
-  return `${process.env.FRONTEND_URL}${image}`
+  return buildFrontendUrl(image)
 }
 
 // Keeps Stripe totals aligned even when promo discount is applied.
@@ -99,8 +98,8 @@ async function createSessionFromDbCart(userId: string, userEmail?: string | null
     shipping_address_collection: {
       allowed_countries: ['AE', 'SA', 'BH', 'KW', 'OM', 'QA'],
     },
-    success_url: `${process.env.FRONTEND_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.FRONTEND_URL}/checkout/cancel`,
+    success_url: buildFrontendUrl('/checkout/success?session_id={CHECKOUT_SESSION_ID}'),
+    cancel_url: buildFrontendUrl('/checkout/cancel'),
   })
 
   return { url: session.url, sessionId: session.id }
@@ -189,8 +188,8 @@ async function createSessionFromPayload(
       shipping_address_collection: {
         allowed_countries: ['AE', 'SA', 'BH', 'KW', 'OM', 'QA'],
       },
-      success_url: `${process.env.FRONTEND_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
-      cancel_url: `${process.env.FRONTEND_URL}/checkout/cancel?order_id=${order.id}`,
+      success_url: buildFrontendUrl(`/checkout/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`),
+      cancel_url: buildFrontendUrl(`/checkout/cancel?order_id=${order.id}`),
     })
 
     return {

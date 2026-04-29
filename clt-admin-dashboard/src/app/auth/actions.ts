@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { getAdminUrl } from "@/lib/public-config"
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -27,10 +28,11 @@ export async function login(formData: FormData) {
 
 export async function signInWithGoogle() {
   const supabase = await createClient()
+  const baseUrl = getAdminUrl()
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3001"}/auth/callback`,
+      redirectTo: `${baseUrl}/auth/callback`,
     },
   })
 

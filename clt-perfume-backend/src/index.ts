@@ -16,18 +16,11 @@ import { productRoutes } from './routes/product.routes'
 import { promoCodeRoutes } from './routes/promo-codes.routes'
 import { authRoutes } from './routes/auth.routes'
 import { cartRoutes } from './routes/cart.routes'
+import { getAllowedOrigins } from './config/public-urls'
 
 const app = express()
 const PORT = process.env.PORT || 4000
-
-const allowedOrigins = (
-  process.env.FRONTEND_URLS ||
-  process.env.FRONTEND_URL ||
-  'http://localhost:3000,http://localhost:3001'
-)
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean)
+const allowedOrigins = getAllowedOrigins()
 
 // Request logging
 app.use((req, res, next) => {
@@ -93,4 +86,3 @@ if (process.env.NODE_ENV !== 'production') {
     startAbandonedCartCron()
   })
 }
-

@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { buildFrontendUrl } from '../config/public-urls'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -319,7 +320,7 @@ export async function sendAbandonedCartEmail(recipientEmail: string, items: any[
               </table>
             </div>
 
-            <a href="https://cleparfum.com/cart" style="display: inline-block; background-color: #000000; color: #ffffff; padding: 14px 32px; text-decoration: none; font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 4px;">Return To Cart</a>
+            <a href="${buildFrontendUrl('/cart')}" style="display: inline-block; background-color: #000000; color: #ffffff; padding: 14px 32px; text-decoration: none; font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 4px;">Return To Cart</a>
           </td>
         </tr>
       </table>

@@ -1,5 +1,7 @@
 "use client"
 
+import { getStorefrontUrl } from "@/lib/public-config"
+
 export interface ProductPreviewData {
   id?: string
   name: string
@@ -29,7 +31,7 @@ interface ProductPreviewProps {
   isDraft: boolean
 }
 
-const STOREFRONT_BASE_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL || "http://localhost:3000"
+const STOREFRONT_BASE_URL = getStorefrontUrl()
 
 function money(value: number) {
   return Number(value || 0).toLocaleString()

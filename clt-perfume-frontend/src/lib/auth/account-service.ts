@@ -1,4 +1,5 @@
 import { createClient as createAdminClient, type User } from "@supabase/supabase-js"
+import { getApiUrl } from "@/lib/public-config"
 
 export type ExistingAccountInfo = {
   exists: boolean
@@ -162,10 +163,7 @@ export async function sendWelcomeEmail(params: {
   firstName?: string
   source: "signup" | "google"
 }) {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.API_URL ||
-    "http://localhost:4000"
+  const apiBaseUrl = (process.env.API_URL || getApiUrl()).replace(/\/+$/, "")
 
   try {
     const response = await fetch(`${apiBaseUrl}/api/auth/welcome-email`, {

@@ -11,12 +11,13 @@ Standalone admin dashboard app for CLE Perfumes.
 3. Start app:
    npm run dev
 
-Dashboard runs on `http://localhost:3001`.
+Production dashboard runs on `https://admin.cleparfum.com`.
 
 ## Required Connection
 
-- Backend API (`clt-perfume-backend`) should run on `http://localhost:4000`.
-- Set `NEXT_PUBLIC_API_URL=http://localhost:4000` in `.env.local`.
+- Backend API (`clt-perfume-backend`) should be reachable at `https://api.cleparfum.com`.
+- Set `NEXT_PUBLIC_API_URL=https://api.cleparfum.com` in Vercel production env.
+- Set `NEXT_PUBLIC_STOREFRONT_URL=https://cleparfum.com` in Vercel production env.
 - Login with an account that has `profiles.role = 'admin'`.
 
 ## Routes

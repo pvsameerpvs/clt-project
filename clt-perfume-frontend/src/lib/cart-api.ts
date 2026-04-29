@@ -1,6 +1,7 @@
 import { CartItem } from "@/contexts/cart-context"
+import { getApiUrl } from "@/lib/public-config"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
+const API_URL = getApiUrl()
 
 /**
  * Syncs the local storage cart to the database for Abandoned Cart Tracking

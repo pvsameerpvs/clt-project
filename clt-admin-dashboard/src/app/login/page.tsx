@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { login, signInWithGoogle } from "@/app/auth/actions"
+import { getStorefrontUrl } from "@/lib/public-config"
 
 export default async function LoginPage({
   searchParams,
@@ -7,6 +8,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>
 }) {
   const { error } = await searchParams
+  const storefrontUrl = getStorefrontUrl()
 
   return (
     <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
@@ -120,7 +122,7 @@ export default async function LoginPage({
         </form>
 
         <p style={{ marginTop: 16, marginBottom: 0, fontSize: 12, color: "#6b7280" }}>
-          Main store frontend: <Link href="http://localhost:3000">http://localhost:3000</Link>
+          Main store frontend: <Link href={storefrontUrl}>{storefrontUrl}</Link>
         </p>
       </section>
     </main>

@@ -1,7 +1,7 @@
-const DEFAULT_ADMIN_URL = "http://localhost:3001/dashboard"
+import { getAdminUrl } from "@/lib/public-config"
 
 export function getAdminBaseUrl() {
-  return process.env.NEXT_PUBLIC_ADMIN_URL || DEFAULT_ADMIN_URL
+  return getAdminUrl()
 }
 
 export function buildAdminUrl(path?: string) {

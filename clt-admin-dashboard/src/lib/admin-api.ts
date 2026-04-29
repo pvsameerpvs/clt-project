@@ -1,8 +1,7 @@
 "use client"
 
 import { createClient } from "@/lib/supabase/client"
-
-const DEFAULT_API_BASE_URL = "http://localhost:4000"
+import { getApiUrl } from "@/lib/public-config"
 
 export interface RevenueBucket {
   month: string
@@ -311,7 +310,7 @@ export interface AdminOrderFilters {
 }
 
 function getApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_BASE_URL
+  return getApiUrl()
 }
 
 async function getAccessToken() {
