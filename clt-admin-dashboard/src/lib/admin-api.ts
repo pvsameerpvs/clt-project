@@ -289,6 +289,39 @@ export interface AdminCustomerDetails {
   shippingAddresses: Array<Record<string, unknown>>
 }
 
+export interface ProductStockInsightOrder {
+  orderId: string
+  orderNumber: string
+  customerName: string
+  customerEmail: string | null
+  status: string
+  createdAt: string
+  quantity: number
+  lineTotal: number
+}
+
+export interface ProductStockInsightReturn {
+  id: string
+  orderId: string | null
+  orderNumber: string | null
+  reason: string | null
+  status: string
+  createdAt: string
+}
+
+export interface ProductStockInsights {
+  productId: string
+  totalOrders: number
+  totalQuantity: number
+  uniqueCustomers: number
+  grossSales: number
+  returnRequests: number
+  pendingReturns: number
+  lastOrderedAt: string | null
+  recentOrders: ProductStockInsightOrder[]
+  recentReturns: ProductStockInsightReturn[]
+}
+
 export const ORDER_STATUSES = [
   "pending",
   "confirmed",
@@ -361,6 +394,14 @@ export function getAdminDashboard() {
 export function getAdminProducts(params?: { ml?: string }) {
   const query = params?.ml ? `?ml=${encodeURIComponent(params.ml)}` : ""
   return adminFetch<AdminProduct[]>(`/api/admin/products${query}`)
+}
+
+export function getAdminProduct(productId: string) {
+  return adminFetch<AdminProduct>(`/api/admin/products/${encodeURIComponent(productId)}`)
+}
+
+export function getAdminProductStockInsights(productId: string) {
+  return adminFetch<ProductStockInsights>(`/api/admin/products/${encodeURIComponent(productId)}/stock-insights`)
 }
 
 export function createAdminProduct(payload: Partial<AdminProduct>) {

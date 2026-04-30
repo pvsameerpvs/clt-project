@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   LayoutGrid,
+  Boxes,
   Mail,
   MessageSquare,
   Ticket,
@@ -24,6 +25,7 @@ import { getAdminOrders } from "@/lib/admin-api"
 export const menuItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/dashboard/products", icon: Package },
+  { label: "Stocks", href: "/dashboard/stocks", icon: Boxes },
   { label: "Collections", href: "/dashboard/categories", icon: LayoutGrid },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingBag },
   { label: "Customers", href: "/dashboard/customers", icon: Users },

@@ -103,6 +103,125 @@ function stripProductOptionalColumns<T extends Record<string, unknown>>(payload:
   return rest
 }
 
+type ProductStockInsightItem = {
+  id: string
+  order_id: string | null
+  price: number | string | null
+  quantity: number | string | null
+}
+
+type ProductStockInsightOrder = {
+  id: string
+  order_number?: string | null
+  user_id?: string | null
+  total?: number | string | null
+  status?: string | null
+  created_at?: string | null
+  shipping_address?: Record<string, any> | null
+  profile?:
+    | { first_name?: string | null; last_name?: string | null; email?: string | null }
+    | Array<{ first_name?: string | null; last_name?: string | null; email?: string | null }>
+    | null
+}
+
+type ProductReturnRequest = {
+  id: string
+  order_id: string | null
+  reason?: string | null
+  status?: string | null
+  created_at?: string | null
+  order?: { id?: string | null; order_number?: string | null } | null
+}
+
+const STOCK_INSIGHT_PAGE_SIZE = 1000
+const STOCK_INSIGHT_IN_CHUNK_SIZE = 150
+
+function chunkArray<T>(items: T[], size: number) {
+  const chunks: T[][] = []
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+  return chunks
+}
+
+function getProfile(profile: ProductStockInsightOrder['profile']) {
+  return Array.isArray(profile) ? profile[0] : profile
+}
+
+function getStockInsightCustomer(order: ProductStockInsightOrder | undefined) {
+  const profile = getProfile(order?.profile)
+  const shippingAddress = order?.shipping_address || {}
+  const firstName = profile?.first_name || shippingAddress.first_name || ''
+  const lastName = profile?.last_name || shippingAddress.last_name || ''
+  const customerName = `${firstName} ${lastName}`.trim() || 'Guest customer'
+  const customerEmail =
+    profile?.email ||
+    shippingAddress.contact_email ||
+    shippingAddress.email ||
+    null
+
+  return { customerName, customerEmail }
+}
+
+async function fetchProductStockInsightItems(productId: string) {
+  const rows: ProductStockInsightItem[] = []
+  let page = 0
+
+  while (true) {
+    const from = page * STOCK_INSIGHT_PAGE_SIZE
+    const to = from + STOCK_INSIGHT_PAGE_SIZE - 1
+    const { data, error } = await supabaseAdmin
+      .from('order_items')
+      .select('id, order_id, price, quantity')
+      .eq('product_id', productId)
+      .order('id', { ascending: true })
+      .range(from, to)
+
+    if (error) throw error
+
+    const nextRows = (data || []) as ProductStockInsightItem[]
+    rows.push(...nextRows)
+
+    if (nextRows.length < STOCK_INSIGHT_PAGE_SIZE) break
+    page += 1
+  }
+
+  return rows
+}
+
+async function fetchProductStockInsightOrders(orderIds: string[]) {
+  const rows: ProductStockInsightOrder[] = []
+
+  for (const chunk of chunkArray(orderIds, STOCK_INSIGHT_IN_CHUNK_SIZE)) {
+    const { data, error } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_number, user_id, total, status, created_at, shipping_address, profile:profiles(first_name, last_name)')
+      .in('id', chunk)
+
+    if (error) throw error
+    rows.push(...((data || []) as ProductStockInsightOrder[]))
+  }
+
+  return rows
+}
+
+async function fetchProductStockInsightReturns(orderIds: string[]) {
+  const rows: ProductReturnRequest[] = []
+
+  for (const chunk of chunkArray(orderIds, STOCK_INSIGHT_IN_CHUNK_SIZE)) {
+    const { data, error } = await supabaseAdmin
+      .from('order_return_requests')
+      .select('id, order_id, reason, status, created_at, order:orders(id, order_number)')
+      .in('order_id', chunk)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    rows.push(...((data || []) as ProductReturnRequest[]))
+  }
+
+  return rows
+}
+
 // All admin routes require auth + admin role
 adminRoutes.use(authMiddleware, adminMiddleware)
 
@@ -243,6 +362,144 @@ adminRoutes.get('/products', async (req: Request, res: Response) => {
     })
 
     res.json(mapped)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// GET /api/admin/products/:id — Get a single product by ID
+adminRoutes.get('/products/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const { data, error } = await supabaseAdmin
+      .from('products')
+      .select('*, category:categories(name)')
+      .eq('id', id)
+      .single()
+
+    if (error || !data) {
+      res.status(404).json({ error: 'Product not found' })
+      return
+    }
+
+    const { stock_quantity, ...rest } = data as any
+    res.json({ ...rest, stock: stock_quantity })
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// GET /api/admin/products/:id/stock-insights — Product-level sales, order, and return summary
+adminRoutes.get('/products/:id/stock-insights', async (req: Request, res: Response) => {
+  try {
+    const productId = String(req.params.id || '').trim()
+    if (!productId) {
+      res.status(400).json({ error: 'Product id is required' })
+      return
+    }
+
+    const items = await fetchProductStockInsightItems(productId)
+
+    if (items.length === 0) {
+      res.json({
+        productId,
+        totalOrders: 0,
+        totalQuantity: 0,
+        uniqueCustomers: 0,
+        grossSales: 0,
+        returnRequests: 0,
+        pendingReturns: 0,
+        lastOrderedAt: null,
+        recentOrders: [],
+        recentReturns: [],
+      })
+      return
+    }
+
+    const orderIds = Array.from(
+      new Set(items.map((item) => item.order_id).filter((orderId): orderId is string => Boolean(orderId)))
+    )
+    const [orders, returnRequests] = await Promise.all([
+      fetchProductStockInsightOrders(orderIds),
+      fetchProductStockInsightReturns(orderIds),
+    ])
+
+    const ordersById = new Map(orders.map((order) => [order.id, order]))
+    const orderLineTotals = new Map<string, { quantity: number; lineTotal: number }>()
+    let totalQuantity = 0
+    let grossSales = 0
+
+    for (const item of items) {
+      if (!item.order_id) continue
+      const quantity = Math.max(0, Number(item.quantity || 0))
+      const lineTotal = Number(item.price || 0) * quantity
+      const current = orderLineTotals.get(item.order_id) || { quantity: 0, lineTotal: 0 }
+
+      orderLineTotals.set(item.order_id, {
+        quantity: current.quantity + quantity,
+        lineTotal: current.lineTotal + lineTotal,
+      })
+      totalQuantity += quantity
+      grossSales += lineTotal
+    }
+
+    const customerIds = new Set(
+      orders
+        .map((order) => order.user_id)
+        .filter((userId): userId is string => Boolean(userId))
+    )
+    const lastOrderedAt =
+      orders
+        .map((order) => order.created_at)
+        .filter((createdAt): createdAt is string => Boolean(createdAt))
+        .sort((a, b) => +new Date(b) - +new Date(a))[0] || null
+
+    const recentOrders = orderIds
+      .map((orderId) => {
+        const order = ordersById.get(orderId)
+        const totals = orderLineTotals.get(orderId)
+        if (!order || !totals) return null
+
+        const { customerName, customerEmail } = getStockInsightCustomer(order)
+        return {
+          orderId: order.id,
+          orderNumber: order.order_number || order.id.slice(0, 8),
+          customerName,
+          customerEmail,
+          status: normalizeOrderStatusForResponse(String(order.status || 'pending')),
+          createdAt: order.created_at || '',
+          quantity: totals.quantity,
+          lineTotal: totals.lineTotal,
+        }
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => +new Date(b.createdAt) - +new Date(a.createdAt))
+      .slice(0, 8)
+
+    const recentReturns = returnRequests
+      .sort((a, b) => +new Date(b.created_at || '') - +new Date(a.created_at || ''))
+      .slice(0, 6)
+      .map((request) => ({
+        id: request.id,
+        orderId: request.order_id,
+        orderNumber: request.order?.order_number || request.order_id?.slice(0, 8) || null,
+        reason: request.reason || null,
+        status: request.status || 'pending',
+        createdAt: request.created_at || '',
+      }))
+
+    res.json({
+      productId,
+      totalOrders: orderIds.length,
+      totalQuantity,
+      uniqueCustomers: customerIds.size,
+      grossSales,
+      returnRequests: returnRequests.length,
+      pendingReturns: returnRequests.filter((request) => String(request.status || '').toLowerCase() === 'pending').length,
+      lastOrderedAt,
+      recentOrders,
+      recentReturns,
+    })
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
