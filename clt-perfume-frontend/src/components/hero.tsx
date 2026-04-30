@@ -19,6 +19,7 @@ interface HeroSlide {
   image: string
   tagline: string
   headline: string
+  href?: string | null
 }
 
 interface HeroProps {
@@ -95,7 +96,7 @@ export function Hero({ initialSlides }: HeroProps) {
 
                   {/* Bottom: Call to Action */}
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-                    <Link href="/collections/all">
+                    <Link href={getHeroHref(slide.href)}>
                       <Button className="group flex h-14 items-center gap-4 rounded-full bg-white pl-8 pr-2 text-black transition-all hover:scale-105 hover:bg-neutral-200">
                         <span className="text-sm font-medium tracking-wide">
                           Discover The Scent
@@ -115,4 +116,13 @@ export function Hero({ initialSlides }: HeroProps) {
       </div>
     </section>
   )
+}
+
+function getHeroHref(href?: string | null) {
+  const value = typeof href === "string" ? href.trim() : ""
+  if (!value) return "/collections/all"
+  if (value.startsWith("/categories/")) return value.replace(/^\/categories\//, "/collections/")
+  if (value.startsWith("/products/")) return value.replace(/^\/products\//, "/product/")
+  if (!/^https?:\/\//i.test(value) && !value.startsWith("/")) return `/${value}`
+  return value
 }

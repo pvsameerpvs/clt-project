@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Plus, Trash2, Link2 } from "lucide-react"
 import { getAdminCategories, getAdminProducts, type Category, type AdminProduct } from "@/lib/admin-api"
+import { buildCategoryHierarchyOptions } from "@/lib/category-hierarchy"
 
 interface HeroSlide {
   image: string
@@ -28,6 +29,7 @@ export function HeroSettings({ slides, onChange }: HeroSettingsProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<AdminProduct[]>([])
+  const categoryOptions = buildCategoryHierarchyOptions(categories)
 
   useEffect(() => {
     async function fetchData() {
@@ -136,17 +138,19 @@ export function HeroSettings({ slides, onChange }: HeroSettingsProps) {
                         <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest px-1 flex items-center gap-1.5"><Link2 className="h-3 w-3"/> Link to Collection or Product</label>
                         <select 
                           className="w-full border border-neutral-200 bg-neutral-50 rounded-xl p-3 text-xs outline-none focus:ring-2 focus:ring-black transition-all appearance-none cursor-pointer font-medium"
-                          value=""
+                          value={getDestinationSelectValue(slide.href)}
                           onChange={(e) => {
-                            const val = e.target.value;
-                            if (val.startsWith('cat:')) updateSlide(idx, 'href', `/categories/${val.replace('cat:', '')}`)
-                            else if (val.startsWith('prod:')) updateSlide(idx, 'href', `/products/${val.replace('prod:', '')}`)
+                            const val = e.target.value
+                            if (val.startsWith("cat:")) updateSlide(idx, "href", `/collections/${val.replace("cat:", "")}`)
+                            else if (val.startsWith("prod:")) updateSlide(idx, "href", `/product/${val.replace("prod:", "")}`)
                           }}
                         >
                           <option value="" disabled>Select internal destination...</option>
                           <optgroup label="Categories">
-                            {categories.map((cat) => (
-                              <option key={cat.id} value={`cat:${cat.slug}`}>{cat.name}</option>
+                            {categoryOptions.map((option) => (
+                              <option key={option.category.id} value={`cat:${option.category.slug}`}>
+                                {option.path}
+                              </option>
                             ))}
                           </optgroup>
                           <optgroup label="Products">
@@ -179,4 +183,22 @@ export function HeroSettings({ slides, onChange }: HeroSettingsProps) {
       </Dialog>
     </section>
   )
+}
+
+function getDestinationSelectValue(href?: string) {
+  const value = normalizeHeroHref(href)
+  const collectionMatch = value.match(/^\/collections\/([^/?#]+)/i)
+  if (collectionMatch?.[1]) return `cat:${decodeURIComponent(collectionMatch[1])}`
+
+  const productMatch = value.match(/^\/product\/([^/?#]+)/i)
+  if (productMatch?.[1]) return `prod:${decodeURIComponent(productMatch[1])}`
+
+  return ""
+}
+
+function normalizeHeroHref(href?: string) {
+  const value = typeof href === "string" ? href.trim() : ""
+  if (value.startsWith("/categories/")) return value.replace(/^\/categories\//, "/collections/")
+  if (value.startsWith("/products/")) return value.replace(/^\/products\//, "/product/")
+  return value
 }

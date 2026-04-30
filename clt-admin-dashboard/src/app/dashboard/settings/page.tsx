@@ -97,9 +97,24 @@ function normalizeNavigation(input: unknown): Record<string, NavSection> {
   )
 }
 
+function normalizeHeroHref(href: unknown) {
+  const value = typeof href === "string" ? href.trim() : ""
+  if (!value) return ""
+  if (value.startsWith("/categories/")) return value.replace(/^\/categories\//, "/collections/")
+  if (value.startsWith("/products/")) return value.replace(/^\/products\//, "/product/")
+  if (!/^https?:\/\//i.test(value) && !value.startsWith("/")) return `/${value}`
+  return value
+}
+
 function normalizeSettings(settings: SiteSettings): SiteSettings {
   return {
     ...settings,
+    hero_slides: Array.isArray(settings.hero_slides)
+      ? settings.hero_slides.map((slide) => ({
+          ...slide,
+          href: normalizeHeroHref(slide.href),
+        }))
+      : [],
     navigation: normalizeNavigation(settings.navigation),
   }
 }

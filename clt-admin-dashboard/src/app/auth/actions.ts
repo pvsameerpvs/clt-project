@@ -1,6 +1,7 @@
 "use server"
 
 import { redirect } from "next/navigation"
+import { AUTH_SERVICE_UNAVAILABLE_MESSAGE } from "@/lib/auth-errors"
 import { createClient } from "@/lib/supabase/server"
 import { getAdminUrl } from "@/lib/public-config"
 
@@ -14,13 +15,21 @@ export async function login(formData: FormData) {
     redirect("/login?error=Email%20and%20password%20are%20required")
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
+  let authError: string | null = null
 
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    authError = error?.message || null
+  } catch (error) {
+    console.error("[auth] Supabase password sign-in failed.", error)
+    redirect(`/login?error=${encodeURIComponent(AUTH_SERVICE_UNAVAILABLE_MESSAGE)}`)
+  }
+
+  if (authError) {
+    redirect(`/login?error=${encodeURIComponent(authError)}`)
   }
 
   redirect("/dashboard")
@@ -29,18 +38,30 @@ export async function login(formData: FormData) {
 export async function signInWithGoogle() {
   const supabase = await createClient()
   const baseUrl = getAdminUrl()
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${baseUrl}/auth/callback`,
-    },
-  })
+  let authError: string | null = null
+  let redirectUrl: string | null = null
 
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${baseUrl}/auth/callback`,
+      },
+    })
+    authError = error?.message || null
+    redirectUrl = data.url || null
+  } catch (error) {
+    console.error("[auth] Supabase Google sign-in failed.", error)
+    redirect(`/login?error=${encodeURIComponent(AUTH_SERVICE_UNAVAILABLE_MESSAGE)}`)
   }
 
-  if (data.url) {
-    redirect(data.url)
+  if (authError) {
+    redirect(`/login?error=${encodeURIComponent(authError)}`)
   }
+
+  if (redirectUrl) {
+    redirect(redirectUrl)
+  }
+
+  redirect("/login?error=Google%20sign-in%20URL%20is%20missing")
 }
