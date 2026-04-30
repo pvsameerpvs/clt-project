@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { getAdminSubscribers, Subscriber } from "@/lib/admin-api"
 import { Loader2, Mail } from "lucide-react"
+import { toast } from "sonner"
 
 export default function NewsletterPage() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([])
@@ -14,7 +15,7 @@ export default function NewsletterPage() {
         const data = await getAdminSubscribers()
         setSubscribers(data || [])
       } catch (err) {
-        console.error(err)
+        toast.error("Failed to load subscribers.")
       } finally {
         setLoading(false)
       }
@@ -70,6 +71,7 @@ export default function NewsletterPage() {
       <div style={{ marginTop: 20, textAlign: "right" }}>
         <button 
           onClick={() => {
+            if (subscribers.length === 0) return toast.error("No subscribers to export")
             const csv = subscribers.map(s => s.email).join("\n")
             const blob = new Blob([csv], { type: "text/csv" })
             const url = window.URL.createObjectURL(blob)
@@ -77,6 +79,7 @@ export default function NewsletterPage() {
             a.href = url
             a.download = "newsletter_subscribers.csv"
             a.click()
+            toast.success("CSV export started")
           }}
           style={{ background: "#111", color: "#fff", padding: "10px 16px", borderRadius: 10, cursor: "pointer", border: "none" }}
         >

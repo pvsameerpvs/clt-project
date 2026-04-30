@@ -22,6 +22,8 @@ import {
   CategoryWorkspaceTab,
 } from "@/components/categories/category-workspace-tabs"
 import { MegaMenuPanel } from "@/components/categories/mega-menu-panel"
+import { toast } from "sonner"
+import { ConfirmationModal } from "@/components/ui/confirmation-modal"
 
 function slugify(value: string) {
   return value
@@ -109,6 +111,10 @@ export default function CategoriesPage() {
   const [menuSuccess, setMenuSuccess] = useState(false)
   const [form, setForm] = useState<Partial<Category>>({})
   const [activeTab, setActiveTab] = useState<CategoryWorkspaceTab>("new")
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null,
+  })
 
   async function load() {
     try {
@@ -124,7 +130,7 @@ export default function CategoriesPage() {
       const normalizedNavigation = normalizeNavigation(settings.navigation)
       setNavigation(ensureNavigationSections(normalizedNavigation, topLevelSlugs))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load categories")
+      toast.error(err instanceof Error ? err.message : "Failed to load categories")
     } finally {
       setLoading(false)
     }
@@ -140,29 +146,30 @@ export default function CategoriesPage() {
 
     try {
       setSaving(true)
-      setError(null)
       if (form.id) {
         await updateAdminCategory(form.id, form)
+        toast.success("Category updated")
       } else {
         await createAdminCategory(form)
+        toast.success("Category created")
       }
       setForm({})
       await load()
       setActiveTab("existing")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save category")
+      toast.error(err instanceof Error ? err.message : "Failed to save category")
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Are you sure? This won't delete products, but they will become uncategorized.")) return
     try {
       await deleteAdminCategory(id)
+      toast.success("Category deleted")
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete category")
+      toast.error(err instanceof Error ? err.message : "Failed to delete category")
     }
   }
 
@@ -187,13 +194,10 @@ export default function CategoriesPage() {
     if (!navigation) return
     try {
       setSavingMenu(true)
-      setError(null)
-      setMenuSuccess(false)
       await updateSiteSettings({ navigation })
-      setMenuSuccess(true)
-      setTimeout(() => setMenuSuccess(false), 2500)
+      toast.success("Mega menu navigation saved")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save mega menu settings")
+      toast.error(err instanceof Error ? err.message : "Failed to save mega menu settings")
     } finally {
       setSavingMenu(false)
     }
@@ -226,7 +230,6 @@ export default function CategoriesPage() {
           </div>
         </div>
 
-        {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-sm font-medium">{error}</div>}
 
         <CategoryWorkspaceTabs
           activeTab={activeTab}
@@ -254,7 +257,7 @@ export default function CategoriesPage() {
               setForm(category)
               setActiveTab("new")
             }}
-            onDelete={handleDelete}
+            onDelete={(id) => setDeleteModal({ isOpen: true, id })}
           />
         )}
 
@@ -267,9 +270,21 @@ export default function CategoriesPage() {
             onUpdate={updateNav}
             onSave={handleSaveMegaMenu}
             saving={savingMenu}
-            success={menuSuccess}
+            success={false}
           />
         )}
+
+        <ConfirmationModal
+          isOpen={deleteModal.isOpen}
+          title="Delete Category"
+          message="Are you sure? This won't delete products, but they will become uncategorized."
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+          onConfirm={() => {
+            if (deleteModal.id) handleDelete(deleteModal.id)
+          }}
+          onCancel={() => setDeleteModal({ isOpen: false, id: null })}
+        />
       </section>
     </div>
   )

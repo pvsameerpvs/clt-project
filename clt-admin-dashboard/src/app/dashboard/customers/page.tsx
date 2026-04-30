@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AdminCustomer, getAdminCustomers } from "@/lib/admin-api"
+import { toast } from "sonner"
 
 function fullName(customer: AdminCustomer) {
   const name = [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim()
@@ -31,17 +32,15 @@ export default function CustomersPage() {
   const router = useRouter()
   const [customers, setCustomers] = useState<AdminCustomer[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
 
   async function loadCustomers() {
     try {
       setLoading(true)
-      setError(null)
       setCustomers(await getAdminCustomers())
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load customers.")
+      toast.error(loadError instanceof Error ? loadError.message : "Unable to load customers.")
     } finally {
       setLoading(false)
     }
@@ -101,7 +100,6 @@ export default function CustomersPage() {
         </button>
       </header>
 
-      {error && <div className="error-box">{error}</div>}
 
       <section className="stats-grid">
         <article className="stat-card">

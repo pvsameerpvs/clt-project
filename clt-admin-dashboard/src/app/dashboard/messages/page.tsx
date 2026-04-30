@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { getAdminMessages, markMessageAsRead, ContactMessage } from "@/lib/admin-api"
 import { Loader2, Mail, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<ContactMessage[]>([])
@@ -13,7 +14,7 @@ export default function MessagesPage() {
       const data = await getAdminMessages()
       setMessages(data || [])
     } catch (err) {
-      console.error(err)
+      toast.error("Failed to load messages.")
     } finally {
       setLoading(false)
     }
@@ -27,8 +28,9 @@ export default function MessagesPage() {
     try {
       await markMessageAsRead(id)
       setMessages(messages.map(m => m.id === id ? { ...m, is_read: true } : m))
+      toast.success("Message marked as read")
     } catch (err) {
-      console.error(err)
+      toast.error("Failed to update message status")
     }
   }
 

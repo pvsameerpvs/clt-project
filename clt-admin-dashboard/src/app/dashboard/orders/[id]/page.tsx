@@ -4,6 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 import {
   AdminOrder,
   AdminOrderStatus,
@@ -67,9 +68,7 @@ export default function OrderDetailsPage() {
 
   const [order, setOrder] = useState<AdminOrder | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [updatingStatus, setUpdatingStatus] = useState(false)
-  const [statusError, setStatusError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!orderId) return
@@ -79,13 +78,12 @@ export default function OrderDetailsPage() {
     async function loadDetails() {
       try {
         setLoading(true)
-        setError(null)
         const result = await getAdminOrderDetails(orderId)
         if (!mounted) return
         setOrder(result)
       } catch (loadError) {
         if (!mounted) return
-        setError(loadError instanceof Error ? loadError.message : "Unable to load order details.")
+        toast.error(loadError instanceof Error ? loadError.message : "Unable to load order details.")
       } finally {
         if (mounted) setLoading(false)
       }
@@ -102,11 +100,11 @@ export default function OrderDetailsPage() {
     if (!order) return
     try {
       setUpdatingStatus(true)
-      setStatusError(null)
       const updated = await updateAdminOrderStatus(order.id, nextStatus)
       setOrder((prev) => (prev ? { ...prev, status: updated.status } : prev))
+      toast.success(`Order status updated to ${nextStatus}`)
     } catch (updateError) {
-      setStatusError(updateError instanceof Error ? updateError.message : "Unable to update status.")
+      toast.error(updateError instanceof Error ? updateError.message : "Unable to update status.")
     } finally {
       setUpdatingStatus(false)
     }
@@ -162,10 +160,10 @@ export default function OrderDetailsPage() {
     )
   }
 
-  if (error || !order) {
+  if (!order) {
     return (
       <div className="order-detail-page">
-        <div className="error-box">{error || "Order details not available."}</div>
+        <div className="error-box">Order details not available.</div>
         <Link href="/dashboard/orders" className="back-link">
           Back to Orders
         </Link>
@@ -227,7 +225,6 @@ export default function OrderDetailsPage() {
             ))}
           </select>
           <p className="status-state">{updatingStatus ? "Updating..." : "Status synced"}</p>
-          {statusError && <p className="status-error">{statusError}</p>}
         </div>
       </header>
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { ArrowLeft, ExternalLink, Loader2, RefreshCcw, RotateCcw, ShoppingBag, TrendingUp } from "lucide-react"
 import type { AdminProduct, ProductStockInsights } from "@/lib/admin-api"
 import { getAdminProduct, getAdminProductStockInsights, updateAdminProduct } from "@/lib/admin-api"
@@ -68,9 +69,6 @@ export default function StockProductPage() {
   const [loadingProduct,  setLoadingProduct]  = useState(true)
   const [loadingInsights, setLoadingInsights] = useState(true)
   const [saving,          setSaving]          = useState(false)
-  const [error,           setError]           = useState<string | null>(null)
-  const [insightError,    setInsightError]    = useState<string | null>(null)
-  const [saveSuccess,     setSaveSuccess]     = useState(false)
 
   // Load single product by ID
   useEffect(() => {
@@ -78,10 +76,9 @@ export default function StockProductPage() {
     async function load() {
       try {
         setLoadingProduct(true)
-        setError(null)
         setProduct(await getAdminProduct(productId))
-      } catch {
-        setError("Product not found.")
+      } catch (e) {
+        toast.error("Product not found or failed to load.")
       } finally {
         setLoadingProduct(false)
       }
@@ -94,10 +91,9 @@ export default function StockProductPage() {
     if (!productId) return
     try {
       setLoadingInsights(true)
-      setInsightError(null)
       setInsights(await getAdminProductStockInsights(productId))
     } catch (e) {
-      setInsightError(e instanceof Error ? e.message : "Failed to load insights.")
+      toast.error(e instanceof Error ? e.message : "Failed to load insights.")
     } finally {
       setLoadingInsights(false)
     }
@@ -112,10 +108,9 @@ export default function StockProductPage() {
       setSaving(true)
       const updated = await updateAdminProduct(product.id, { stock: nextStock })
       setProduct((prev) => prev ? { ...prev, stock: Number(updated.stock ?? nextStock) } : prev)
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 2500)
+      toast.success("Stock updated successfully")
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to update stock.")
+      toast.error(e instanceof Error ? e.message : "Failed to update stock.")
     } finally {
       setSaving(false)
     }
@@ -179,7 +174,7 @@ export default function StockProductPage() {
         {/* Not found */}
         {!loadingProduct && !product && (
           <div className="p-10 text-center text-sm text-neutral-400">
-            {error || "Product not found."}
+            Product not found or failed to load.
           </div>
         )}
 
@@ -301,22 +296,12 @@ export default function StockProductPage() {
                     <Loader2 className="h-3 w-3 animate-spin" /> Saving…
                   </p>
                 )}
-                {saveSuccess && (
-                  <p className="text-[11px] font-bold text-emerald-600">✓ Updated</p>
-                )}
               </div>
             </div>
 
           </div>
         )}
       </section>
-
-      {/* Error banner */}
-      {error && !loadingProduct && (
-        <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-          {error}
-        </div>
-      )}
 
       {/* ──────── INSIGHTS GRID ────────────────────────────────────── */}
       <section>
@@ -336,11 +321,6 @@ export default function StockProductPage() {
           </button>
         </div>
 
-        {insightError && (
-          <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            {insightError}
-          </div>
-        )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {metricCards.map((card) => (

@@ -10,6 +10,7 @@ import {
 import { Star, Trash2, CheckCircle, Clock, Search, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { ConfirmationModal } from "@/components/ui/confirmation-modal"
 
 const RATING_LABELS: Record<number, string> = {
   1: "Poor",
@@ -38,6 +39,10 @@ export default function ReviewsPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | "pending" | "approved">("all")
   const [search, setSearch] = useState("")
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null,
+  })
 
   async function loadReviews() {
     setLoading(true)
@@ -68,7 +73,6 @@ export default function ReviewsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this review? This cannot be undone.")) return
     try {
       await deleteAdminReview(id)
       setReviews((prev) => prev.filter((r) => r.id !== id))
@@ -245,22 +249,34 @@ export default function ReviewsPage() {
                           Approve
                         </Button>
                       )}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleDelete(review.id)}
-                        className="h-8 w-8 rounded-full text-neutral-400 hover:text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setDeleteModal({ isOpen: true, id: review.id })}
+                          className="h-8 w-8 rounded-full text-neutral-400 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <ConfirmationModal
+          isOpen={deleteModal.isOpen}
+          title="Delete Review"
+          message="Are you sure you want to delete this customer review? This cannot be undone."
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+          onConfirm={() => {
+            if (deleteModal.id) handleDelete(deleteModal.id)
+          }}
+          onCancel={() => setDeleteModal({ isOpen: false, id: null })}
+        />
       </div>
-    </div>
   )
 }

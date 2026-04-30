@@ -24,6 +24,7 @@ import { GlobalStoreSettings } from "@/components/settings/global-store-settings
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
 
 function slugify(value: string) {
   return value
@@ -123,8 +124,6 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<SiteSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
   const [isTickerModalOpen, setIsTickerModalOpen] = useState(false)
 
   useEffect(() => {
@@ -134,7 +133,7 @@ export default function SettingsPage() {
         const normalized = normalizeSettings(siteSettings)
         setSettings(normalized)
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load settings")
+        toast.error(err instanceof Error ? err.message : "Failed to load settings")
       } finally {
         setLoading(false)
       }
@@ -146,13 +145,10 @@ export default function SettingsPage() {
     if (!settings) return
     try {
       setSaving(true)
-      setError(null)
-      setSuccess(false)
       await updateSiteSettings(settings)
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      toast.success("Your changes are now live!")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save settings")
+      toast.error(err instanceof Error ? err.message : "Failed to save settings")
     } finally {
       setSaving(false)
     }
@@ -200,8 +196,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {error && <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 font-medium">⚠️ {error}</div>}
-      {success && <div className="bg-emerald-50 text-emerald-600 p-4 rounded-xl border border-emerald-200 font-medium">✨ Your changes are now live!</div>}
 
       <div className="grid grid-cols-1 gap-12 items-start">
         {/* Ordered Settings Flow */}

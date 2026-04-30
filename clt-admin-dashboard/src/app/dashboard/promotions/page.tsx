@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Sparkles, Loader2, AlertCircle } from "lucide-react"
 import { PromotionForm, SelectedGift } from "@/components/dashboard/promotions/promotion-form"
 import { PromotionList } from "@/components/dashboard/promotions/promotion-list"
+import { toast } from "sonner"
 
 export default function PromotionsPage() {
   const [promotions, setPromotions] = useState<Promotion[]>([])
@@ -52,9 +53,10 @@ export default function PromotionsPage() {
           is_active: true
         })
       ))
+      toast.success(`${gifts.length} promotions created successfully`)
       await loadData()
     } catch (err) {
-      alert("Some promotions failed to save. Check for duplicates.")
+      toast.error("Some promotions failed to save. Check for duplicates.")
     } finally {
       setIsCreating(false)
     }
@@ -64,9 +66,10 @@ export default function PromotionsPage() {
     try {
       await updateAdminPromotion(id, { discount_percentage: discount })
       setPromotions(promotions.map(p => p.id === id ? { ...p, discount_percentage: discount } : p))
+      toast.success("Discount updated")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to update discount."
-      alert(`Error: ${msg}`)
+      toast.error(msg)
     }
   }
 
@@ -74,8 +77,9 @@ export default function PromotionsPage() {
     try {
       await deleteAdminPromotion(id)
       setPromotions(promotions.filter(p => p.id !== id))
+      toast.success("Promotion removed")
     } catch (err) {
-      alert("Failed to delete.")
+      toast.error("Failed to delete.")
     }
   }
 

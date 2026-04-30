@@ -13,6 +13,8 @@ import {
 import { ProductForm } from "@/components/products/product-form"
 import { ProductList } from "@/components/products/product-list"
 import { ProductPreview, ProductPreviewData } from "@/components/products/product-preview"
+import { toast } from "sonner"
+import { ConfirmationModal } from "@/components/ui/confirmation-modal"
 import {
   EMPTY_PRODUCT_FORM,
   ProductFormState,
@@ -91,13 +93,15 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState<Category[]>([])
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   const [viewFilter, setViewFilter] = useState<ProductViewFilter>("all")
   const [form, setForm] = useState<ProductFormState>(EMPTY_PRODUCT_FORM)
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [serverMlFilter, setServerMlFilter] = useState("")
-  const [productToDelete, setProductToDelete] = useState<string | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null,
+  })
   
   // Professional Hub Tabs
   const [activeTab, setActiveTab] = useState<"studio" | "catalog" | "preview">("catalog")
@@ -170,7 +174,6 @@ export default function ProductsPage() {
   async function loadProducts(preferredProductId?: string | null, mlValue?: string) {
     try {
       setLoading(true)
-      setError(null)
  
       const [nextProducts, nextCategories] = await Promise.all([
         getAdminProducts({ ml: mlValue ?? serverMlFilter }),
@@ -188,7 +191,7 @@ export default function ProductsPage() {
         return nextProducts[0]?.id || null
       })
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load products.")
+      toast.error(loadError instanceof Error ? loadError.message : "Unable to load products.")
     } finally {
       setLoading(false)
     }
@@ -201,7 +204,7 @@ export default function ProductsPage() {
   function handleVariantAutofill() {
     const normalizedGroupId = form.variant_group_id.trim().toLowerCase()
     if (!normalizedGroupId) {
-      setError("Enter Variant Group ID first.")
+      toast.error("Enter Variant Group ID first.")
       return
     }
 
@@ -210,11 +213,10 @@ export default function ProductsPage() {
     )
 
     if (!sourceProduct) {
-      setError(`No product found for Variant Group ID: ${form.variant_group_id.trim()}`)
+      toast.error(`No product found for Variant Group ID: ${form.variant_group_id.trim()}`)
       return
     }
 
-    setError(null)
     setForm((prev) => {
       if (prev.id) return prev
       if (prev.variant_group_id.trim().toLowerCase() !== normalizedGroupId) return prev
@@ -285,18 +287,14 @@ export default function ProductsPage() {
     setActiveTab("studio") // Auto-switch to studio for editing
   }
 
-  function handleDeleteClick(productId: string) {
-    setProductToDelete(productId)
+  function handleDeleteClick(id: string) {
+    setDeleteModal({ isOpen: true, id })
   }
 
-  async function confirmDeleteRequest() {
-    if (!productToDelete) return
-    const idToDelete = productToDelete
-    setProductToDelete(null)
-
+  async function handleDelete(idToDelete: string) {
     try {
-      setError(null)
       await deleteAdminProduct(idToDelete)
+      toast.success("Product deleted")
 
       if (form.id === idToDelete) {
         setForm(EMPTY_PRODUCT_FORM)
@@ -305,13 +303,12 @@ export default function ProductsPage() {
       const preferredId = selectedProductId === idToDelete ? null : selectedProductId
       await loadProducts(preferredId)
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete product.")
+      toast.error(deleteError instanceof Error ? deleteError.message : "Unable to delete product.")
     }
   }
 
   async function handleToggleActive(product: AdminProduct) {
     try {
-      setError(null)
       const isActive = product.is_active !== false
       await updateAdminProduct(product.id, { is_active: !isActive })
       
@@ -319,9 +316,10 @@ export default function ProductsPage() {
         setForm(prev => ({ ...prev, is_active: !isActive }))
       }
       
+      toast.success(`Product ${!isActive ? 'published' : 'hidden'}`)
       await loadProducts(selectedProductId)
     } catch (toggleError) {
-      setError(toggleError instanceof Error ? toggleError.message : "Unable to toggle visibility.")
+      toast.error(toggleError instanceof Error ? toggleError.message : "Unable to toggle visibility.")
     }
   }
 
@@ -330,7 +328,6 @@ export default function ProductsPage() {
 
     try {
       setSaving(true)
-      setError(null)
 
       const payload = {
         name: form.name.trim(),
@@ -365,15 +362,17 @@ export default function ProductsPage() {
       let savedProduct: AdminProduct
       if (form.id) {
         savedProduct = await updateAdminProduct(form.id, payload)
+        toast.success("Product updated")
       } else {
         savedProduct = await createAdminProduct(payload)
+        toast.success("Product created")
       }
 
       setForm(EMPTY_PRODUCT_FORM)
       await loadProducts(savedProduct.id)
       setActiveTab("catalog") // Back to catalog after success
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to save product.")
+      toast.error(saveError instanceof Error ? saveError.message : "Unable to save product.")
     } finally {
       setSaving(false)
     }
@@ -433,12 +432,6 @@ export default function ProductsPage() {
         </div>
       </header>
 
-      {error && (
-        <div className="bg-red-50 text-red-600 p-6 rounded-3xl border border-red-100 text-xs font-bold flex items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
-          <span className="bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] shadow-lg shadow-red-500/20">!</span>
-          {error}
-        </div>
-      )}
 
       {/* 📊 Luxury Stats Strip */}
       <section className="grid gap-6 grid-cols-2 lg:grid-cols-5">
@@ -524,31 +517,18 @@ export default function ProductsPage() {
         )}
       </main>
 
-      {/* Delete Confirmation Modal */}
-      {productToDelete && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white text-black p-8 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-serif font-semibold mb-2">Delete Product?</h3>
-            <p className="text-gray-600 mb-8 text-sm">
-              Are you absolute sure you want to delete this product? This action cannot be undone.
-            </p>
-            <div className="flex gap-4 justify-end">
-              <button
-                className="px-5 py-2.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                onClick={() => setProductToDelete(null)}
-              >
-                No, keep it
-              </button>
-              <button
-                className="px-5 py-2.5 rounded-full text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors"
-                onClick={confirmDeleteRequest}
-              >
-                Yes, delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <ConfirmationModal
+          isOpen={deleteModal.isOpen}
+          title="Delete Product"
+          message="Are you absolute sure you want to delete this product? This action cannot be undone."
+          confirmText="Yes, Delete"
+          cancelText="No, Keep it"
+          onConfirm={() => {
+            if (deleteModal.id) handleDelete(deleteModal.id)
+            setDeleteModal({ isOpen: false, id: null })
+          }}
+          onCancel={() => setDeleteModal({ isOpen: false, id: null })}
+        />
     </div>
   )
 }

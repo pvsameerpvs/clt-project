@@ -3,12 +3,18 @@
 import { useEffect, useState } from "react"
 import { getAdminPromoCodes, createAdminPromoCode, updateAdminPromoCode, deleteAdminPromoCode, PromoCode } from "@/lib/admin-api"
 import { Loader2, Ticket, Plus, Trash2, Edit2 } from "lucide-react"
+import { toast } from "sonner"
+import { ConfirmationModal } from "@/components/ui/confirmation-modal"
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<PromoCode[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingCoupon, setEditingCoupon] = useState<PromoCode | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null,
+  })
   
   const [newCoupon, setNewCoupon] = useState({
     code: "",
@@ -22,7 +28,7 @@ export default function CouponsPage() {
       const data = await getAdminPromoCodes()
       setCoupons(data || [])
     } catch (err) {
-      console.error(err)
+      toast.error("Failed to load promo codes.")
     } finally {
       setLoading(false)
     }
@@ -42,6 +48,7 @@ export default function CouponsPage() {
           discount_value: Number(newCoupon.discount_value),
           expires_at: newCoupon.expires_at || undefined
         })
+        toast.success("Coupon updated")
       } else {
         await createAdminPromoCode({
           code: newCoupon.code,
@@ -49,13 +56,14 @@ export default function CouponsPage() {
           discount_value: Number(newCoupon.discount_value),
           expires_at: newCoupon.expires_at || undefined
         })
+        toast.success("Coupon created")
       }
       setShowForm(false)
       setEditingCoupon(null)
       setNewCoupon({ code: "", discount_type: "percentage", discount_value: "", expires_at: "" })
       load()
     } catch (err) {
-      alert(`Failed to ${editingCoupon ? 'update' : 'create'} coupon`)
+      toast.error(`Failed to ${editingCoupon ? 'update' : 'create'} coupon`)
     }
   }
 
@@ -72,12 +80,12 @@ export default function CouponsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure?")) return
     try {
       await deleteAdminPromoCode(id)
       setCoupons(coupons.filter(c => c.id !== id))
+      toast.success("Coupon deleted")
     } catch (err) {
-      console.error(err)
+      toast.error("Failed to delete coupon")
     }
   }
 
@@ -201,7 +209,7 @@ export default function CouponsPage() {
                   <Edit2 size={16} />
                 </button>
                 <button 
-                  onClick={() => handleDelete(coupon.id)}
+                  onClick={() => setDeleteModal({ isOpen: true, id: coupon.id })}
                   style={{ color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: 5, transition: "color 0.2s" }}
                   onMouseEnter={(e) => e.currentTarget.style.color = "#ef4444"}
                   onMouseLeave={(e) => e.currentTarget.style.color = "#9ca3af"}
@@ -214,6 +222,18 @@ export default function CouponsPage() {
           ))
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        title="Delete Coupon"
+        message="Are you sure you want to delete this promo code? Customers will no longer be able to use it."
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          if (deleteModal.id) handleDelete(deleteModal.id)
+        }}
+        onCancel={() => setDeleteModal({ isOpen: false, id: null })}
+      />
     </div>
   )
 }
