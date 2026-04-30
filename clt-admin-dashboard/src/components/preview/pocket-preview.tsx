@@ -16,8 +16,8 @@ export function PocketPreview({ configs, onEditClick }: PocketPreviewProps) {
           <div className="w-full bg-black p-8 flex flex-col items-center justify-between gap-8 h-auto rounded-3xl">
             <div className="flex flex-col text-center shrink-0">
               <h2 className="text-4xl md:text-5xl font-black tracking-[0.2em] text-white leading-none mb-1">POCKET</h2>
-              <p className="text-amber-500 text-xs tracking-[0.3em] uppercase font-bold mt-1 mb-4">Affordable Luxury</p>
-              <div className="w-24 h-[1px] bg-amber-500 mx-auto"></div>
+              {/* <p className="text-amber-500 text-xs tracking-[0.3em] uppercase font-bold mt-1 mb-4">Affordable Luxury</p> */}
+              {/* <div className="w-24 h-[1px] bg-amber-500 mx-auto"></div> */}
             </div>
 
             <div className="flex flex-wrap justify-center gap-4 items-center">

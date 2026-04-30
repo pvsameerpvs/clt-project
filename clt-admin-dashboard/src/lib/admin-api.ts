@@ -346,7 +346,14 @@ function getApiBaseUrl() {
   return getApiUrl()
 }
 
-async function getAccessToken() {
+const TOKEN_REFRESH_BUFFER_SECONDS = 60
+
+function shouldRefreshSession(expiresAt?: number | null) {
+  if (!expiresAt) return true
+  return expiresAt <= Math.floor(Date.now() / 1000) + TOKEN_REFRESH_BUFFER_SECONDS
+}
+
+async function getAccessToken(forceRefresh = false) {
   const supabase = createClient()
   const { data, error } = await supabase.auth.getSession()
 
@@ -354,7 +361,17 @@ async function getAccessToken() {
     throw new Error(error.message)
   }
 
-  const token = data.session?.access_token
+  let session = data.session
+
+  if (session && (forceRefresh || shouldRefreshSession(session.expires_at))) {
+    const refreshResult = await supabase.auth.refreshSession()
+    if (refreshResult.error) {
+      throw new Error(refreshResult.error.message)
+    }
+    session = refreshResult.data.session
+  }
+
+  const token = session?.access_token
   if (!token) {
     throw new Error("No active session. Please login again.")
   }
@@ -362,25 +379,38 @@ async function getAccessToken() {
   return token
 }
 
+async function readErrorMessage(response: Response) {
+  let errorMessage = "Request failed"
+  try {
+    const body = await response.json()
+    if (body?.error) errorMessage = body.error
+  } catch {
+    // ignore JSON parse failure
+  }
+  return errorMessage
+}
+
 async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getAccessToken()
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
-  })
+  const makeRequest = async (forceRefresh = false) => {
+    const token = await getAccessToken(forceRefresh)
+    return fetch(`${getApiBaseUrl()}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        ...(init?.headers || {}),
+      },
+    })
+  }
+
+  let response = await makeRequest()
+
+  if (response.status === 401) {
+    response = await makeRequest(true)
+  }
 
   if (!response.ok) {
-    let errorMessage = "Request failed"
-    try {
-      const body = await response.json()
-      if (body?.error) errorMessage = body.error
-    } catch {
-      // ignore JSON parse failure
-    }
+    const errorMessage = await readErrorMessage(response)
     throw new Error(errorMessage)
   }
 

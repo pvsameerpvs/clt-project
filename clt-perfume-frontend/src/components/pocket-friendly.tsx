@@ -46,8 +46,8 @@ export function PocketFriendly({ initialPricePoints, initialProducts }: PocketFr
           {/* Left Text */}
           <div className="flex flex-col text-center lg:text-left shrink-0 pl-1 md:pl-10">
             <h2 className="text-[2.75rem] md:text-6xl font-black tracking-[0.2em] text-white leading-none mb-1">POCKET</h2>
-            <p className="text-amber-500 text-sm md:text-[15px] tracking-[0.3em] uppercase font-bold mt-1 mb-4">Affordable Luxury</p>
-            <div className="w-24 h-[2px] bg-amber-500 mx-auto lg:mx-0"></div>
+            {/* <p className="text-amber-500 text-sm md:text-[15px] tracking-[0.3em] uppercase font-bold mt-1 mb-4">Affordable Luxury</p> */}
+            {/* <div className="w-24 h-[2px] bg-amber-500 mx-auto lg:mx-0"></div> */}
           </div>
 
 
