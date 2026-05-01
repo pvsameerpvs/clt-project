@@ -70,24 +70,24 @@ export function Footer() {
                   <span className="sr-only">Facebook</span>
                 </a>
               )}
-              {socialLinks.twitter && (
+              {/* {socialLinks.twitter && (
                 <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
                   <Twitter className="h-4 w-4" />
                   <span className="sr-only">Twitter</span>
                 </a>
-              )}
+              )} */}
               {socialLinks.youtube && (
                 <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
                   <Youtube className="h-4 w-4" />
                   <span className="sr-only">YouTube</span>
                 </a>
               )}
-              {socialLinks.linkedin && (
+              {/* {socialLinks.linkedin && (
                 <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
                   <Linkedin className="h-4 w-4" />
                   <span className="sr-only">LinkedIn</span>
                 </a>
-              )}
+              )} */}
             </div>
           </div>
           

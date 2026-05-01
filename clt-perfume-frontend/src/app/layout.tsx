@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Providers } from "@/contexts/providers";
+import { getSiteUrl } from "@/lib/public-config";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -17,13 +18,80 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
+const siteUrl = getSiteUrl();
+const brandLogoPath = "/logo-cle-favicon.png";
+const brandLogoUrl = `${siteUrl}${brandLogoPath}`;
+const siteDescription = "Discover luxury fragrances crafted for the modern individual.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  applicationName: "CLE Perfume",
   title: "CLE Perfume | The Essence of Elegance",
-  description: "Discover luxury fragrances crafted for the modern individual.",
+  description: siteDescription,
+  alternates: {
+    canonical: "/",
+  },
   icons: {
-    icon: "/logo-cle-favicon.png",
-    shortcut: "/logo-cle-favicon.png",
-    apple: "/logo-cle-favicon.png",
+    icon: [
+      {
+        url: brandLogoPath,
+        type: "image/png",
+      },
+    ],
+    shortcut: brandLogoPath,
+    apple: [
+      {
+        url: brandLogoPath,
+        type: "image/png",
+      },
+    ],
+  },
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    siteName: "CLE Perfume",
+    title: "CLE Perfume | The Essence of Elegance",
+    description: siteDescription,
+    images: [
+      {
+        url: brandLogoPath,
+        width: 873,
+        height: 609,
+        alt: "CLE Perfume logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "CLE Perfume | The Essence of Elegance",
+    description: siteDescription,
+    images: [brandLogoPath],
+  },
+  manifest: "/manifest.webmanifest",
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "CLE Perfume",
+  url: siteUrl,
+  logo: brandLogoUrl,
+  image: brandLogoUrl,
+  sameAs: [],
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "CLE Perfume",
+  url: siteUrl,
+  publisher: {
+    "@type": "Organization",
+    name: "CLE Perfume",
+    logo: {
+      "@type": "ImageObject",
+      url: brandLogoUrl,
+    },
   },
 };
 
@@ -37,6 +105,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable} scroll-smooth`}>
       <body className="antialiased font-sans bg-white text-black min-h-screen flex flex-col relative">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([organizationJsonLd, websiteJsonLd]),
+          }}
+        />
         <Providers>
           <Navbar />
           <main className="flex-grow">

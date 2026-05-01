@@ -3,7 +3,7 @@ import { Hero } from "@/components/hero";
 import { Collections } from "@/components/collections";
 import { FeaturedProducts } from "@/components/featured-products";
 import { OfferCards } from "@/components/offer-cards";
-import { PocketFriendly } from "@/components/pocket-friendly";
+// import { PocketFriendly } from "@/components/pocket-friendly";
 import { BrandStory } from "@/components/brand-story";
 
 export default async function Home() {
@@ -16,10 +16,10 @@ export default async function Home() {
       <FeaturedProducts initialProducts={products} />
       <BrandStory initialData={settings?.brand_story} />
       <OfferCards initialOffers={settings?.offers} />
-      <PocketFriendly
+      {/* <PocketFriendly
         initialPricePoints={settings?.pocket_friendly_configs}
         initialProducts={products}
-      />
+      /> */}
     </div>
   );
 }
