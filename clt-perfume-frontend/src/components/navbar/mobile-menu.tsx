@@ -5,6 +5,7 @@ import Link from "next/link"
 import { X, ChevronRight, Zap, User } from "lucide-react"
 import { getCategories, getSiteSettings, NavMenuCategory, ProductCategory } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { compareCategoryDisplayOrder } from "@/lib/category-order"
 
 import Image from "next/image"
 
@@ -80,7 +81,7 @@ function buildStandardCategories(parentSlug: string, categories: ProductCategory
     childrenByParent.get(category.parent_id)?.push(category)
   }
   for (const items of childrenByParent.values()) {
-    items.sort((a, b) => a.name.localeCompare(b.name))
+    items.sort(compareCategoryDisplayOrder)
   }
 
   const topChildren = childrenByParent.get(parent.id) || []
@@ -125,7 +126,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const [catalogCategories, setCatalogCategories] = useState<ProductCategory[]>([])
   const topCategories = catalogCategories
     .filter((category) => !category.parent_id)
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort(compareCategoryDisplayOrder)
 
   useEffect(() => {
     async function load() {

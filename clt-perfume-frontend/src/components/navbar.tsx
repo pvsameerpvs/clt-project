@@ -10,6 +10,7 @@ import { NavbarSearch } from "./navbar/navbar-search"
 import { MegaMenu } from "./navbar/mega-menu"
 import { MobileMenu } from "./navbar/mobile-menu"
 import { getCategories, ProductCategory } from "@/lib/api"
+import { compareCategoryDisplayOrder } from "@/lib/category-order"
 
 
 export function Navbar() {
@@ -22,7 +23,7 @@ export function Navbar() {
       setTopCategories(
         categories
           .filter((category) => !category.parent_id)
-          .sort((a, b) => a.name.localeCompare(b.name))
+          .sort(compareCategoryDisplayOrder)
       )
     }
     load()

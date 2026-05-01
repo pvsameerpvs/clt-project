@@ -5,33 +5,14 @@ import { ProductCard } from "@/components/product/product-card"
 import { getProducts } from "@/lib/api"
 import Link from "next/link"
 import { Product, getCategoryLabel, getCategorySlug } from "@/lib/products"
+import { compareCategoryDisplayOrder, formatCategoryHeading, normalizeCategoryToken } from "@/lib/category-order"
 
 interface FeaturedProductsProps {
   initialProducts?: Product[]
 }
 
-function normalizeCategoryToken(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/['’]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-}
-
-function formatCategoryTitle(label: string, slug: string) {
-  const cleanLabel = label.replace(/\s+perfumes?$/i, "").trim()
-  const token = normalizeCategoryToken(slug || cleanLabel)
-
-  if (token === "men" || token === "mens") return "Men"
-  if (token === "women" || token === "womens") return "Women"
-  if (token === "unisex") return "Unisex"
-
-  return cleanLabel || "Collection"
-}
-
 function buildCategorySections(products: Product[]) {
-  const sections = new Map<string, { title: string; href: string; products: Product[] }>()
+  const sections = new Map<string, { title: string; slug: string; href: string; products: Product[] }>()
 
   for (const product of products) {
     const label = getCategoryLabel(product.category)
@@ -48,16 +29,19 @@ function buildCategorySections(products: Product[]) {
     }
 
     sections.set(key, {
-      title: formatCategoryTitle(label, slug),
+      title: formatCategoryHeading(label, slug),
+      slug,
       href: `/collections/${slug}`,
       products: [product],
     })
   }
 
-  return Array.from(sections.values()).map((section) => ({
-    ...section,
-    products: section.products.slice(0, 5),
-  }))
+  return Array.from(sections.values())
+    .sort((a, b) => compareCategoryDisplayOrder({ name: a.title, slug: a.slug }, { name: b.title, slug: b.slug }))
+    .map((section) => ({
+      ...section,
+      products: section.products.slice(0, 5),
+    }))
 }
 
 export function FeaturedProducts({ initialProducts }: FeaturedProductsProps) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { getCategories, getSiteSettings, NavMenuCategory, ProductCategory } from "@/lib/api"
+import { compareCategoryDisplayOrder } from "@/lib/category-order"
 
 interface MegaMenuProps {
   categorySlug: string
@@ -164,7 +165,7 @@ function buildStandardCategories(categorySlug: string, categories: ProductCatego
     childrenByParent.get(category.parent_id)?.push(category)
   }
   for (const items of childrenByParent.values()) {
-    items.sort((a, b) => a.name.localeCompare(b.name))
+    items.sort(compareCategoryDisplayOrder)
   }
 
   const topChildren = childrenByParent.get(parent.id) || []
