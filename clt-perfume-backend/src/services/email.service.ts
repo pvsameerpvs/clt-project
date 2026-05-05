@@ -123,7 +123,7 @@ export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<E
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE Perfume <info@cleparfum.com>',
+      from: 'CLE Perfume <contact@cleparfum.com>',
       to: recipientEmail,
       bcc: 'infocleparfum@gmail.com', // ⬅️ Sent copy to client
       subject: `Order Confirmation #${order.order_number}`,
@@ -186,7 +186,7 @@ export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE Perfume <info@cleparfum.com>',
+      from: 'CLE Perfume <contact@cleparfum.coms>',
       to: details.email,
       subject: 'Welcome to CLE Perfume',
       html,
@@ -245,7 +245,7 @@ export async function sendOrderStatusEmail(
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE Perfume <info@cleparfum.com>',
+      from: 'CLE Perfume <contact@cleparfum.com>',
       to: recipientEmail,
       bcc: 'infocleparfum@gmail.com', // Sent copy to admin
       subject: `Order Update #${orderNumber} - ${formattedStatus}`,
@@ -330,7 +330,7 @@ export async function sendAbandonedCartEmail(recipientEmail: string, items: any[
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE Perfume <info@cleparfum.com>',
+      from: 'CLE Perfume <contact@cleparfum.com>',
       to: email,
       subject: subject,
       html: html,
@@ -400,7 +400,7 @@ export async function sendReturnStatusEmail(
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE Perfume <info@cleparfum.com>',
+      from: 'CLE Perfume <contact@cleparfum.com>',
       to: recipientEmail,
       bcc: 'infocleparfum@gmail.com',
       subject: subject,
