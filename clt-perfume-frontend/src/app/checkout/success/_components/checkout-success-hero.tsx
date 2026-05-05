@@ -1,11 +1,11 @@
 "use client"
 
-import { Check } from "lucide-react"
+import { AlertCircle, Check, Clock } from "lucide-react"
 import type { PaymentMethod } from "../../checkout-types"
 
 type CheckoutSuccessHeroProps = {
   paymentMethod: PaymentMethod | null
-  paymentStatus?: "verifying" | "paid" | "pending" | "failed" | null
+  paymentStatus?: "verifying" | "paid" | "pending" | "failed" | "unverified" | null
   orderReference?: string | null
 }
 
@@ -42,6 +42,14 @@ function getHeroCopy(paymentMethod: PaymentMethod | null, paymentStatus?: Checko
     }
   }
 
+  if (paymentStatus === "unverified") {
+    return {
+      title: "Payment not confirmed",
+      description:
+        "We could not find the Ziina payment reference for this checkout. Your order will stay pending until payment is confirmed.",
+    }
+  }
+
   return {
     title: "Thank you for your purchase",
     description:
@@ -55,12 +63,20 @@ export function CheckoutSuccessHero({
   orderReference,
 }: CheckoutSuccessHeroProps) {
   const heroCopy = getHeroCopy(paymentMethod, paymentStatus)
+  const isAttentionStatus = paymentStatus === "failed" || paymentStatus === "unverified"
+  const isWaitingStatus = paymentStatus === "verifying" || paymentStatus === "pending"
+  const StatusIcon = isAttentionStatus ? AlertCircle : isWaitingStatus ? Clock : Check
+  const iconClassName = isAttentionStatus
+    ? "bg-red-50 text-red-700 ring-1 ring-red-100"
+    : isWaitingStatus
+      ? "bg-amber-50 text-amber-700 ring-1 ring-amber-100"
+      : "bg-black text-white shadow-[0_22px_44px_-20px_rgba(0,0,0,0.45)]"
 
   return (
     <section className="mx-auto max-w-2xl text-center">
       <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-black/6">
-        <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-black text-white shadow-[0_22px_44px_-20px_rgba(0,0,0,0.45)]">
-          <Check className="h-9 w-9" strokeWidth={2.8} />
+        <div className={`flex h-[72px] w-[72px] items-center justify-center rounded-full ${iconClassName}`}>
+          <StatusIcon className="h-9 w-9" strokeWidth={2.8} />
         </div>
       </div>
 

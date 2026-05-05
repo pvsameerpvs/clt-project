@@ -99,11 +99,8 @@ function getConfiguredWebhookIps() {
 }
 
 export function shouldCreateZiinaTestPayment() {
-  if (process.env.ZIINA_TEST_MODE) {
-    return process.env.ZIINA_TEST_MODE.toLowerCase() === 'true'
-  }
-
-  return process.env.NODE_ENV !== 'production'
+  const value = process.env.ZIINA_TEST_MODE?.trim().toLowerCase()
+  return value === 'true' || value === '1' || value === 'yes' || value === 'on'
 }
 
 export async function createZiinaPaymentIntent(input: CreateZiinaPaymentIntentInput) {

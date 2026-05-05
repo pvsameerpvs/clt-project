@@ -38,7 +38,7 @@ export function CheckoutSuccessView() {
   const searchParams = useSearchParams()
   const { clearCart } = useCart()
   const { user, accessToken } = useAuth()
-  const [bankPaymentStatus, setBankPaymentStatus] = useState<"verifying" | "paid" | "pending" | "failed" | null>(null)
+  const [bankPaymentStatus, setBankPaymentStatus] = useState<"verifying" | "paid" | "pending" | "failed" | "unverified" | null>(null)
 
   const queryOrderId = searchParams.get("order_id")
   const queryOrderNumber = searchParams.get("order_number")
@@ -57,9 +57,10 @@ export function CheckoutSuccessView() {
   )
 
   const paymentMethod = queryPaymentMethod || snapshot?.paymentMethod || null
+  const isBankPayment = paymentMethod === "bank" || paymentMethod === "card"
   const shouldVerifyBankPayment = useMemo(
-    () => Boolean(querySessionId && (paymentMethod === "bank" || paymentMethod === "card" || !paymentMethod)),
-    [paymentMethod, querySessionId]
+    () => Boolean(querySessionId && (isBankPayment || !paymentMethod)),
+    [isBankPayment, paymentMethod, querySessionId]
   )
 
   useEffect(() => {
@@ -98,7 +99,13 @@ export function CheckoutSuccessView() {
     }
   }, [accessToken, clearCart, queryOrderId, querySessionId, shouldVerifyBankPayment])
 
-  const heroPaymentStatus = shouldVerifyBankPayment ? bankPaymentStatus || "verifying" : null
+  const heroPaymentStatus = isBankPayment
+    ? querySessionId
+      ? bankPaymentStatus || "verifying"
+      : "unverified"
+    : shouldVerifyBankPayment
+      ? bankPaymentStatus || "verifying"
+      : null
   const continueShoppingHref = "/"
   const ordersHref = user ? "/profile?section=orders" : null
 

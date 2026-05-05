@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import express from 'express'
 import {
+  getZiinaPaymentIntent,
   getZiinaPaymentIntentFromWebhook,
   isZiinaWebhookSourceAllowed,
   parseZiinaWebhookEvent,
@@ -54,11 +55,22 @@ webhookRoutes.post(
 
     try {
       const event = parseZiinaWebhookEvent(rawBody)
-      const paymentIntent = getZiinaPaymentIntentFromWebhook(event)
+      const webhookPaymentIntent = getZiinaPaymentIntentFromWebhook(event)
 
-      if (!paymentIntent) {
+      if (!webhookPaymentIntent) {
         res.json({ received: true, ignored: true })
         return
+      }
+
+      let paymentIntent = webhookPaymentIntent
+      try {
+        paymentIntent = await getZiinaPaymentIntent(webhookPaymentIntent.id)
+      } catch (error: any) {
+        console.error('Failed to refresh Ziina payment intent from webhook:', error?.response?.data || error?.message || error)
+        if (webhookPaymentIntent.status === 'completed') {
+          res.status(502).json({ received: false, error: 'Payment status could not be verified' })
+          return
+        }
       }
 
       console.log('Received Ziina payment webhook:', {
