@@ -1,76 +1,81 @@
 import { Router, Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
-import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
+import { optionalAuthMiddleware } from '../middleware/auth.middleware'
 import {
   CheckoutValidationError,
   claimPromoCodeForOrder,
   getOrderAmountInFils,
   releasePromoCodeReservation,
   resolveCheckoutPricing,
-  type CheckoutOrderItem,
   type CheckoutPayload,
 } from '../services/checkout.service'
 import { buildFrontendUrl } from '../config/public-urls'
 import { generateOrderNumber } from '../utils/order-number'
+import {
+  createZiinaPaymentIntent,
+  getZiinaPaymentIntent,
+  shouldCreateZiinaTestPayment,
+} from '../services/ziina.service'
+import { fulfillPaidOrderPayment } from '../services/payment-fulfillment.service'
 
 export const paymentRoutes = Router()
 
-function toSafeNumber(value: unknown) {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : 0
+type PendingPaymentOrder = {
+  id: string
+  order_number: string
 }
 
-function resolveImageUrl(image?: string | null) {
-  if (!image) return undefined
-  return buildFrontendUrl(image)
+function getZiinaCheckoutUrls(order: PendingPaymentOrder) {
+  const orderId = encodeURIComponent(order.id)
+  const orderNumber = encodeURIComponent(order.order_number)
+
+  return {
+    successUrl: buildFrontendUrl(
+      `/checkout/success?session_id={PAYMENT_INTENT_ID}&order_id=${orderId}&order_number=${orderNumber}&payment=bank`
+    ),
+    cancelUrl: buildFrontendUrl(`/checkout/cancel?order_id=${orderId}`),
+    failureUrl: buildFrontendUrl(`/checkout/cancel?order_id=${orderId}&payment=failed`),
+  }
 }
 
-// Keeps Stripe totals aligned even when promo discount is applied.
-function buildStripeLineItems(
-  items: CheckoutOrderItem[],
-  subtotal: number,
-  total: number
-) {
-  const safeSubtotal = Math.max(0, toSafeNumber(subtotal))
-  const safeTotal = Math.max(0, toSafeNumber(total))
+async function createZiinaCheckoutForOrder(order: PendingPaymentOrder, total: number) {
+  const amountFils = getOrderAmountInFils(total)
+  if (amountFils < 200) {
+    throw new CheckoutValidationError('Bank payment minimum amount is AED 2')
+  }
 
-  const targetFils = Math.max(1, Math.round(safeTotal * 100))
-  const sourceTotals = items.map((item) => Math.max(0, toSafeNumber(item.price) * Math.max(1, Math.floor(toSafeNumber(item.quantity)))))
-
-  let allocated = 0
-
-  return items.map((item, index) => {
-    const qty = Math.max(1, Math.floor(toSafeNumber(item.quantity)))
-    const rawTotal = sourceTotals[index]
-
-    let lineFils = 1
-    if (index === items.length - 1) {
-      lineFils = Math.max(1, targetFils - allocated)
-    } else if (safeSubtotal > 0) {
-      lineFils = Math.max(1, Math.round((rawTotal / safeSubtotal) * targetFils))
-    } else {
-      lineFils = Math.max(1, Math.round(toSafeNumber(item.price) * qty * 100))
-    }
-
-    allocated += lineFils
-
-    return {
-      price_data: {
-        currency: 'aed',
-        product_data: {
-          name: `${item.product_name} x${qty}`,
-          images: resolveImageUrl(item.product_image) ? [resolveImageUrl(item.product_image)!] : [],
-        },
-        unit_amount: lineFils,
-      },
-      quantity: 1,
-    }
+  const { successUrl, cancelUrl, failureUrl } = getZiinaCheckoutUrls(order)
+  const paymentIntent = await createZiinaPaymentIntent({
+    amount: amountFils,
+    currencyCode: 'AED',
+    message: `Order #${order.order_number}`,
+    successUrl,
+    cancelUrl,
+    failureUrl,
+    test: shouldCreateZiinaTestPayment(),
   })
+
+  const { error: paymentReferenceError } = await supabaseAdmin
+    .from('orders')
+    .update({
+      payment_intent_id: paymentIntent.id,
+      stripe_session_id: paymentIntent.id,
+    })
+    .eq('id', order.id)
+
+  if (paymentReferenceError) {
+    throw new Error(paymentReferenceError.message)
+  }
+
+  return {
+    url: paymentIntent.redirect_url!,
+    sessionId: paymentIntent.id,
+    orderId: order.id,
+    orderNumber: order.order_number,
+  }
 }
 
-import axios from 'axios'
-
-async function createSessionFromDbCart(userId: string, userEmail?: string | null) {
+async function createSessionFromDbCart(userId: string) {
   const { data: cartItems, error } = await supabaseAdmin
     .from('cart_items')
     .select('product_id, quantity, products(name, images, slug, price)')
@@ -80,7 +85,6 @@ async function createSessionFromDbCart(userId: string, userEmail?: string | null
     throw new Error('Cart is empty')
   }
 
-  // Format cart items to match CheckoutOrderItem for pricing resolution
   const formattedItems = cartItems.map(item => ({
     product_id: item.product_id,
     quantity: item.quantity,
@@ -139,50 +143,18 @@ async function createSessionFromDbCart(userId: string, userEmail?: string | null
   }
 
   try {
-    // Ziina Integration
-    const response = await axios.post(
-      'https://api-v2.ziina.com/api/payment_intent',
-      {
-        amount: getOrderAmountInFils(pricing.total),
-        currency_code: 'AED',
-        message: `Order #${order.order_number}`,
-        success_url: buildFrontendUrl(
-          `/checkout/success?session_id=ziina_${order.id}&order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}`
-        ),
-        cancel_url: buildFrontendUrl(`/checkout/cancel?order_id=${order.id}`),
-        test: process.env.NODE_ENV !== 'production'
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.ZIINA_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    // Save the payment intent ID to the order
-    await supabaseAdmin
-      .from('orders')
-      .update({ stripe_session_id: response.data.id || `ziina_${order.id}` })
-      .eq('id', order.id)
-
-    return { 
-      url: response.data.redirect_url || response.data.message_url, 
-      sessionId: response.data.id || `ziina_${order.id}`,
-      orderId: order.id,
-      orderNumber: order.order_number,
-    }
+    return await createZiinaCheckoutForOrder(order, pricing.total)
   } catch (error: any) {
     console.error('Ziina Cart Create Payment Error:', error?.response?.data || error)
     await supabaseAdmin.from('order_items').delete().eq('order_id', order.id)
     await supabaseAdmin.from('orders').delete().eq('id', order.id)
-    throw new Error(error?.response?.data?.message || 'Failed to initialize Ziina payment for cart')
+    if (error instanceof CheckoutValidationError) throw error
+    throw new Error(error?.response?.data?.message || error?.message || 'Failed to initialize Ziina payment for cart')
   }
 }
 
 async function createSessionFromPayload(
   userId: string | null,
-  userEmail: string | null | undefined,
   payload: CheckoutPayload
 ) {
   const pricing = await resolveCheckoutPricing(payload.items, payload.promo || null, userId)
@@ -242,56 +214,15 @@ async function createSessionFromPayload(
     throw error
   }
 
-  const stripeLineItems = buildStripeLineItems(pricing.items, pricing.subtotal, pricing.total)
-  const metadata: Record<string, string> = {
-    order_id: order.id,
-    checkout_flow: 'direct_order',
-    expected_total_fils: String(getOrderAmountInFils(pricing.total)),
-  }
-
-  if (userId) {
-    metadata.user_id = userId
-  }
-
   try {
-    const response = await axios.post(
-      'https://api-v2.ziina.com/api/payment_intent',
-      {
-        amount: getOrderAmountInFils(pricing.total),
-        currency_code: 'AED',
-        message: `Order #${order.order_number}`,
-        success_url: buildFrontendUrl(
-          `/checkout/success?session_id=ziina_${order.id}&order_id=${order.id}&order_number=${encodeURIComponent(order.order_number)}`
-        ),
-        cancel_url: buildFrontendUrl(`/checkout/cancel?order_id=${order.id}`),
-        test: process.env.NODE_ENV !== 'production' // Optional, typically Ziina handles test mode via token, but this is a common param.
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.ZIINA_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    // Save the payment intent ID to the order
-    await supabaseAdmin
-      .from('orders')
-      .update({ stripe_session_id: response.data.id || `ziina_${order.id}` })
-      .eq('id', order.id)
-
-    return {
-      url: response.data.redirect_url || response.data.message_url,
-      sessionId: response.data.id || `ziina_${order.id}`,
-      orderId: order.id,
-      orderNumber: order.order_number,
-    }
+    return await createZiinaCheckoutForOrder(order, pricing.total)
   } catch (error: any) {
     console.error('Ziina Create Payment Error:', error?.response?.data || error)
     await releasePromoCodeReservation(order.id)
     await supabaseAdmin.from('order_items').delete().eq('order_id', order.id)
     await supabaseAdmin.from('orders').delete().eq('id', order.id)
-    throw new Error(error?.response?.data?.message || 'Failed to initialize Ziina payment')
+    if (error instanceof CheckoutValidationError) throw error
+    throw new Error(error?.response?.data?.message || error?.message || 'Failed to initialize Ziina payment')
   }
 }
 
@@ -308,8 +239,8 @@ paymentRoutes.post('/create-checkout-session', optionalAuthMiddleware, async (re
     }
 
     const result = hasPayloadItems
-      ? await createSessionFromPayload(userId, req.user?.email, payload)
-      : await createSessionFromDbCart(userId!, req.user!.email)
+      ? await createSessionFromPayload(userId, payload)
+      : await createSessionFromDbCart(userId!)
 
     res.json(result)
   } catch (error: any) {
@@ -319,22 +250,68 @@ paymentRoutes.post('/create-checkout-session', optionalAuthMiddleware, async (re
   }
 })
 
-// GET /api/payments/session/:sessionId — Get session status
-paymentRoutes.get('/session/:sessionId', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+// GET /api/payments/session/:sessionId — Verify Ziina payment status
+paymentRoutes.get('/session/:sessionId', optionalAuthMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const sessionId = req.params.sessionId as string
-    
-    // With Ziina, you typically fetch the payment intent status
-    const response = await axios.get(`https://api-v2.ziina.com/api/payment_intent/${sessionId}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.ZIINA_API_KEY}`
+    const sessionId = String(req.params.sessionId || '').trim()
+    const orderId = typeof req.query.order_id === 'string' ? req.query.order_id.trim() : ''
+
+    if (!sessionId) {
+      res.status(400).json({ error: 'Payment session id is required' })
+      return
+    }
+
+    const paymentIntent = await getZiinaPaymentIntent(sessionId)
+    let fulfilled = false
+    let orderStatus: string | null = null
+
+    if (orderId) {
+      const { data: order, error: orderError } = await supabaseAdmin
+        .from('orders')
+        .select('id, user_id, status, stripe_session_id, payment_intent_id')
+        .eq('id', orderId)
+        .maybeSingle()
+
+      if (orderError || !order) {
+        res.status(404).json({ error: 'Order not found for payment session' })
+        return
       }
-    })
+
+      if (order.user_id && order.user_id !== req.user?.id) {
+        res.status(403).json({ error: 'You do not have access to this payment session' })
+        return
+      }
+
+      if (order.stripe_session_id !== sessionId && order.payment_intent_id !== sessionId) {
+        res.status(404).json({ error: 'Payment session does not match this order' })
+        return
+      }
+
+      if (paymentIntent.status === 'completed') {
+        fulfilled = await fulfillPaidOrderPayment({
+          orderId: order.id,
+          providerPaymentId: paymentIntent.id,
+          providerSessionId: paymentIntent.id,
+          amountTotalFils: paymentIntent.amount,
+        })
+      }
+
+      const { data: refreshedOrder } = await supabaseAdmin
+        .from('orders')
+        .select('status')
+        .eq('id', order.id)
+        .maybeSingle()
+
+      orderStatus = refreshedOrder?.status || order.status || null
+    }
 
     res.json({
-      status: response.data.status === 'completed' ? 'paid' : response.data.status,
-      amountTotal: response.data.amount,
-      currency: response.data.currency_code,
+      status: paymentIntent.status === 'completed' ? 'paid' : paymentIntent.status,
+      providerStatus: paymentIntent.status,
+      amountTotal: paymentIntent.amount,
+      currency: paymentIntent.currency_code,
+      orderStatus,
+      fulfilled,
     })
   } catch (error: any) {
     res.status(500).json({ error: error.message })

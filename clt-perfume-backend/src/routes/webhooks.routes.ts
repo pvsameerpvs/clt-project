@@ -1,322 +1,95 @@
 import { Router, Request, Response } from 'express'
 import express from 'express'
-import { stripe } from '../config/stripe'
-import { supabaseAdmin } from '../config/supabase'
-import Stripe from 'stripe'
-import { claimPromoCodeForOrder, getOrderAmountInFils } from '../services/checkout.service'
-import { sendOrderConfirmationEmail } from '../services/email.service'
-import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
+import {
+  getZiinaPaymentIntentFromWebhook,
+  isZiinaWebhookSourceAllowed,
+  parseZiinaWebhookEvent,
+  verifyZiinaWebhookSignature,
+} from '../services/ziina.service'
+import {
+  fulfillPaidOrderPayment,
+  markOrderPaymentUnsuccessful,
+} from '../services/payment-fulfillment.service'
 
 export const webhookRoutes = Router()
 
-async function getAuthUserEmail(userId?: string | null) {
-  if (!userId) return undefined
+function getRawBody(req: Request) {
+  if (Buffer.isBuffer(req.body)) return req.body
+  if (typeof req.body === 'string') return Buffer.from(req.body, 'utf8')
+  return Buffer.from(JSON.stringify(req.body || {}), 'utf8')
+}
 
-  const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId)
-  if (error) {
-    console.error('Failed to load auth user for order email fallback:', error.message)
-    return undefined
+function getRequestIp(req: Request) {
+  const forwardedFor = req.headers['x-forwarded-for']
+  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+    return forwardedFor.split(',')[0].trim()
   }
 
-  return data.user?.email || undefined
+  if (Array.isArray(forwardedFor) && forwardedFor[0]) {
+    return forwardedFor[0].split(',')[0].trim()
+  }
+
+  return req.ip || req.socket.remoteAddress || ''
 }
 
 webhookRoutes.post(
   '/ziina',
-  express.json(),
+  express.raw({ type: 'application/json' }),
   async (req: Request, res: Response): Promise<void> => {
-    // Ziina will POST to this endpoint when a payment status changes
-    const event = req.body
+    const rawBody = getRawBody(req)
+    const sourceIp = getRequestIp(req)
 
-    console.log('🔔 Received Ziina Webhook:', event)
+    if (!isZiinaWebhookSourceAllowed(sourceIp)) {
+      console.error('Rejected Ziina webhook from unexpected IP:', sourceIp)
+      res.status(403).json({ error: 'Webhook source is not allowed' })
+      return
+    }
+
+    const signatureVerification = verifyZiinaWebhookSignature(rawBody, req.headers['x-hmac-signature'])
+    if (!signatureVerification.ok) {
+      console.error('Rejected Ziina webhook signature:', signatureVerification.reason)
+      res.status(401).json({ error: signatureVerification.reason || 'Invalid webhook signature' })
+      return
+    }
 
     try {
-      // Basic signature check if a secret is provided
-      const hmacSignature = req.headers['x-hmac-signature']
-      // In production, we should verify the HMAC signature here using the configured secret.
+      const event = parseZiinaWebhookEvent(rawBody)
+      const paymentIntent = getZiinaPaymentIntentFromWebhook(event)
 
-      // We only care about successful payments
-      if (event.event === 'payment_intent.status.updated' && event.status === 'completed' && event.id) {
-         console.log('✅ Ziina payment completed for intent:', event.id)
-         
-         // We reuse the direct order fulfillment logic, passing a mocked Stripe session object
-         // since the DB functions currently expect that structure.
-         const mockSession = {
-           id: event.id, // This matches what we saved in stripe_session_id during checkout
-           payment_status: 'paid',
-           payment_intent: event.id,
-           amount_total: event.amount, // In fils
-           metadata: {
-             checkout_flow: 'direct_order',
-           }
-           // We don't have the order_id in metadata directly from Ziina unless we pass it during creation.
-           // However, fulfillDirectOrderPayment looks up by metadata.order_id.
-           // We will need to look up the order by stripe_session_id first.
-         } as any
-
-         // Find order by session ID
-         const { data: order } = await supabaseAdmin
-           .from('orders')
-           .select('id')
-           .eq('stripe_session_id', event.id)
-           .maybeSingle()
-
-         if (order) {
-           mockSession.metadata.order_id = order.id
-           await fulfillDirectOrderPayment(mockSession)
-         } else {
-           console.error('❌ Could not find order for Ziina payment intent:', event.id)
-         }
+      if (!paymentIntent) {
+        res.json({ received: true, ignored: true })
+        return
       }
+
+      console.log('Received Ziina payment webhook:', {
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+      })
+
+      if (paymentIntent.status === 'completed') {
+        const fulfilled = await fulfillPaidOrderPayment({
+          providerPaymentId: paymentIntent.id,
+          providerSessionId: paymentIntent.id,
+          amountTotalFils: paymentIntent.amount,
+        })
+
+        if (!fulfilled) {
+          res.status(409).json({ received: false, error: 'Payment could not be fulfilled' })
+          return
+        }
+      }
+
+      if (paymentIntent.status === 'failed' || paymentIntent.status === 'canceled') {
+        await markOrderPaymentUnsuccessful({
+          providerPaymentId: paymentIntent.id,
+          status: paymentIntent.status,
+        })
+      }
+
       res.json({ received: true })
     } catch (err: any) {
-      console.error('Ziina Webhook Error:', err.message)
+      console.error('Ziina webhook error:', err.message)
       res.status(400).send(`Webhook Error: ${err.message}`)
     }
   }
 )
-
-/*
-// Old Stripe Webhook (Disabled)
-webhookRoutes.post(
-  '/stripe',
-  express.raw({ type: 'application/json' }),
-  async (req: Request, res: Response): Promise<void> => {
-// ...
-*/
-
-async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
-  const orderId = session.metadata?.order_id
-  if (!orderId) return false
-
-  const { data: order, error: orderError } = await supabaseAdmin
-    .from('orders')
-    .select('id, user_id, status, payment_method, shipping_address, order_number, subtotal, total, shipping_fee, promo_code_id')
-    .eq('id', orderId)
-    .maybeSingle()
-
-  if (orderError || !order) {
-    console.error('Direct checkout order not found:', orderError?.message || orderId)
-    return false
-  }
-
-  if (session.payment_status !== 'paid') {
-    console.error('Direct checkout session is not paid yet:', session.id, session.payment_status)
-    return false
-  }
-
-  const expectedAmountFils = getOrderAmountInFils(order.total)
-  const paidAmountFils = Math.max(0, Number(session.amount_total || 0))
-
-  if (paidAmountFils !== expectedAmountFils) {
-    console.error(
-      'Direct checkout amount mismatch:',
-      JSON.stringify({
-        orderId: order.id,
-        sessionId: session.id,
-        expectedAmountFils,
-        paidAmountFils,
-      })
-    )
-    return false
-  }
-
-  if (order.status === 'paid' || order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered') {
-    return true
-  }
-
-  const { data: orderItems, error: itemsError } = await supabaseAdmin
-    .from('order_items')
-    .select('product_id, quantity, product_name, price, product_image')
-    .eq('order_id', order.id)
-
-  if (itemsError) {
-    console.error('Failed to load direct checkout order items:', itemsError.message)
-    return false
-  }
-
-  if (order.promo_code_id && order.user_id) {
-    try {
-      await claimPromoCodeForOrder(order.user_id, order.promo_code_id, order.id, 'redeemed')
-    } catch (error: any) {
-      console.error('Failed to finalize promo redemption:', error?.message || error)
-      return false
-    }
-  }
-
-  for (const item of orderItems || []) {
-    if (!item.product_id) continue
-    await supabaseAdmin.rpc('decrement_stock', {
-      p_product_id: item.product_id,
-      p_quantity: item.quantity,
-    })
-  }
-
-  const { error: updateError } = await supabaseAdmin
-    .from('orders')
-    .update({
-      status: 'paid',
-      payment_intent_id: session.payment_intent as string,
-      stripe_session_id: session.id,
-    })
-    .eq('id', order.id)
-
-  if (updateError) {
-    console.error('Failed to mark direct checkout order as paid:', updateError.message)
-    return false
-  }
-
-  if (order.user_id) {
-    await supabaseAdmin.from('cart_items').delete().eq('user_id', order.user_id)
-  }
-
-  const contactEmail =
-    (order.shipping_address as any)?.contact_email ||
-    (await getAuthUserEmail(order.user_id)) ||
-    session.customer_details?.email ||
-    undefined
-  const contactWhatsapp = (order.shipping_address as any)?.contact_whatsapp
-
-  const emailResult = await sendOrderConfirmationEmail({
-    order_number: order.order_number || '',
-    subtotal: Number(order.subtotal || 0),
-    total: Number(order.total || 0),
-    promo_discount: Number(order.subtotal || 0) + Number(order.shipping_fee || 0) - Number(order.total || 0),
-    shipping_fee: Number(order.shipping_fee || 0),
-    payment_method: order.payment_method || 'card',
-    items: (orderItems || []).map((item) => ({
-      product_name: item.product_name,
-      quantity: item.quantity,
-      price: item.price,
-      product_image: item.product_image
-    })),
-    contact_email: contactEmail
-  })
-
-  if (!emailResult.ok && !emailResult.skipped) {
-    console.error('Direct checkout order email failed:', emailResult.error)
-  }
-
-  sendOrderWhatsAppConfirmation({
-    order_number: order.order_number || '',
-    total: Number(order.total || 0),
-    contact_whatsapp: contactWhatsapp,
-    items: (orderItems || []).map(item => ({
-      product_name: item.product_name,
-      quantity: item.quantity,
-      price: item.price
-    }))
-  })
-
-  console.log(`✅ Direct order ${order.id} marked paid`)
-  return true
-}
-
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const isDirectOrderFlow =
-    session.metadata?.checkout_flow === 'direct_order' ||
-    Boolean(session.metadata?.order_id)
-  const directHandled = await fulfillDirectOrderPayment(session)
-  if (directHandled || isDirectOrderFlow) return
-
-  const userId = session.metadata?.user_id
-  if (!userId) return
-
-  try {
-    const { data: cartItems } = await supabaseAdmin
-      .from('cart_items')
-      .select('quantity, product:products(id, name, price, images, slug)')
-      .eq('user_id', userId)
-
-    if (!cartItems || cartItems.length === 0) return
-
-    const subtotal = cartItems.reduce(
-      (sum: number, item: any) => sum + item.product.price * item.quantity, 0
-    )
-    const tax = Math.round(subtotal * 0.05 * 100) / 100
-
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from('orders')
-      .insert({
-        user_id: userId,
-        order_number: '',
-        status: 'paid',
-        subtotal,
-        shipping_fee: 0,
-        tax,
-        total: subtotal + tax,
-        payment_intent_id: session.payment_intent as string,
-        stripe_session_id: session.id,
-        payment_method: 'card',
-        shipping_address: (session as any).shipping_details ? {
-          full_name: (session as any).shipping_details.name,
-          address_line1: (session as any).shipping_details.address?.line1,
-          address_line2: (session as any).shipping_details.address?.line2,
-          city: (session as any).shipping_details.address?.city,
-          state: (session as any).shipping_details.address?.state,
-          country: (session as any).shipping_details.address?.country,
-          postal_code: (session as any).shipping_details.address?.postal_code,
-          contact_email: session.customer_details?.email,
-        } : null,
-      })
-      .select()
-      .single()
-
-    if (orderError || !order) {
-      console.error('Failed to create order:', orderError)
-      return
-    }
-
-    const orderItems = cartItems.map((item: any) => ({
-      order_id: order.id,
-      product_id: item.product.id,
-      product_name: item.product.name,
-      product_image: item.product.images?.[0] || null,
-      product_slug: item.product.slug,
-      price: item.product.price,
-      quantity: item.quantity,
-    }))
-    await supabaseAdmin.from('order_items').insert(orderItems)
-
-    for (const item of cartItems as any[]) {
-      await supabaseAdmin.rpc('decrement_stock', {
-        p_product_id: item.product.id,
-        p_quantity: item.quantity,
-      })
-    }
-
-    await supabaseAdmin.from('cart_items').delete().eq('user_id', userId)
-
-    const contactWhatsapp = (order.shipping_address as any)?.contact_whatsapp
-
-    const emailResult = await sendOrderConfirmationEmail({
-      order_number: order.order_number || '',
-      subtotal: Number(order.subtotal || 0),
-      total: Number(order.total || 0),
-      promo_discount: 0, // Old cart flow didn't support promo codes natively as tracked fields
-      shipping_fee: Number(order.shipping_fee || 0),
-      payment_method: order.payment_method || 'card',
-      items: orderItems,
-      contact_email: session.customer_details?.email || (await getAuthUserEmail(userId))
-    })
-
-    if (!emailResult.ok && !emailResult.skipped) {
-      console.error('Legacy checkout order email failed:', emailResult.error)
-    }
-
-    sendOrderWhatsAppConfirmation({
-      order_number: order.order_number || '',
-      total: Number(order.total || 0),
-      contact_whatsapp: contactWhatsapp,
-      items: orderItems.map(item => ({
-        product_name: item.product_name,
-        quantity: item.quantity,
-        price: item.price
-      }))
-    })
-
-    console.log(`✅ Order ${order.order_number} created for user ${userId}`)
-  } catch (error) {
-    console.error('Error handling checkout:', error)
-  }
-}

@@ -45,6 +45,15 @@ export interface BankCheckoutSessionResponse {
   orderNumber?: string
 }
 
+export interface BankPaymentSessionStatusResponse {
+  status: string
+  providerStatus?: string
+  amountTotal?: number
+  currency?: string
+  orderStatus?: string | null
+  fulfilled?: boolean
+}
+
 export interface UserOrderItemRecord {
   id: string
   product_id?: string | null
@@ -503,6 +512,33 @@ export async function createBankCheckoutSession(
 
   if (!data.url) {
     throw new Error("Payment session URL is missing")
+  }
+
+  return data
+}
+
+export async function getBankPaymentSessionStatus(
+  sessionId: string,
+  accessToken?: string | null,
+  orderId?: string | null
+): Promise<BankPaymentSessionStatusResponse> {
+  const params = new URLSearchParams()
+  if (orderId) params.set("order_id", orderId)
+
+  const headers: Record<string, string> = {}
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`
+  }
+
+  const url = `${API_BASE_URL}/api/payments/session/${encodeURIComponent(sessionId)}${params.toString() ? `?${params.toString()}` : ""}`
+  const res = await fetch(url, {
+    headers,
+    cache: "no-store",
+  })
+
+  const data = (await res.json()) as BankPaymentSessionStatusResponse & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to verify payment status")
   }
 
   return data

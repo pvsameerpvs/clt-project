@@ -7,13 +7,21 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
 async function registerWebhook() {
   const ZIINA_API_KEY = process.env.ZIINA_API_KEY
-  // NOTE: Replace this with your actual production backend URL!
-  const WEBHOOK_URL = 'https://api.yourdomain.com/api/webhooks/ziina'
-  // NOTE: Generate a random string to be your secret, and add it to your .env file as ZIINA_WEBHOOK_SECRET
-  const WEBHOOK_SECRET = 'your_super_secret_string_123'
+  const WEBHOOK_URL = process.env.ZIINA_WEBHOOK_URL
+  const WEBHOOK_SECRET = process.env.ZIINA_WEBHOOK_SECRET
 
   if (!ZIINA_API_KEY) {
-    console.error('❌ ZIINA_API_KEY is not set in .env')
+    console.error('ZIINA_API_KEY is not set in .env')
+    process.exit(1)
+  }
+
+  if (!WEBHOOK_URL) {
+    console.error('ZIINA_WEBHOOK_URL is not set in .env')
+    process.exit(1)
+  }
+
+  if (!WEBHOOK_SECRET) {
+    console.error('ZIINA_WEBHOOK_SECRET is not set in .env')
     process.exit(1)
   }
 
@@ -34,10 +42,10 @@ async function registerWebhook() {
       }
     )
 
-    console.log('✅ Webhook successfully registered!')
+    console.log('Webhook successfully registered!')
     console.log('Response:', response.data)
   } catch (error: any) {
-    console.error('❌ Failed to register webhook:', error?.response?.data || error.message)
+    console.error('Failed to register webhook:', error?.response?.data || error.message)
   }
 }
 

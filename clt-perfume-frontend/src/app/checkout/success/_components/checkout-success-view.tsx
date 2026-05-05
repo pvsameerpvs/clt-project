@@ -1,10 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useSyncExternalStore } from "react"
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
 import { useSearchParams } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
+import { getBankPaymentSessionStatus } from "@/lib/api"
 import type { PaymentMethod } from "../../checkout-types"
 import {
   matchesCheckoutSuccessSnapshot,
@@ -36,11 +37,13 @@ function readMatchingCheckoutSuccessSnapshot(orderId?: string | null, orderNumbe
 export function CheckoutSuccessView() {
   const searchParams = useSearchParams()
   const { clearCart } = useCart()
-  const { user } = useAuth()
+  const { user, accessToken } = useAuth()
+  const [bankPaymentStatus, setBankPaymentStatus] = useState<"verifying" | "paid" | "pending" | "failed" | null>(null)
 
   const queryOrderId = searchParams.get("order_id")
   const queryOrderNumber = searchParams.get("order_number")
   const queryPaymentMethod = normalizePaymentMethod(searchParams.get("payment"))
+  const querySessionId = searchParams.get("session_id")
 
   const snapshot = useSyncExternalStore(
     subscribeToCheckoutSuccessSnapshot,
@@ -48,23 +51,61 @@ export function CheckoutSuccessView() {
     () => null
   )
 
-  useEffect(() => {
-    void clearCart()
-  }, [clearCart])
-
   const orderReference = createOrderReference(
     queryOrderNumber || snapshot?.orderNumber,
     queryOrderId || snapshot?.orderId
   )
 
   const paymentMethod = queryPaymentMethod || snapshot?.paymentMethod || null
+  const shouldVerifyBankPayment = useMemo(
+    () => Boolean(querySessionId && (paymentMethod === "bank" || paymentMethod === "card" || !paymentMethod)),
+    [paymentMethod, querySessionId]
+  )
+
+  useEffect(() => {
+    if (paymentMethod !== "cod") return
+    void clearCart()
+  }, [clearCart, paymentMethod])
+
+  useEffect(() => {
+    if (!shouldVerifyBankPayment || !querySessionId) return
+
+    let isActive = true
+
+    getBankPaymentSessionStatus(querySessionId, accessToken, queryOrderId)
+      .then((session) => {
+        if (!isActive) return
+
+        if (session.status === "paid" || session.providerStatus === "completed" || session.orderStatus === "paid") {
+          setBankPaymentStatus("paid")
+          void clearCart()
+          return
+        }
+
+        if (session.providerStatus === "failed" || session.providerStatus === "canceled") {
+          setBankPaymentStatus("failed")
+          return
+        }
+
+        setBankPaymentStatus("pending")
+      })
+      .catch(() => {
+        if (isActive) setBankPaymentStatus("pending")
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [accessToken, clearCart, queryOrderId, querySessionId, shouldVerifyBankPayment])
+
+  const heroPaymentStatus = shouldVerifyBankPayment ? bankPaymentStatus || "verifying" : null
   const continueShoppingHref = "/"
   const ordersHref = user ? "/profile?section=orders" : null
 
   return (
     <div className="px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
       <div className="mx-auto max-w-3xl">
-        <CheckoutSuccessHero paymentMethod={paymentMethod} orderReference={orderReference} />
+        <CheckoutSuccessHero paymentMethod={paymentMethod} paymentStatus={heroPaymentStatus} orderReference={orderReference} />
 
         <div className="mt-8 flex flex-col items-center gap-3">
           <Link
