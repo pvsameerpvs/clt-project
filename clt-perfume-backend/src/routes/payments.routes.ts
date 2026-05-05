@@ -16,7 +16,13 @@ import {
   getZiinaPaymentIntent,
   shouldCreateZiinaTestPayment,
 } from '../services/ziina.service'
-import { fulfillPaidOrderPayment } from '../services/payment-fulfillment.service'
+import {
+  canAccessPaymentOrder,
+  findPaymentOrderById,
+  getOrderPaymentReference,
+  paymentReferenceMatchesOrder,
+  syncPaymentIntentToOrder,
+} from '../services/payment-status.service'
 
 export const paymentRoutes = Router()
 
@@ -33,8 +39,12 @@ function getZiinaCheckoutUrls(order: PendingPaymentOrder) {
     successUrl: buildFrontendUrl(
       `/checkout/success?session_id={PAYMENT_INTENT_ID}&order_id=${orderId}&order_number=${orderNumber}&payment=bank`
     ),
-    cancelUrl: buildFrontendUrl(`/checkout/cancel?order_id=${orderId}`),
-    failureUrl: buildFrontendUrl(`/checkout/cancel?order_id=${orderId}&payment=failed`),
+    cancelUrl: buildFrontendUrl(
+      `/checkout/cancel?session_id={PAYMENT_INTENT_ID}&order_id=${orderId}&order_number=${orderNumber}&payment=cancelled`
+    ),
+    failureUrl: buildFrontendUrl(
+      `/checkout/cancel?session_id={PAYMENT_INTENT_ID}&order_id=${orderId}&order_number=${orderNumber}&payment=failed`
+    ),
   }
 }
 
@@ -262,57 +272,60 @@ paymentRoutes.get('/session/:sessionId', optionalAuthMiddleware, async (req: Req
     }
 
     const paymentIntent = await getZiinaPaymentIntent(sessionId)
-    let fulfilled = false
-    let orderStatus: string | null = null
+    let order = null
 
     if (orderId) {
-      const { data: order, error: orderError } = await supabaseAdmin
-        .from('orders')
-        .select('id, user_id, status, stripe_session_id, payment_intent_id')
-        .eq('id', orderId)
-        .maybeSingle()
-
-      if (orderError || !order) {
+      order = await findPaymentOrderById(orderId)
+      if (!order) {
         res.status(404).json({ error: 'Order not found for payment session' })
         return
       }
 
-      if (order.user_id && order.user_id !== req.user?.id) {
+      if (!canAccessPaymentOrder(order, req.user?.id)) {
         res.status(403).json({ error: 'You do not have access to this payment session' })
         return
       }
 
-      if (order.stripe_session_id !== sessionId && order.payment_intent_id !== sessionId) {
+      if (!paymentReferenceMatchesOrder(order, sessionId)) {
         res.status(404).json({ error: 'Payment session does not match this order' })
         return
       }
-
-      if (paymentIntent.status === 'completed') {
-        fulfilled = await fulfillPaidOrderPayment({
-          orderId: order.id,
-          providerPaymentId: paymentIntent.id,
-          providerSessionId: paymentIntent.id,
-          amountTotalFils: paymentIntent.amount,
-        })
-      }
-
-      const { data: refreshedOrder } = await supabaseAdmin
-        .from('orders')
-        .select('status')
-        .eq('id', order.id)
-        .maybeSingle()
-
-      orderStatus = refreshedOrder?.status || order.status || null
     }
 
-    res.json({
-      status: paymentIntent.status === 'completed' ? 'paid' : paymentIntent.status,
-      providerStatus: paymentIntent.status,
-      amountTotal: paymentIntent.amount,
-      currency: paymentIntent.currency_code,
-      orderStatus,
-      fulfilled,
-    })
+    res.json(await syncPaymentIntentToOrder(paymentIntent, order))
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// GET /api/payments/order/:orderId/status — Verify Ziina status from a stored order payment reference
+paymentRoutes.get('/order/:orderId/status', optionalAuthMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const orderId = String(req.params.orderId || '').trim()
+    if (!orderId) {
+      res.status(400).json({ error: 'Order id is required' })
+      return
+    }
+
+    const order = await findPaymentOrderById(orderId)
+    if (!order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    if (!canAccessPaymentOrder(order, req.user?.id)) {
+      res.status(403).json({ error: 'You do not have access to this order payment' })
+      return
+    }
+
+    const paymentIntentId = getOrderPaymentReference(order)
+    if (!paymentIntentId) {
+      res.status(404).json({ error: 'Order does not have a Ziina payment reference' })
+      return
+    }
+
+    const paymentIntent = await getZiinaPaymentIntent(paymentIntentId)
+    res.json(await syncPaymentIntentToOrder(paymentIntent, order))
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }

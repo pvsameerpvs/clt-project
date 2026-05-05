@@ -1,4 +1,6 @@
 
+import { isCashOnDeliveryPayment } from './order-visibility'
+
 export function isPaidStatus(status: string) {
   const s = String(status || '').toLowerCase()
   return s === 'paid' || s === 'delivered'
@@ -10,8 +12,7 @@ export function isUnpaidStatus(status: string) {
 }
 
 export function isCOD(paymentMethod: string | null | undefined) {
-  const method = String(paymentMethod || '').toLowerCase().trim()
-  return method.includes('cash') || method.includes('cod') || method === ''
+  return isCashOnDeliveryPayment(paymentMethod)
 }
 
 export function calculateOrderStats(orders: any[]) {

@@ -50,8 +50,13 @@ export interface BankPaymentSessionStatusResponse {
   providerStatus?: string
   amountTotal?: number
   currency?: string
+  latestError?: {
+    message?: string
+    code?: string
+  } | null
   orderStatus?: string | null
   fulfilled?: boolean
+  unsuccessfulMarked?: boolean
 }
 
 export interface UserOrderItemRecord {
@@ -532,6 +537,28 @@ export async function getBankPaymentSessionStatus(
 
   const url = `${API_BASE_URL}/api/payments/session/${encodeURIComponent(sessionId)}${params.toString() ? `?${params.toString()}` : ""}`
   const res = await fetch(url, {
+    headers,
+    cache: "no-store",
+  })
+
+  const data = (await res.json()) as BankPaymentSessionStatusResponse & { error?: string }
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to verify payment status")
+  }
+
+  return data
+}
+
+export async function getBankPaymentOrderStatus(
+  orderId: string,
+  accessToken?: string | null
+): Promise<BankPaymentSessionStatusResponse> {
+  const headers: Record<string, string> = {}
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/payments/order/${encodeURIComponent(orderId)}/status`, {
     headers,
     cache: "no-store",
   })

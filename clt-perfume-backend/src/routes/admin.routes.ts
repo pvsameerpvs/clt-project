@@ -4,6 +4,8 @@ import { ReturnService } from '../services/return.service'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
 import { sendOrderStatusEmail } from '../services/email.service'
 import { sendOrderStatusWhatsApp } from '../services/whatsapp.service'
+import { isVisibleAdminOrder } from '../utils/order-visibility'
+import { calculateOrderStats } from '../utils/order-stats'
 
 export const adminRoutes = Router()
 
@@ -26,6 +28,9 @@ type AdminOrder = {
   status: string
   created_at: string
   order_number?: string
+  payment_method?: string | null
+  payment_intent_id?: string | null
+  stripe_session_id?: string | null
 }
 
 function isRevenueOrder(status: string) {
@@ -55,10 +60,8 @@ function getNotificationPaymentStatus(paymentMethod: string | null | undefined, 
     return 'Cash on Delivery'
   }
 
-  return 'Paid'
+	return 'Paid'
 }
-
-import { calculateOrderStats } from '../utils/order-stats'
 
 function isPaidStatus(status: string) {
   const s = status.toLowerCase()
@@ -116,6 +119,7 @@ type ProductStockInsightOrder = {
   user_id?: string | null
   total?: number | string | null
   status?: string | null
+  payment_method?: string | null
   created_at?: string | null
   shipping_address?: Record<string, any> | null
   profile?:
@@ -195,7 +199,7 @@ async function fetchProductStockInsightOrders(orderIds: string[]) {
   for (const chunk of chunkArray(orderIds, STOCK_INSIGHT_IN_CHUNK_SIZE)) {
     const { data, error } = await supabaseAdmin
       .from('orders')
-      .select('id, order_number, user_id, total, status, created_at, shipping_address, profile:profiles(first_name, last_name)')
+      .select('id, order_number, user_id, total, status, payment_method, created_at, shipping_address, profile:profiles(first_name, last_name)')
       .in('id', chunk)
 
     if (error) throw error
@@ -230,13 +234,14 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
   try {
     const [products, orders, customers] = await Promise.all([
       supabaseAdmin.from('products').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('orders').select('id, order_number, total, status, created_at', { count: 'exact' }),
+      supabaseAdmin.from('orders').select('id, order_number, total, status, created_at, payment_method, payment_intent_id, stripe_session_id'),
       supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
     ])
 
-    const allOrders = (orders.data || []) as (AdminOrder & { payment_method?: string })[]
+    const allOrders = (orders.data || []) as AdminOrder[]
+    const visibleOrders = allOrders.filter(isVisibleAdminOrder)
 
-    const stats = calculateOrderStats(allOrders)
+    const stats = calculateOrderStats(visibleOrders)
     const { 
       totalRevenue, 
       cardRevenue, 
@@ -263,7 +268,7 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
 
     const bucketMap = new Map(monthBuckets.map((bucket) => [bucket.month, bucket]))
 
-    for (const order of allOrders) {
+    for (const order of visibleOrders) {
       if (!isPaidStatus(order.status)) continue
       const createdAt = new Date(order.created_at)
       if (Number.isNaN(createdAt.getTime())) continue
@@ -275,7 +280,7 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
       }
     }
 
-    const recentOrders = [...allOrders]
+    const recentOrders = [...visibleOrders]
       .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
       .slice(0, 8)
       .map((order) => ({
@@ -288,7 +293,7 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
 
     res.json({
       totalProducts: products?.count || 0,
-      totalOrders: orders?.count || 0,
+      totalOrders: visibleOrders.length,
       totalCustomers: customers?.count || 0,
       totalRevenue,
       cardRevenue,
@@ -419,18 +424,19 @@ adminRoutes.get('/products/:id/stock-insights', async (req: Request, res: Respon
     const orderIds = Array.from(
       new Set(items.map((item) => item.order_id).filter((orderId): orderId is string => Boolean(orderId)))
     )
-    const [orders, returnRequests] = await Promise.all([
-      fetchProductStockInsightOrders(orderIds),
-      fetchProductStockInsightReturns(orderIds),
-    ])
+    const orders = await fetchProductStockInsightOrders(orderIds)
+    const visibleOrders = orders.filter(isVisibleAdminOrder)
+    const visibleOrderIds = new Set(visibleOrders.map((order) => order.id))
+    const returnRequests = await fetchProductStockInsightReturns(Array.from(visibleOrderIds))
 
-    const ordersById = new Map(orders.map((order) => [order.id, order]))
+    const ordersById = new Map(visibleOrders.map((order) => [order.id, order]))
     const orderLineTotals = new Map<string, { quantity: number; lineTotal: number }>()
     let totalQuantity = 0
     let grossSales = 0
 
     for (const item of items) {
       if (!item.order_id) continue
+      if (!visibleOrderIds.has(item.order_id)) continue
       const quantity = Math.max(0, Number(item.quantity || 0))
       const lineTotal = Number(item.price || 0) * quantity
       const current = orderLineTotals.get(item.order_id) || { quantity: 0, lineTotal: 0 }
@@ -444,17 +450,17 @@ adminRoutes.get('/products/:id/stock-insights', async (req: Request, res: Respon
     }
 
     const customerIds = new Set(
-      orders
+      visibleOrders
         .map((order) => order.user_id)
         .filter((userId): userId is string => Boolean(userId))
     )
     const lastOrderedAt =
-      orders
+      visibleOrders
         .map((order) => order.created_at)
         .filter((createdAt): createdAt is string => Boolean(createdAt))
         .sort((a, b) => +new Date(b) - +new Date(a))[0] || null
 
-    const recentOrders = orderIds
+    const recentOrders = Array.from(visibleOrderIds)
       .map((orderId) => {
         const order = ordersById.get(orderId)
         const totals = orderLineTotals.get(orderId)
@@ -490,7 +496,7 @@ adminRoutes.get('/products/:id/stock-insights', async (req: Request, res: Respon
 
     res.json({
       productId,
-      totalOrders: orderIds.length,
+      totalOrders: visibleOrderIds.size,
       totalQuantity,
       uniqueCustomers: customerIds.size,
       grossSales,
@@ -688,6 +694,7 @@ adminRoutes.get('/orders/search', async (req: Request, res: Response) => {
     const searchText = String(req.query.q || '').trim().toLowerCase()
     const dateFromInput = String(req.query.date_from || '').trim()
     const dateToInput = String(req.query.date_to || '').trim()
+    const includePaymentAttempts = String(req.query.include_payment_attempts || '').toLowerCase() === 'true'
 
     let query = supabaseAdmin
       .from('orders')
@@ -719,10 +726,12 @@ adminRoutes.get('/orders/search', async (req: Request, res: Response) => {
 
     if (error) throw error
 
-    let normalized = (data || []).map((order: any) => ({
-      ...order,
-      status: normalizeOrderStatusForResponse(order.status),
-    }))
+    let normalized = (data || [])
+      .filter((order: any) => includePaymentAttempts || isVisibleAdminOrder(order))
+      .map((order: any) => ({
+        ...order,
+        status: normalizeOrderStatusForResponse(order.status),
+      }))
 
     if (searchText) {
       normalized = normalized.filter((order: any) => {
@@ -829,16 +838,19 @@ adminRoutes.get('/orders/:id/invoice', async (req: Request, res: Response) => {
 // GET /api/admin/orders — List all orders
 adminRoutes.get('/orders', async (req: Request, res: Response) => {
   try {
+    const includePaymentAttempts = String(req.query.include_payment_attempts || '').toLowerCase() === 'true'
     const { data, error } = await supabaseAdmin
       .from('orders')
       .select('*, profile:profiles(first_name, last_name)')
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    const normalized = (data || []).map((order: any) => ({
-      ...order,
-      status: normalizeOrderStatusForResponse(order.status),
-    }))
+    const normalized = (data || [])
+      .filter((order: any) => includePaymentAttempts || isVisibleAdminOrder(order))
+      .map((order: any) => ({
+        ...order,
+        status: normalizeOrderStatusForResponse(order.status),
+      }))
     res.json(normalized)
   } catch (error: any) {
     res.status(500).json({ error: error.message })
@@ -953,7 +965,7 @@ adminRoutes.get('/customers', async (req: Request, res: Response) => {
         .order('created_at', { ascending: false }),
       supabaseAdmin
         .from('orders')
-        .select('user_id, total, status, created_at'),
+        .select('user_id, total, status, payment_method, created_at'),
     ])
 
     if (profileError) throw profileError
@@ -977,7 +989,8 @@ adminRoutes.get('/customers', async (req: Request, res: Response) => {
 
     const orderStats = new Map<string, { orderCount: number; totalSpent: number; lastOrderAt: string | null }>()
 
-    for (const order of (orders || []) as Array<{ user_id: string | null; total: number | string; status: string; created_at: string }>) {
+    for (const order of (orders || []) as Array<{ user_id: string | null; total: number | string; status: string; payment_method?: string | null; created_at: string }>) {
+      if (!isVisibleAdminOrder(order)) continue
       if (!order.user_id) continue
       const stats = orderStats.get(order.user_id) || { orderCount: 0, totalSpent: 0, lastOrderAt: null }
 
@@ -1033,7 +1046,7 @@ adminRoutes.get('/customers/:id', async (req: Request, res: Response) => {
         .single(),
       supabaseAdmin
         .from('orders')
-        .select('id, order_number, total, subtotal, tax, shipping_fee, status, created_at, shipping_address')
+        .select('id, order_number, total, subtotal, tax, shipping_fee, status, payment_method, created_at, shipping_address')
         .eq('user_id', customerId)
         .order('created_at', { ascending: false }),
       supabaseAdmin.auth.admin.getUserById(customerId),
@@ -1057,14 +1070,16 @@ adminRoutes.get('/customers/:id', async (req: Request, res: Response) => {
       createdAt: profile.created_at,
     }
 
-    const normalizedOrders = (orders || []).map((order: any) => ({
-      ...order,
-      status: normalizeOrderStatusForResponse(order.status),
-      total: Number(order.total || 0),
-      subtotal: Number(order.subtotal || 0),
-      tax: Number(order.tax || 0),
-      shipping_fee: Number(order.shipping_fee || 0),
-    }))
+    const normalizedOrders = (orders || [])
+      .filter((order: any) => isVisibleAdminOrder(order))
+      .map((order: any) => ({
+        ...order,
+        status: normalizeOrderStatusForResponse(order.status),
+        total: Number(order.total || 0),
+        subtotal: Number(order.subtotal || 0),
+        tax: Number(order.tax || 0),
+        shipping_fee: Number(order.shipping_fee || 0),
+      }))
 
     const shippingAddresses = Array.from(
       new Map(
