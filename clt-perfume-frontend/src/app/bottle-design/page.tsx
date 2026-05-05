@@ -16,7 +16,7 @@ export default function BottleDesignPage() {
         eyebrow="Bottle Design"
         title="A Bottle Beyond Convention"
         description="At CLE Perfume, we believe the bottle should be as expressive as the scent itself. After one year of design and development, we created a sculptural vessel that combines artistry, function, sustainability, and creative expression."
-        imageSrc="/prfume-bannar-2.jpg"
+        imageSrc="/bottle-design-cle.jpg"
         imageAlt="CLE Perfume bottle design concept"
         tags={["Art Meets Essence", "One Year Development", "Sculptural Form"]}
         primaryAction={{ label: "Our Story", href: "/our-story" }}

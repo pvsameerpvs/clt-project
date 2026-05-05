@@ -15,10 +15,10 @@ export default function CleanEauDeParfumPage() {
       <PageHero
         eyebrow="Clean Eau De Parfum"
         title="High Concentrate, Cleaner Formula Direction"
-        description="All our perfumes contain 30% perfume concentrate, one of the highest levels in the industry. Every formula is 100% cruelty-free with no preservatives, GMO, CRM, phthalates, or paraffin."
-        imageSrc="/clean-eau-de-parfum.jpeg"
+        description="All our perfumes contain 35% perfume concentrate, one of the highest levels in the industry. Every formula is 100% cruelty-free with no preservatives, GMO, CRM, phthalates, or paraffin."
+        imageSrc="/clean-eau-de-parfum-cle.jpeg"
         imageAlt="Clean formula fragrance"
-        tags={["30% Concentrate", "Cruelty-Free", "No Phthalates"]}
+        tags={["35% Concentrate", "Cruelty-Free", "No Phthalates"]}
         primaryAction={{ label: "Ingredients", href: "/ingredients" }}
         secondaryAction={{ label: "Sustainability", href: "/sustainability" }}
       />

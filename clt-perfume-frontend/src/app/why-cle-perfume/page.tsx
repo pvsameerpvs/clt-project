@@ -16,7 +16,7 @@ export default function WhyClePerfumePage() {
         eyebrow="Why CLE Perfume"
         title="Your Scent, Your Style"
         description="There are 8 billion people on the planet, each with different personality, memories, style, skin chemistry, and olfactive preferences. Personalization, education, creativity, and sustainability are at the center of CLE Perfume."
-        imageSrc="/why-cle-perfume.png"
+        imageSrc="/why-cle-perfume-cle.PNG"
         imageAlt="Personal fragrance expression"
         tags={["Personalization", "Education", "Creativity", "Sustainability"]}
         primaryAction={{ label: "Our Story", href: "/our-story" }}

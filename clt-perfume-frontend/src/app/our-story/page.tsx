@@ -16,7 +16,7 @@ export default function OurStoryPage() {
         eyebrow="Our Story"
         title="The Debut Of CLE Perfume"
         description="CLE Perfume launches with a curated collection of five signature fragrances, offered in 50 ml and 100 ml. The project was built to bring luxury fragrance quality into a cleaner, more transparent customer experience."
-        imageSrc="/our-story.jpeg"
+        imageSrc="/our-story-cle.jpeg"
         imageAlt="CLE Perfume story visual"
         tags={["Curated Launch", "Signature Fragrances", "Dubai"]}
         primaryAction={{ label: "Why CLE Perfume", href: "/why-cle-perfume" }}

@@ -16,7 +16,7 @@ export default function SustainabilityPage() {
         eyebrow="Sustainability"
         title="Responsible By Design"
         description="We ensure sustainability and transparency by using clean, vegan, and responsibly sourced ingredients to reduce environmental impact without compromising quality."
-        imageSrc="/curated-perfume-men-2.jpeg"
+        imageSrc="/sustainability-cle.jpg"
         imageAlt="Sustainable fragrance concept"
         tags={["Clean", "Vegan", "Responsibly Sourced"]}
         primaryAction={{ label: "Ingredients", href: "/ingredients" }}

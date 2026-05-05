@@ -132,7 +132,7 @@ export default function IngredientsPage() {
           </div>
 
           <div className="relative min-h-[320px] overflow-hidden rounded-[28px] border border-black/10 shadow-[0_30px_70px_-45px_rgba(0,0,0,0.45)] md:min-h-[440px]">
-            <Image src="/curated-perfume-men.png" alt="Ingredients showcase" fill priority className="object-cover" />
+            <Image src="/ingredients-cle.jpeg" alt="Ingredients showcase" fill priority className="object-cover" />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/20 via-black/0 to-white/35" />
             <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/35" />
 

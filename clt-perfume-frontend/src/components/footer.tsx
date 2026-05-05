@@ -97,7 +97,7 @@ export function Footer() {
             <ul className="space-y-4">
               <li><Link href="/collections/mens" className="hover:text-white transition-colors">Men&apos;s Collection</Link></li>
               <li><Link href="/collections/womens" className="hover:text-white transition-colors">Women&apos;s Collection</Link></li>
-              <li><Link href="/collections/deals" className="hover:text-white transition-colors">Best Sets</Link></li>
+              {/* <li><Link href="/collections/deals" className="hover:text-white transition-colors">Best Sets</Link></li> */}
               <li><Link href="/offers" className="hover:text-white transition-colors">Exclusive Offers</Link></li>
             </ul>
           </div>
