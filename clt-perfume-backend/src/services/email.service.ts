@@ -186,7 +186,7 @@ export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CLE Perfume <contact@cleparfum.coms>',
+      from: 'CLE Perfume <contact@cleparfum.com>',
       to: details.email,
       subject: 'Welcome to CLE Perfume',
       html,

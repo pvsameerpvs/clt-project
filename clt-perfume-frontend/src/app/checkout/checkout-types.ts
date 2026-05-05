@@ -46,4 +46,4 @@ export type CheckoutAddressFormState = {
   landmark: string
 }
 
-export type PaymentMethod = "cod" | "bank"
+export type PaymentMethod = "cod" | "card" | "bank"

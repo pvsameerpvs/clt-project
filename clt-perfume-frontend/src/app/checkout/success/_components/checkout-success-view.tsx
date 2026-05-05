@@ -14,7 +14,7 @@ import {
 import { CheckoutSuccessHero } from "./checkout-success-hero"
 
 function normalizePaymentMethod(value: string | null): PaymentMethod | null {
-  if (value === "cod" || value === "bank") return value
+  if (value === "cod" || value === "bank" || value === "card") return value
   return null
 }
 

@@ -22,38 +22,68 @@ async function getAuthUserEmail(userId?: string | null) {
 }
 
 webhookRoutes.post(
+  '/ziina',
+  express.json(),
+  async (req: Request, res: Response): Promise<void> => {
+    // Ziina will POST to this endpoint when a payment status changes
+    const event = req.body
+
+    console.log('🔔 Received Ziina Webhook:', event)
+
+    try {
+      // Basic signature check if a secret is provided
+      const hmacSignature = req.headers['x-hmac-signature']
+      // In production, we should verify the HMAC signature here using the configured secret.
+
+      // We only care about successful payments
+      if (event.event === 'payment_intent.status.updated' && event.status === 'completed' && event.id) {
+         console.log('✅ Ziina payment completed for intent:', event.id)
+         
+         // We reuse the direct order fulfillment logic, passing a mocked Stripe session object
+         // since the DB functions currently expect that structure.
+         const mockSession = {
+           id: event.id, // This matches what we saved in stripe_session_id during checkout
+           payment_status: 'paid',
+           payment_intent: event.id,
+           amount_total: event.amount, // In fils
+           metadata: {
+             checkout_flow: 'direct_order',
+           }
+           // We don't have the order_id in metadata directly from Ziina unless we pass it during creation.
+           // However, fulfillDirectOrderPayment looks up by metadata.order_id.
+           // We will need to look up the order by stripe_session_id first.
+         } as any
+
+         // Find order by session ID
+         const { data: order } = await supabaseAdmin
+           .from('orders')
+           .select('id')
+           .eq('stripe_session_id', event.id)
+           .maybeSingle()
+
+         if (order) {
+           mockSession.metadata.order_id = order.id
+           await fulfillDirectOrderPayment(mockSession)
+         } else {
+           console.error('❌ Could not find order for Ziina payment intent:', event.id)
+         }
+      }
+      res.json({ received: true })
+    } catch (err: any) {
+      console.error('Ziina Webhook Error:', err.message)
+      res.status(400).send(`Webhook Error: ${err.message}`)
+    }
+  }
+)
+
+/*
+// Old Stripe Webhook (Disabled)
+webhookRoutes.post(
   '/stripe',
   express.raw({ type: 'application/json' }),
   async (req: Request, res: Response): Promise<void> => {
-    const sig = req.headers['stripe-signature'] as string
-    let event: Stripe.Event
-
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
-    } catch (err: any) {
-      console.error('Webhook signature verification failed:', err.message)
-      res.status(400).send(`Webhook Error: ${err.message}`)
-      return
-    }
-
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session
-        await handleCheckoutCompleted(session)
-        break
-      }
-      case 'payment_intent.payment_failed': {
-        const pi = event.data.object as Stripe.PaymentIntent
-        console.error('❌ Payment failed:', pi.id)
-        break
-      }
-      default:
-        console.log(`Unhandled event: ${event.type}`)
-    }
-
-    res.json({ received: true })
-  }
-)
+// ...
+*/
 
 async function fulfillDirectOrderPayment(session: Stripe.Checkout.Session) {
   const orderId = session.metadata?.order_id

@@ -33,14 +33,20 @@ export function CheckoutPaymentMethods({ paymentMethod, setPaymentMethod }: Chec
         </button>
         <button
           type="button"
-          disabled={true}
-          className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 text-left transition-all opacity-60 grayscale cursor-not-allowed"
+          onClick={() => setPaymentMethod("card")}
+          className={`relative rounded-xl border p-4 text-left transition ${paymentMethod === "card" ? "border-black bg-neutral-50 ring-1 ring-black" : "border-neutral-200 bg-white hover:border-neutral-300"}`}
         >
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-neutral-400" />
-            <p className="text-sm font-semibold text-neutral-500">Bank / Card Payment</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CreditCard className={`h-4 w-4 ${paymentMethod === "card" ? "text-black" : "text-neutral-500"}`} />
+              <p className={`text-sm font-semibold ${paymentMethod === "card" ? "text-black" : "text-neutral-800"}`}>Bank / Card Payment</p>
+            </div>
+            {/* Standard Selection Circle */}
+            <div className={`flex h-4 w-4 items-center justify-center rounded-full border ${paymentMethod === "card" ? "border-black bg-black" : "border-neutral-300"}`}>
+               {paymentMethod === "card" && <div className="h-1.5 w-1.5 rounded-full bg-white"></div>}
+            </div>
           </div>
-          <p className="mt-2 text-[11px] font-medium text-amber-600 uppercase tracking-wider">Currently Unavailable</p>
+          <p className="mt-2 text-xs text-neutral-500">Secure online payment with Ziina.</p>
         </button>
       </div>
     </article>
