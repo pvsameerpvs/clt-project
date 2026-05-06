@@ -70,7 +70,7 @@ export default function CheckoutPage() {
     createAddressFormState("Client Account", contactWhatsapp || "+971 ")
   )
  
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod")
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   const currentUserId = user?.id || null
  

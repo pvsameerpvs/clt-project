@@ -16,23 +16,6 @@ export function CheckoutPaymentMethods({ paymentMethod, setPaymentMethod }: Chec
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <button
           type="button"
-          onClick={() => setPaymentMethod("cod")}
-          className={`relative rounded-xl border p-4 text-left transition ${paymentMethod === "cod" ? "border-black bg-neutral-50 ring-1 ring-black" : "border-neutral-200 bg-white hover:border-neutral-300"}`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Truck className={`h-4 w-4 ${paymentMethod === "cod" ? "text-black" : "text-neutral-500"}`} />
-              <p className={`text-sm font-semibold ${paymentMethod === "cod" ? "text-black" : "text-neutral-800"}`}>Cash On Delivery</p>
-            </div>
-            {/* Standard Selection Circle */}
-            <div className={`flex h-4 w-4 items-center justify-center rounded-full border ${paymentMethod === "cod" ? "border-black bg-black" : "border-neutral-300"}`}>
-               {paymentMethod === "cod" && <div className="h-1.5 w-1.5 rounded-full bg-white"></div>}
-            </div>
-          </div>
-          <p className="mt-2 text-xs text-neutral-500">Fast and secure payment at your doorstep.</p>
-        </button>
-        <button
-          type="button"
           onClick={() => setPaymentMethod("card")}
           className={`relative rounded-xl border p-4 text-left transition ${paymentMethod === "card" ? "border-black bg-neutral-50 ring-1 ring-black" : "border-neutral-200 bg-white hover:border-neutral-300"}`}
         >
@@ -47,6 +30,24 @@ export function CheckoutPaymentMethods({ paymentMethod, setPaymentMethod }: Chec
             </div>
           </div>
           <p className="mt-2 text-xs text-neutral-500">Secure online payment with Ziina.</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setPaymentMethod("cod")}
+          className={`relative rounded-xl border p-4 text-left transition ${paymentMethod === "cod" ? "border-black bg-neutral-50 ring-1 ring-black" : "border-neutral-200 bg-white hover:border-neutral-300"}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Truck className={`h-4 w-4 ${paymentMethod === "cod" ? "text-black" : "text-neutral-500"}`} />
+              <p className={`text-sm font-semibold ${paymentMethod === "cod" ? "text-black" : "text-neutral-800"}`}>Cash On Delivery</p>
+            </div>
+            {/* Standard Selection Circle */}
+            <div className={`flex h-4 w-4 items-center justify-center rounded-full border ${paymentMethod === "cod" ? "border-black bg-black" : "border-neutral-300"}`}>
+               {paymentMethod === "cod" && <div className="h-1.5 w-1.5 rounded-full bg-white"></div>}
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-neutral-500">Fast and secure payment at your doorstep.</p>
         </button>
       </div>
     </article>
