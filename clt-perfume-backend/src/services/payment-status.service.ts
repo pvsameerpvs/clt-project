@@ -75,6 +75,7 @@ export async function syncPaymentIntentToOrder(
       providerPaymentId: paymentIntent.id,
       providerSessionId: paymentIntent.id,
       amountTotalFils: paymentIntent.amount,
+      currencyCode: paymentIntent.currency_code,
     })
   }
 

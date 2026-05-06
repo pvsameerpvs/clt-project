@@ -83,8 +83,13 @@ export function getOrderPaymentDisplay(order: {
   }
 }
 
-export function canCancelOrder(status?: string | null) {
+export function canCancelOrder(status?: string | null, paymentMethod?: string | null) {
   const normalized = normalizeOrderStatus(status)
+
+  if (!isCashOnDeliveryPayment(paymentMethod)) {
+    return normalized === "pending"
+  }
+
   return normalized === "pending" || normalized === "confirmed" || normalized === "processing"
 }
 

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   AdminOrder,
   AdminOrderStatus,
+  getAllowedAdminOrderStatuses,
   getAdminOrders,
   ORDER_STATUSES,
   updateAdminOrderStatus,
@@ -260,6 +261,7 @@ export default function OrdersPage() {
               <tbody>
                 {orders.map((order) => {
                   const paymentBadge = getAdminOrderPaymentBadge(order)
+                  const allowedStatuses = getAllowedAdminOrderStatuses(order)
                   return (
                     <tr key={order.id}>
                       <td>
@@ -289,7 +291,7 @@ export default function OrdersPage() {
                             onChange={(event) => handleStatusChange(order.id, event.target.value as AdminOrderStatus)}
                             disabled={updatingId === order.id}
                           >
-                            {ORDER_STATUSES.map((status) => (
+                            {allowedStatuses.map((status) => (
                               <option key={status} value={status}>
                                 {status}
                               </option>

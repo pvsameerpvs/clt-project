@@ -21,6 +21,9 @@ function getRawBody(req: Request) {
 }
 
 function getRequestIp(req: Request) {
+  if (req.ip) return req.ip
+  if (req.socket.remoteAddress) return req.socket.remoteAddress
+
   const forwardedFor = req.headers['x-forwarded-for']
   if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
     return forwardedFor.split(',')[0].trim()
@@ -30,7 +33,7 @@ function getRequestIp(req: Request) {
     return forwardedFor[0].split(',')[0].trim()
   }
 
-  return req.ip || req.socket.remoteAddress || ''
+  return ''
 }
 
 webhookRoutes.post(
@@ -83,6 +86,7 @@ webhookRoutes.post(
           providerPaymentId: paymentIntent.id,
           providerSessionId: paymentIntent.id,
           amountTotalFils: paymentIntent.amount,
+          currencyCode: paymentIntent.currency_code,
         })
 
         if (!fulfilled) {

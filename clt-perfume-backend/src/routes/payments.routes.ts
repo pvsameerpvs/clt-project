@@ -25,10 +25,20 @@ import {
 } from '../services/payment-status.service'
 
 export const paymentRoutes = Router()
+const DEFAULT_ZIINA_CHECKOUT_EXPIRY_MINUTES = 30
 
 type PendingPaymentOrder = {
   id: string
   order_number: string
+}
+
+function getZiinaCheckoutExpiry() {
+  const configuredMinutes = Number(process.env.ZIINA_CHECKOUT_EXPIRY_MINUTES || DEFAULT_ZIINA_CHECKOUT_EXPIRY_MINUTES)
+  const minutes = Number.isFinite(configuredMinutes)
+    ? Math.min(120, Math.max(5, configuredMinutes))
+    : DEFAULT_ZIINA_CHECKOUT_EXPIRY_MINUTES
+
+  return String(Date.now() + minutes * 60 * 1000)
 }
 
 function getZiinaCheckoutUrls(order: PendingPaymentOrder) {
@@ -62,19 +72,27 @@ async function createZiinaCheckoutForOrder(order: PendingPaymentOrder, total: nu
     successUrl,
     cancelUrl,
     failureUrl,
+    expiry: getZiinaCheckoutExpiry(),
     test: shouldCreateZiinaTestPayment(),
   })
 
-  const { error: paymentReferenceError } = await supabaseAdmin
+  const { data: updatedOrder, error: paymentReferenceError } = await supabaseAdmin
     .from('orders')
     .update({
       payment_intent_id: paymentIntent.id,
       stripe_session_id: paymentIntent.id,
     })
     .eq('id', order.id)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle()
 
   if (paymentReferenceError) {
     throw new Error(paymentReferenceError.message)
+  }
+
+  if (!updatedOrder) {
+    throw new Error('Order changed before the payment reference could be stored')
   }
 
   return {
@@ -271,25 +289,26 @@ paymentRoutes.get('/session/:sessionId', optionalAuthMiddleware, async (req: Req
       return
     }
 
+    if (!orderId) {
+      res.status(400).json({ error: 'Order id is required for payment verification' })
+      return
+    }
+
     const paymentIntent = await getZiinaPaymentIntent(sessionId)
-    let order = null
+    const order = await findPaymentOrderById(orderId)
+    if (!order) {
+      res.status(404).json({ error: 'Order not found for payment session' })
+      return
+    }
 
-    if (orderId) {
-      order = await findPaymentOrderById(orderId)
-      if (!order) {
-        res.status(404).json({ error: 'Order not found for payment session' })
-        return
-      }
+    if (!canAccessPaymentOrder(order, req.user?.id)) {
+      res.status(403).json({ error: 'You do not have access to this payment session' })
+      return
+    }
 
-      if (!canAccessPaymentOrder(order, req.user?.id)) {
-        res.status(403).json({ error: 'You do not have access to this payment session' })
-        return
-      }
-
-      if (!paymentReferenceMatchesOrder(order, sessionId)) {
-        res.status(404).json({ error: 'Payment session does not match this order' })
-        return
-      }
+    if (!paymentReferenceMatchesOrder(order, sessionId)) {
+      res.status(404).json({ error: 'Payment session does not match this order' })
+      return
     }
 
     res.json(await syncPaymentIntentToOrder(paymentIntent, order))

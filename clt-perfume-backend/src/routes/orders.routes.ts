@@ -10,7 +10,7 @@ import {
 } from '../services/checkout.service'
 import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
 import { generateOrderNumber } from '../utils/order-number'
-import { isUnpaidOnlinePaymentAttempt } from '../utils/order-visibility'
+import { isCashOnDeliveryPayment, isUnpaidOnlinePaymentAttempt } from '../utils/order-visibility'
 
 export const orderRoutes = Router()
 
@@ -219,7 +219,7 @@ orderRoutes.post('/:id/cancel', authMiddleware, async (req: Request, res: Respon
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, status')
+      .select('id, status, payment_method')
       .eq('id', orderId)
       .eq('user_id', req.user!.id)
       .single()
@@ -230,10 +230,17 @@ orderRoutes.post('/:id/cancel', authMiddleware, async (req: Request, res: Respon
     }
 
     const currentStatus = normalizeOrderStatusForResponse(order.status)
-    const cancelAllowed = ['pending', 'confirmed', 'processing']
+    const isCashOrder = isCashOnDeliveryPayment(order.payment_method)
+    const cancelAllowed = isCashOrder
+      ? ['pending', 'confirmed', 'processing'].includes(currentStatus)
+      : currentStatus === 'pending'
 
-    if (!cancelAllowed.includes(currentStatus)) {
-      res.status(400).json({ error: `Order cannot be cancelled at ${currentStatus} stage` })
+    if (!cancelAllowed) {
+      res.status(400).json({
+        error: isCashOrder
+          ? `Order cannot be cancelled at ${currentStatus} stage`
+          : 'Paid online orders must be reviewed by support before cancellation or refund',
+      })
       return
     }
 
@@ -242,6 +249,7 @@ orderRoutes.post('/:id/cancel', authMiddleware, async (req: Request, res: Respon
       .update({ status: 'cancelled' })
       .eq('id', orderId)
       .eq('user_id', req.user!.id)
+      .eq('status', order.status)
       .select('id, status')
       .single()
 

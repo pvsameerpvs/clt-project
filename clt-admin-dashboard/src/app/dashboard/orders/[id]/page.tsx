@@ -8,8 +8,8 @@ import { toast } from "sonner"
 import {
   AdminOrder,
   AdminOrderStatus,
+  getAllowedAdminOrderStatuses,
   getAdminOrderDetails,
-  ORDER_STATUSES,
   updateAdminOrderStatus,
 } from "@/lib/admin-api"
 import { getAdminOrderCustomer, getAdminOrderShippingAddress } from "@/lib/admin-order-contact"
@@ -149,6 +149,7 @@ export default function OrderDetailsPage() {
   }
 
   const items = Array.isArray(order.items) ? order.items : []
+  const allowedStatuses = getAllowedAdminOrderStatuses(order)
 
   return (
     <div className="order-detail-page">
@@ -169,7 +170,7 @@ export default function OrderDetailsPage() {
             onChange={(event) => handleStatusChange(event.target.value as AdminOrderStatus)}
             disabled={updatingStatus}
           >
-            {ORDER_STATUSES.map((status) => (
+            {allowedStatuses.map((status) => (
               <option key={status} value={status}>
                 {status}
               </option>

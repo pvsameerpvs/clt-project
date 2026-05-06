@@ -335,6 +335,35 @@ export const ORDER_STATUSES = [
 
 export type AdminOrderStatus = (typeof ORDER_STATUSES)[number]
 
+function isCashOnDeliveryPayment(paymentMethod?: string | null) {
+  const method = String(paymentMethod || "").toLowerCase().trim()
+  return method === "" || method.includes("cash") || method.includes("cod")
+}
+
+function isFulfilledOnlinePaymentStatus(status?: string | null) {
+  const normalized = String(status || "").toLowerCase().trim()
+  return normalized === "paid" || normalized === "confirmed" || normalized === "processing" || normalized === "shipped" || normalized === "delivered"
+}
+
+export function getAllowedAdminOrderStatuses(order: Pick<AdminOrder, "status" | "payment_method">): AdminOrderStatus[] {
+  const currentStatus = ORDER_STATUSES.find((status) => status === String(order.status || "").toLowerCase().trim())
+  let allowedStatuses: AdminOrderStatus[]
+
+  if (isCashOnDeliveryPayment(order.payment_method)) {
+    allowedStatuses = [...ORDER_STATUSES]
+  } else if (!isFulfilledOnlinePaymentStatus(order.status)) {
+    allowedStatuses = ORDER_STATUSES.filter((status) => status === "pending" || status === "cancelled")
+  } else {
+    allowedStatuses = ORDER_STATUSES.filter((status) => status !== "pending")
+  }
+
+  if (currentStatus && !allowedStatuses.includes(currentStatus)) {
+    return [currentStatus, ...allowedStatuses]
+  }
+
+  return allowedStatuses
+}
+
 export interface AdminOrderFilters {
   scope?: "today" | "all"
   status?: string

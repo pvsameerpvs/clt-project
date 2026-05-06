@@ -234,7 +234,7 @@ function OrderDetailCard({
   const returnRequestStatus = getReturnRequestStatus(order.id)
   const normalizedStatus = normalizeOrderStatus(order.status)
   const paymentDisplay = getOrderPaymentDisplay(order)
-  const canCancel = canCancelOrder(order.status)
+  const canCancel = canCancelOrder(order.status, order.payment_method)
   const canReturn = canRequestReturn(order.status, order.delivered_at) && !returnRequestStatus
 
   return (

@@ -4,7 +4,7 @@ import { ReturnService } from '../services/return.service'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
 import { sendOrderStatusEmail } from '../services/email.service'
 import { sendOrderStatusWhatsApp } from '../services/whatsapp.service'
-import { isVisibleAdminOrder } from '../utils/order-visibility'
+import { isCashOnDeliveryPayment, isVisibleAdminOrder } from '../utils/order-visibility'
 import { calculateOrderStats } from '../utils/order-stats'
 
 export const adminRoutes = Router()
@@ -71,6 +71,11 @@ function isPaidStatus(status: string) {
 function isUnpaidStatus(status: string) {
   const s = status.toLowerCase()
   return s === 'pending' || s === 'confirmed' || s === 'processing' || s === 'shipped'
+}
+
+function isFulfilledOnlinePaymentStatus(status: string) {
+  const s = status.toLowerCase()
+  return s === 'paid' || s === 'processing' || s === 'shipped' || s === 'delivered'
 }
 
 function isValidDateInput(value: string) {
@@ -879,22 +884,36 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
       return
     }
 
+    const statusToStore = normalizeOrderStatusForStorage(requestedStatus)
+    const oldStatus = String(existingOrder.status || '').toLowerCase()
+    const isCashOrder = isCashOnDeliveryPayment(existingOrder.payment_method)
+    const isOnlineOrder = !isCashOrder
+    const isMovingOnlineOrderForward = ['paid', 'processing', 'shipped', 'delivered'].includes(statusToStore)
+
+    if (isOnlineOrder && isMovingOnlineOrderForward && !isFulfilledOnlinePaymentStatus(oldStatus)) {
+      res.status(400).json({ error: 'Online payment must be confirmed by Ziina before this order can move forward.' })
+      return
+    }
+
+    if (isOnlineOrder && statusToStore === 'refunded' && !isFulfilledOnlinePaymentStatus(oldStatus)) {
+      res.status(400).json({ error: 'Only confirmed online payments can be refunded.' })
+      return
+    }
+
     if (
-      requestedStatus === 'delivered' &&
-      !['paid', 'confirmed', 'processing', 'shipped', 'delivered'].includes(String(existingOrder.status || '').toLowerCase())
+      statusToStore === 'delivered' &&
+      !['paid', 'confirmed', 'processing', 'shipped', 'delivered'].includes(oldStatus)
     ) {
       res.status(400).json({ error: 'Delivered status can only be set after the order reaches the paid/confirmed stage.' })
       return
     }
 
-    const statusToStore = normalizeOrderStatusForStorage(requestedStatus)
-    const oldStatus = String(existingOrder.status || '').toLowerCase()
-    
     // Automatic Restocking Logic
     const isNowCancelled = (statusToStore === 'cancelled' || statusToStore === 'refunded')
     const wasAlreadyCancelled = (oldStatus === 'cancelled' || oldStatus === 'refunded')
+    const stockWasPreviouslyDeducted = isCashOrder || isFulfilledOnlinePaymentStatus(oldStatus)
 
-    if (isNowCancelled && !wasAlreadyCancelled) {
+    if (isNowCancelled && !wasAlreadyCancelled && stockWasPreviouslyDeducted) {
       // Fetch items to restore stock
       const { data: items } = await supabaseAdmin
         .from('order_items')
@@ -923,10 +942,15 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
       .from('orders')
       .update(updateData)
       .eq('id', req.params.id)
+      .eq('status', existingOrder.status)
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) throw error
+    if (!data) {
+      res.status(409).json({ error: 'Order status changed before this update could be saved. Refresh and try again.' })
+      return
+    }
 
     const contactEmail =
       (data.shipping_address as any)?.contact_email ||

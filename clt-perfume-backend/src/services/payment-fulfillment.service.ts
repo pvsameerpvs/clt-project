@@ -8,6 +8,7 @@ type PaidOrderPaymentInput = {
   providerPaymentId: string
   providerSessionId?: string | null
   amountTotalFils: number
+  currencyCode: string
   customerEmail?: string | null
 }
 
@@ -18,6 +19,18 @@ type UnsuccessfulOrderPaymentInput = {
 
 const FULFILLED_ORDER_STATUSES = new Set(['paid', 'processing', 'shipped', 'delivered'])
 const CLOSED_ORDER_STATUSES = new Set(['cancelled', 'refunded'])
+
+function isCashPaymentMethod(paymentMethod?: string | null) {
+  const method = String(paymentMethod || '').toLowerCase().trim()
+  return method.includes('cash') || method.includes('cod')
+}
+
+function orderPaymentReferenceMatches(
+  order: { stripe_session_id?: string | null; payment_intent_id?: string | null },
+  providerPaymentId: string
+) {
+  return order.stripe_session_id === providerPaymentId || order.payment_intent_id === providerPaymentId
+}
 
 async function getAuthUserEmail(userId?: string | null) {
   if (!userId) return undefined
@@ -32,7 +45,7 @@ async function getAuthUserEmail(userId?: string | null) {
 }
 
 async function findOrderForPayment(input: PaidOrderPaymentInput) {
-  const selectFields = 'id, user_id, status, payment_method, shipping_address, order_number, subtotal, total, shipping_fee, promo_code_id'
+  const selectFields = 'id, user_id, status, payment_method, shipping_address, order_number, subtotal, total, shipping_fee, promo_code_id, payment_intent_id, stripe_session_id'
 
   if (input.orderId) {
     const { data, error } = await supabaseAdmin
@@ -43,6 +56,14 @@ async function findOrderForPayment(input: PaidOrderPaymentInput) {
 
     if (error) {
       console.error('Paid order lookup failed:', error.message)
+      return null
+    }
+
+    if (data && !orderPaymentReferenceMatches(data, input.providerPaymentId)) {
+      console.error('Paid payment reference does not match requested order:', JSON.stringify({
+        orderId: input.orderId,
+        paymentId: input.providerPaymentId,
+      }))
       return null
     }
 
@@ -80,6 +101,24 @@ export async function fulfillPaidOrderPayment(input: PaidOrderPaymentInput) {
   const order = await findOrderForPayment(input)
   if (!order) {
     console.error('Paid payment has no matching order:', input.providerPaymentId)
+    return false
+  }
+
+  if (isCashPaymentMethod(order.payment_method)) {
+    console.error('Ziina payment attempted to fulfill a cash-on-delivery order:', JSON.stringify({ orderId: order.id }))
+    return false
+  }
+
+  if (String(input.currencyCode || '').toUpperCase() !== 'AED') {
+    console.error(
+      'Paid payment currency mismatch:',
+      JSON.stringify({
+        orderId: order.id,
+        paymentId: input.providerPaymentId,
+        expectedCurrency: 'AED',
+        paidCurrency: input.currencyCode,
+      })
+    )
     return false
   }
 

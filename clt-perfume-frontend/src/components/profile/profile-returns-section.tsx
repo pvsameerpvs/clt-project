@@ -39,7 +39,7 @@ export function ProfileReturnsSection({
   onRequestReturn,
   getReturnRequestStatus,
 }: ProfileReturnsSectionProps) {
-  const cancellableOrders = orders.filter((order) => canCancelOrder(order.status))
+  const cancellableOrders = orders.filter((order) => canCancelOrder(order.status, order.payment_method))
   const returnEligibleOrders = orders.filter((order) => canRequestReturn(order.status, order.delivered_at))
 
   return (

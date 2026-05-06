@@ -6,8 +6,8 @@ const DEFAULT_ZIINA_WEBHOOK_IPS = [
   '3.29.184.186',
   '3.29.190.95',
   '20.233.47.127',
-  '13.202.161.181',
 ]
+const TRUE_ENV_VALUES = new Set(['true', '1', 'yes', 'on'])
 
 export type ZiinaPaymentIntentStatus =
   | 'requires_payment_instrument'
@@ -44,6 +44,7 @@ type CreateZiinaPaymentIntentInput = {
   successUrl: string
   cancelUrl: string
   failureUrl?: string
+  expiry?: string
   test?: boolean
 }
 
@@ -80,8 +81,12 @@ function normalizeSignatureHeader(signatureHeader: unknown) {
     .replace(/^sha256=/i, '')
 }
 
+function isSha256HexSignature(value: string) {
+  return /^[a-f0-9]{64}$/i.test(value)
+}
+
 function toTimingSafeBuffer(value: string) {
-  return Buffer.from(value, 'hex')
+  return Buffer.from(value.toLowerCase(), 'hex')
 }
 
 function normalizeIp(value?: string | null) {
@@ -100,7 +105,13 @@ function getConfiguredWebhookIps() {
 
 export function shouldCreateZiinaTestPayment() {
   const value = process.env.ZIINA_TEST_MODE?.trim().toLowerCase()
-  return value === 'true' || value === '1' || value === 'yes' || value === 'on'
+  const enabled = TRUE_ENV_VALUES.has(value || '')
+
+  if (enabled && process.env.NODE_ENV === 'production') {
+    throw new Error('ZIINA_TEST_MODE must be disabled in production')
+  }
+
+  return enabled
 }
 
 export async function createZiinaPaymentIntent(input: CreateZiinaPaymentIntentInput) {
@@ -117,6 +128,8 @@ export async function createZiinaPaymentIntent(input: CreateZiinaPaymentIntentIn
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       failure_url: input.failureUrl,
+      expiry: input.expiry,
+      allow_tips: false,
       test: input.test,
     },
     {
@@ -129,6 +142,14 @@ export async function createZiinaPaymentIntent(input: CreateZiinaPaymentIntentIn
 
   if (!response.data?.id) {
     throw new Error('Ziina did not return a payment intent id')
+  }
+
+  if (Number(response.data.amount) !== input.amount) {
+    throw new Error('Ziina returned a payment amount that does not match the order total')
+  }
+
+  if (String(response.data.currency_code || '').toUpperCase() !== input.currencyCode.toUpperCase()) {
+    throw new Error('Ziina returned a payment currency that does not match the order currency')
   }
 
   if (!response.data.redirect_url) {
@@ -193,6 +214,10 @@ export function verifyZiinaWebhookSignature(rawBody: Buffer, signatureHeader: un
     return { ok: false, reason: 'Missing X-Hmac-Signature header' }
   }
 
+  if (!isSha256HexSignature(receivedSignature)) {
+    return { ok: false, reason: 'Invalid webhook signature' }
+  }
+
   const expectedSignature = crypto
     .createHmac('sha256', secret)
     .update(rawBody)
@@ -212,8 +237,16 @@ export function verifyZiinaWebhookSignature(rawBody: Buffer, signatureHeader: un
   return { ok: true }
 }
 
+export function shouldEnforceZiinaWebhookIpAllowlist() {
+  if (process.env.NODE_ENV === 'production') {
+    return true
+  }
+
+  return TRUE_ENV_VALUES.has(process.env.ZIINA_WEBHOOK_ENFORCE_IP_ALLOWLIST?.trim().toLowerCase() || '')
+}
+
 export function isZiinaWebhookSourceAllowed(ipAddress?: string | null) {
-  if (process.env.ZIINA_WEBHOOK_ENFORCE_IP_ALLOWLIST !== 'true') {
+  if (!shouldEnforceZiinaWebhookIpAllowlist()) {
     return true
   }
 
