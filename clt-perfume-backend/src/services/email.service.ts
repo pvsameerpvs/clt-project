@@ -21,6 +21,9 @@ export type OrderDetails = {
     product_image?: string | null
   }>
   contact_email?: string
+  contact_name?: string
+  contact_whatsapp?: string
+  shipping_address?: any
 }
 
 type WelcomeEmailDetails = {
@@ -134,7 +137,6 @@ export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<E
     const { data, error } = await resend.emails.send({
       from: 'CLE Perfume <contact@cleparfum.com>',
       to: recipientEmail,
-      bcc: 'infocleparfum@gmail.com', // ⬅️ Sent copy to client
       subject: `Order Confirmation #${order.order_number}`,
       html: html
     })
@@ -260,7 +262,6 @@ export async function sendOrderStatusEmail(
     const { data, error } = await resend.emails.send({
       from: 'CLE Perfume <contact@cleparfum.com>',
       to: recipientEmail,
-      bcc: 'infocleparfum@gmail.com', // Sent copy to admin
       subject: `Order Update #${orderNumber} - ${formattedStatus}`,
       html: html,
     })
@@ -419,7 +420,6 @@ export async function sendReturnStatusEmail(
     const { data, error } = await resend.emails.send({
       from: 'CLE Perfume <contact@cleparfum.com>',
       to: recipientEmail,
-      bcc: 'infocleparfum@gmail.com',
       subject: subject,
       html: html,
     })
@@ -429,5 +429,232 @@ export async function sendReturnStatusEmail(
   } catch (err: any) {
     console.error('[EmailService] Return Status Email Error:', err.message)
     return { ok: false, error: err.message }
+  }
+}
+
+export async function sendAdminNewOrderNotification(order: OrderDetails): Promise<void> {
+  const adminEmail = 'infocleparfum@gmail.com'
+  
+  const itemsHtml = order.items.map(item => `
+    <tr>
+      <td style="padding: 12px 8px; border-bottom: 1px solid #edf2f7; vertical-align: top;">
+        <div style="font-weight: 600; color: #1a202c; font-size: 14px;">${escapeHtml(item.product_name)}</div>
+      </td>
+      <td style="padding: 12px 8px; border-bottom: 1px solid #edf2f7; text-align: center; color: #4a5568; font-size: 14px;">
+        ${escapeHtml(item.quantity)}
+      </td>
+      <td style="padding: 12px 8px; border-bottom: 1px solid #edf2f7; text-align: right; font-weight: 600; color: #1a202c; font-size: 14px;">
+        ${formatPrice(item.price * item.quantity)}
+      </td>
+    </tr>
+  `).join('')
+
+  const customerName = order.contact_name || 'Guest Customer'
+  const customerEmail = order.contact_email || 'No email'
+  const customerPhone = order.contact_whatsapp || 'No phone'
+  
+  const address = order.shipping_address || {}
+  const addressHtml = address.line1 ? `
+    <div style="margin-top: 10px; padding: 12px; background-color: #f7fafc; border-radius: 4px; font-size: 13px; color: #4a5568; line-height: 1.5;">
+      <strong>Delivery Address:</strong><br/>
+      ${escapeHtml(address.line1)}${address.line2 ? `, ${escapeHtml(address.line2)}` : ''}<br/>
+      ${escapeHtml(address.city)}${address.state ? `, ${escapeHtml(address.state)}` : ''}<br/>
+      ${escapeHtml(address.country)}
+    </div>
+  ` : '<div style="margin-top: 10px; color: #a0aec0; font-style: italic; font-size: 13px;">No address provided</div>'
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6;">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f7f6; padding: 40px 20px;">
+        <tr>
+          <td align="center">
+            <table width="100%" max-width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+              <!-- Header -->
+              <tr>
+                <td style="background-color: #1a202c; padding: 30px; text-align: center;">
+                  <div style="color: #ffffff; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 8px;">Internal Notification</div>
+                  <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 400; letter-spacing: 1px;">New Order Received</h1>
+                </td>
+              </tr>
+              
+              <!-- Content -->
+              <tr>
+                <td style="padding: 40px 30px;">
+                  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td style="padding-bottom: 30px; border-bottom: 1px solid #e2e8f0;">
+                        <table width="100%">
+                          <tr>
+                            <td>
+                              <div style="font-size: 12px; color: #718096; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Order Number</div>
+                              <div style="font-size: 20px; color: #1a202c; font-weight: 700;">#${escapeHtml(order.order_number)}</div>
+                            </td>
+                            <td align="right">
+                              <div style="font-size: 12px; color: #718096; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Payment Method</div>
+                              <div style="font-size: 14px; color: #2d3748; font-weight: 600; background-color: #edf2f7; padding: 4px 12px; border-radius: 20px; display: inline-block;">
+                                ${order.payment_method.replace(/_/g, ' ').toUpperCase()}
+                              </div>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+
+                    <!-- Customer Section -->
+                    <tr>
+                      <td style="padding: 30px 0; border-bottom: 1px solid #e2e8f0;">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #1a202c;">Customer Details</h3>
+                        <table width="100%" style="font-size: 14px; color: #4a5568;">
+                          <tr>
+                            <td width="100" style="padding-bottom: 8px;"><strong>Name:</strong></td>
+                            <td style="padding-bottom: 8px; color: #1a202c;">${escapeHtml(customerName)}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding-bottom: 8px;"><strong>Email:</strong></td>
+                            <td style="padding-bottom: 8px; color: #3182ce;">${escapeHtml(customerEmail)}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding-bottom: 8px;"><strong>WhatsApp:</strong></td>
+                            <td style="padding-bottom: 8px; color: #1a202c;">${escapeHtml(customerPhone)}</td>
+                          </tr>
+                        </table>
+                        ${addressHtml}
+                      </td>
+                    </tr>
+
+                    <!-- Items Section -->
+                    <tr>
+                      <td style="padding-top: 30px;">
+                        <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #1a202c;">Order Summary</h3>
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                          <thead>
+                            <tr style="background-color: #f8fafc;">
+                              <th align="left" style="padding: 10px 8px; font-size: 11px; color: #718096; text-transform: uppercase; border-bottom: 2px solid #e2e8f0;">Item</th>
+                              <th align="center" style="padding: 10px 8px; font-size: 11px; color: #718096; text-transform: uppercase; border-bottom: 2px solid #e2e8f0;">Qty</th>
+                              <th align="right" style="padding: 10px 8px; font-size: 11px; color: #718096; text-transform: uppercase; border-bottom: 2px solid #e2e8f0;">Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${itemsHtml}
+                          </tbody>
+                          <tfoot>
+                            <tr>
+                              <td colspan="2" align="right" style="padding: 20px 8px 10px 8px; font-size: 14px; color: #4a5568;">Subtotal:</td>
+                              <td align="right" style="padding: 20px 8px 10px 8px; font-size: 14px; color: #1a202c;">${formatPrice(order.subtotal)}</td>
+                            </tr>
+                            ${order.promo_discount > 0 ? `
+                            <tr>
+                              <td colspan="2" align="right" style="padding: 5px 8px; font-size: 14px; color: #4a5568;">Discount:</td>
+                              <td align="right" style="padding: 5px 8px; font-size: 14px; color: #e53e3e;">-${formatPrice(order.promo_discount)}</td>
+                            </tr>` : ''}
+                            <tr>
+                              <td colspan="2" align="right" style="padding: 15px 8px; font-size: 18px; color: #1a202c; font-weight: 700; border-top: 1px solid #e2e8f0;">Total Amount:</td>
+                              <td align="right" style="padding: 15px 8px; font-size: 18px; color: #1a202c; font-weight: 700; border-top: 1px solid #e2e8f0;">${formatPrice(order.total)}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </td>
+                    </tr>
+
+                    <!-- Actions -->
+                    <tr>
+                      <td align="center" style="padding-top: 40px;">
+                        <a href="https://admin.cleparfum.com/dashboard/orders" style="display: inline-block; background-color: #1a202c; color: #ffffff; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; transition: background-color 0.2s;">
+                          Process Order in Dashboard
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              
+              <!-- Footer -->
+              <tr>
+                <td style="background-color: #f7fafc; padding: 20px 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+                  <p style="margin: 0; font-size: 12px; color: #a0aec0;">&copy; ${new Date().getFullYear()} CLE Perfume Management System</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  try {
+    const text = [
+      `New order received: #${order.order_number}`,
+      `Customer: ${customerName}`,
+      `Email: ${customerEmail}`,
+      `WhatsApp: ${customerPhone}`,
+      `Payment: ${order.payment_method.replace(/_/g, ' ')}`,
+      `Total: ${formatPrice(order.total)}`,
+    ].join('\n')
+
+    const { error } = await resend.emails.send({
+      from: 'CLE Perfume <contact@cleparfum.com>',
+      to: adminEmail,
+      subject: `New order #${order.order_number} - ${customerName}`,
+      html,
+      text,
+    })
+    if (error) {
+      console.error('[AdminEmail] Failed to send admin notification:', error)
+      return
+    }
+
+    console.log(`[AdminEmail] Notification sent for order #${order.order_number}`)
+  } catch (error) {
+    console.error('[AdminEmail] Failed to send admin notification:', error)
+  }
+}
+
+export async function sendAdminOrderCancellationNotification(order: { order_number: string; total: number; reason?: string }): Promise<void> {
+  const adminEmail = 'infocleparfum@gmail.com'
+  
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #fee2e2; border-radius: 8px; overflow: hidden;">
+      <div style="background-color: #dc2626; color: #fff; padding: 20px; text-align: center;">
+        <h1 style="margin: 0; font-size: 20px; letter-spacing: 2px;">ORDER CANCELLED</h1>
+      </div>
+      <div style="padding: 24px;">
+        <p style="font-size: 16px; color: #374151;">Order <strong>#${escapeHtml(order.order_number)}</strong> has been cancelled.</p>
+        
+        <div style="background-color: #fef2f2; padding: 16px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #fee2e2;">
+          <p style="margin: 0; font-size: 12px; color: #991b1b; text-transform: uppercase;">Amount Lost</p>
+          <p style="margin: 0; font-size: 18px; font-weight: bold; color: #dc2626;">${formatPrice(order.total)}</p>
+          
+          ${order.reason ? `
+          <p style="margin: 12px 0 0; font-size: 12px; color: #991b1b; text-transform: uppercase;">Reason</p>
+          <p style="margin: 0; font-size: 14px; color: #7f1d1d;">${escapeHtml(order.reason)}</p>
+          ` : ''}
+        </div>
+
+        <div style="text-align: center; margin-top: 32px;">
+          <a href="https://admin.cleparfum.com/dashboard/orders" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px;">VIEW ORDER HISTORY</a>
+        </div>
+      </div>
+    </div>
+  `
+
+  try {
+    const { error } = await resend.emails.send({
+      from: 'CLE Perfume <contact@cleparfum.com>',
+      to: adminEmail,
+      subject: `Order cancelled #${order.order_number}`,
+      html: html,
+      text: `Order cancelled: #${order.order_number}\nAmount lost: ${formatPrice(order.total)}${order.reason ? `\nReason: ${order.reason}` : ''}`,
+    })
+    if (error) {
+      console.error('[AdminEmail] Failed to send cancellation notification:', error)
+      return
+    }
+
+    console.log(`[AdminEmail] Cancellation notification sent for #${order.order_number}`)
+  } catch (error) {
+    console.error('[AdminEmail] Failed to send cancellation notification:', error)
   }
 }

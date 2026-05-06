@@ -1,7 +1,11 @@
 import { Router, Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
 import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
-import { sendOrderConfirmationEmail } from '../services/email.service'
+import { 
+  sendOrderConfirmationEmail, 
+  sendAdminNewOrderNotification,
+  sendAdminOrderCancellationNotification 
+} from '../services/email.service'
 import {
   CheckoutValidationError,
   claimPromoCodeForOrder,
@@ -148,6 +152,21 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       console.error('[Orders] Order confirmation email failed:', emailResult.error)
     }
 
+    // NEW: Send dedicated high-priority notification to admin
+    await sendAdminNewOrderNotification({
+      order_number: order.order_number,
+      subtotal: Number(order.subtotal || 0),
+      total: Number(order.total || 0),
+      promo_discount: pricing.promoDiscount,
+      shipping_fee: Number(order.shipping_fee || 0),
+      payment_method: order.payment_method,
+      items: orderItems,
+      contact_email: contactEmail,
+      contact_name: (payload.shipping_address as any)?.contact_name,
+      contact_whatsapp: contactWhatsapp,
+      shipping_address: payload.shipping_address
+    })
+
     console.log('[Orders] Triggering WhatsApp confirmation for:', contactWhatsapp)
     sendOrderWhatsAppConfirmation({
       order_number: order.order_number,
@@ -219,7 +238,7 @@ orderRoutes.post('/:id/cancel', authMiddleware, async (req: Request, res: Respon
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, status, payment_method')
+      .select('id, status, payment_method, order_number, total')
       .eq('id', orderId)
       .eq('user_id', req.user!.id)
       .single()
@@ -257,6 +276,13 @@ orderRoutes.post('/:id/cancel', authMiddleware, async (req: Request, res: Respon
       res.status(500).json({ error: updateError?.message || 'Failed to cancel order' })
       return
     }
+
+    // Notify Admin of cancellation
+    await sendAdminOrderCancellationNotification({
+      order_number: order.order_number,
+      total: Number(order.total || 0),
+      reason: 'Cancelled by customer'
+    })
 
     res.json({
       id: updated.id,

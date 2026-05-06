@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import { supabaseAdmin } from '../config/supabase'
 import { ReturnService } from '../services/return.service'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
-import { sendOrderStatusEmail } from '../services/email.service'
+import { sendOrderStatusEmail, sendAdminOrderCancellationNotification } from '../services/email.service'
 import { sendOrderStatusWhatsApp } from '../services/whatsapp.service'
 import { isCashOnDeliveryPayment, isVisibleAdminOrder } from '../utils/order-visibility'
 import { calculateOrderStats } from '../utils/order-stats'
@@ -950,6 +950,15 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
     if (!data) {
       res.status(409).json({ error: 'Order status changed before this update could be saved. Refresh and try again.' })
       return
+    }
+
+    // NEW: Notify admin of cancellation/refund if it just happened
+    if (isNowCancelled && !wasAlreadyCancelled) {
+      await sendAdminOrderCancellationNotification({
+        order_number: data.order_number,
+        total: Number(data.total || 0),
+        reason: `Manual status update to ${requestedStatus} via Admin Dashboard`
+      })
     }
 
     const contactEmail =

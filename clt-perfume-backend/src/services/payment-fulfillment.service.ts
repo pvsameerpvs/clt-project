@@ -1,6 +1,10 @@
 import { supabaseAdmin } from '../config/supabase'
 import { claimPromoCodeForOrder, getOrderAmountInFils, releasePromoCodeReservation } from './checkout.service'
-import { sendOrderConfirmationEmail } from './email.service'
+import { 
+  sendOrderConfirmationEmail, 
+  sendAdminNewOrderNotification,
+  sendAdminOrderCancellationNotification 
+} from './email.service'
 import { sendOrderWhatsAppConfirmation } from './whatsapp.service'
 
 type PaidOrderPaymentInput = {
@@ -244,6 +248,26 @@ export async function fulfillPaidOrderPayment(input: PaidOrderPaymentInput) {
     console.error('Paid order confirmation email failed:', emailResult.error)
   }
 
+  // NEW: Send dedicated high-priority notification to admin
+  await sendAdminNewOrderNotification({
+    order_number: order.order_number || '',
+    subtotal: Number(order.subtotal || 0),
+    total: Number(order.total || 0),
+    promo_discount: Number(order.subtotal || 0) + Number(order.shipping_fee || 0) - Number(order.total || 0),
+    shipping_fee: Number(order.shipping_fee || 0),
+    payment_method: order.payment_method || 'card',
+    items: (orderItems || []).map((item) => ({
+      product_name: item.product_name,
+      quantity: item.quantity,
+      price: item.price,
+      product_image: item.product_image,
+    })),
+    contact_email: contactEmail,
+    contact_name: (order.shipping_address as any)?.contact_name,
+    contact_whatsapp: contactWhatsapp,
+    shipping_address: order.shipping_address,
+  })
+
   sendOrderWhatsAppConfirmation({
     order_number: order.order_number || '',
     total: Number(order.total || 0),
@@ -262,7 +286,7 @@ export async function fulfillPaidOrderPayment(input: PaidOrderPaymentInput) {
 export async function markOrderPaymentUnsuccessful(input: UnsuccessfulOrderPaymentInput) {
   const sessionLookup = await supabaseAdmin
     .from('orders')
-    .select('id, status')
+    .select('id, status, order_number, total')
     .eq('stripe_session_id', input.providerPaymentId)
     .maybeSingle()
 
@@ -275,7 +299,7 @@ export async function markOrderPaymentUnsuccessful(input: UnsuccessfulOrderPayme
   if (!order) {
     const intentLookup = await supabaseAdmin
       .from('orders')
-      .select('id, status')
+      .select('id, status, order_number, total')
       .eq('payment_intent_id', input.providerPaymentId)
       .maybeSingle()
 
@@ -301,6 +325,13 @@ export async function markOrderPaymentUnsuccessful(input: UnsuccessfulOrderPayme
     console.error('Failed to mark unsuccessful payment order as cancelled:', updateError.message)
     return false
   }
+
+  // Notify Admin of payment failure cancellation
+  await sendAdminOrderCancellationNotification({
+    order_number: order.order_number,
+    total: Number(order.total || 0),
+    reason: `Payment failed/cancelled via Ziina (Status: ${input.status})`
+  })
 
   await releasePromoCodeReservation(order.id)
   console.log(`Order ${order.id} cancelled after Ziina payment status ${input.status}`)
