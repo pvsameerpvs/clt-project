@@ -215,6 +215,69 @@ export function ProductInfo({ product, promotions = [] }: { product: Product, pr
           </div>
         )}
 
+        {/* Mobile/Tab Actions - Moved before Olfactive Profile */}
+        <div className="xl:hidden mb-10">
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium uppercase tracking-wide">Quantity</span>
+              <div className="flex items-center border border-neutral-200 rounded-full">
+                <button 
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="h-12 w-12 flex items-center justify-center hover:bg-neutral-50 rounded-l-full transition-colors"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="w-10 text-center text-sm font-medium">{quantity}</span>
+                <button 
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="h-12 w-12 flex items-center justify-center hover:bg-neutral-50 rounded-r-full transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <Button 
+                onClick={() => {
+                  if (promotions.length > 0 && !selectedGiftId) {
+                    toast.error("Please select your complimentary gift", {
+                      description: "Choose a scent to accompany your purchase."
+                    })
+                    return
+                  }
+                  addCurrentProductToCart()
+                  toast.success(`${quantity}x ${product.name} added to bag`, {
+                    description: selectedGiftId ? "Your complimentary gift has been included." : "You can view your bag or continue shopping.",
+                    action: {
+                      label: "View Bag",
+                      onClick: () => window.location.href = '/cart'
+                    },
+                  })
+                }}
+                variant="outline" 
+                className="h-[72px] rounded-full border-neutral-300 hover:bg-neutral-50 uppercase tracking-widest text-xs font-bold transition-colors"
+              >
+                Add to Cart
+              </Button>
+              <Button
+                onClick={() => {
+                  if (promotions.length > 0 && !selectedGiftId) {
+                    toast.error("Please select your complimentary gift", {
+                      description: "Choose a scent to accompany your purchase."
+                    })
+                    return
+                  }
+                  handleBuyNow()
+                }}
+                className="h-[72px] rounded-full bg-black hover:bg-neutral-800 text-white uppercase tracking-widest text-xs font-bold"
+              >
+                Buy Now
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* Olfactive Profile Section */}
         {(product.olfactive_family || product.olfactive_signature || product.concentration || product.mood_use) && (
           <div className="mb-6 p-6 bg-white border border-neutral-200 rounded-2xl">
@@ -289,9 +352,8 @@ export function ProductInfo({ product, promotions = [] }: { product: Product, pr
         />
       </div>
 
-      {/* Actions */}
-      <div className="space-y-6 mt-8">
-        {/* Quantity */}
+      {/* Desktop Actions (Hidden on Mobile/Tab) */}
+      <div className="hidden xl:block space-y-6 mt-8">
         <div className="flex items-center gap-4">
           <span className="text-sm font-medium uppercase tracking-wide">Quantity</span>
           <div className="flex items-center border border-neutral-200 rounded-full">
@@ -311,7 +373,7 @@ export function ProductInfo({ product, promotions = [] }: { product: Product, pr
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex gap-4">
           <Button 
             onClick={() => {
               if (promotions.length > 0 && !selectedGiftId) {
