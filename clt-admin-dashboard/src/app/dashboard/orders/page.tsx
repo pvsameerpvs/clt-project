@@ -28,14 +28,33 @@ function formatUtcDate(dateString: string) {
   return `${year}-${month}-${day} ${hour}:${minute} UTC`
 }
 
-function isRevenueOrder(status: string) {
-  const s = status.toLowerCase()
-  return s === "paid" || s === "delivered"
+const ONLINE_REVENUE_STATUSES = new Set(["paid", "confirmed", "processing", "shipped", "delivered"])
+const COD_REVENUE_STATUSES = new Set(["pending", "confirmed", "processing", "shipped", "delivered"])
+const UNPAID_ONLINE_STATUSES = new Set(["pending"])
+const CLOSED_STATUSES = new Set(["cancelled", "canceled", "refunded"])
+
+function isCashOnDelivery(paymentMethod?: string | null) {
+  const method = String(paymentMethod || "").toLowerCase().trim()
+  return method === "" || method.includes("cash") || method.includes("cod")
 }
 
-function isUnpaidStatus(status: string) {
-  const s = status.toLowerCase()
-  return s === "pending" || s === "confirmed" || s === "processing" || s === "shipped"
+function isRevenueOrder(order: Pick<AdminOrder, "status" | "payment_method">) {
+  const status = String(order.status || "").toLowerCase().trim()
+  if (CLOSED_STATUSES.has(status)) return false
+  return isCashOnDelivery(order.payment_method)
+    ? COD_REVENUE_STATUSES.has(status)
+    : ONLINE_REVENUE_STATUSES.has(status)
+}
+
+function isUnpaidOnlineOrder(order: Pick<AdminOrder, "status" | "payment_method">) {
+  if (isCashOnDelivery(order.payment_method)) return false
+  const status = String(order.status || "").toLowerCase().trim()
+  return UNPAID_ONLINE_STATUSES.has(status)
+}
+
+function isOpenRevenueOrder(order: Pick<AdminOrder, "status" | "payment_method">) {
+  const status = String(order.status || "").toLowerCase().trim()
+  return isRevenueOrder(order) && status !== "delivered"
 }
 
 function statusTone(status: string) {
@@ -128,13 +147,14 @@ export default function OrdersPage() {
 
     for (const order of orders) {
       const total = Number(order.total || 0)
-      if (isRevenueOrder(order.status)) {
+      if (isRevenueOrder(order)) {
         revenue += total
         if (order.status === "delivered") fulfilledCount++
-      } else if (isUnpaidStatus(order.status)) {
+      } else if (isUnpaidOnlineOrder(order)) {
         pendingRevenue += total
-        pendingCount++
       }
+
+      if (isOpenRevenueOrder(order)) pendingCount++
     }
 
     return {
@@ -188,11 +208,11 @@ export default function OrdersPage() {
           <h3 className="text-emerald-600">AED {Math.round(stats.revenue).toLocaleString()}</h3>
         </article>
         <article className="stat-card">
-          <p>Pending Payment</p>
+          <p>Pending Online</p>
           <h3 className="text-amber-600">AED {Math.round(stats.pendingRevenue).toLocaleString()}</h3>
         </article>
         <article className="stat-card">
-          <p>Pending Orders</p>
+          <p>Open Orders</p>
           <h3>{stats.pendingCount}</h3>
         </article>
         <article className="stat-card">

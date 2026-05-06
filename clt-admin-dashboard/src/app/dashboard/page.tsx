@@ -59,11 +59,11 @@ export default function DashboardOverviewPage() {
     { label: "Total VAT Collected", value: `AED ${data.totalVAT.toLocaleString()}`, icon: ShoppingBag, color: "text-neutral-900", bg: "bg-neutral-100" },
     { label: "Card Payments", value: `AED ${data.cardRevenue.toLocaleString()}`, icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "COD Payments", value: `AED ${data.codRevenue.toLocaleString()}`, icon: RefreshCcw, color: "text-orange-600", bg: "bg-orange-50" },
-    { label: "Pending Payment", value: `AED ${data.pendingRevenue.toLocaleString()}`, icon: Loader2, color: "text-amber-600", bg: "bg-amber-50" },
+    { label: "Pending Online", value: `AED ${data.pendingRevenue.toLocaleString()}`, icon: Loader2, color: "text-amber-600", bg: "bg-amber-50" },
     { label: "Total Orders", value: (data.totalOrders || 0).toLocaleString(), icon: Package, color: "text-neutral-600", bg: "bg-neutral-50" },
-    { label: "Paid Orders", value: (data.totalPaidOrders || 0).toLocaleString(), icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50/50" },
+    { label: "Revenue Orders", value: (data.totalPaidOrders || 0).toLocaleString(), icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50/50" },
     { label: "Refunded Orders", value: (data.totalRefundedOrders || 0).toLocaleString(), icon: RefreshCcw, color: "text-amber-700", bg: "bg-amber-50" },
-    { label: "Unpaid Orders", value: (data.totalUnpaidOrders || 0).toLocaleString(), icon: Loader2, color: "text-red-400", bg: "bg-red-50" },
+    { label: "Unpaid Online", value: (data.totalUnpaidOrders || 0).toLocaleString(), icon: Loader2, color: "text-red-400", bg: "bg-red-50" },
     { label: "Total Products", value: (data.totalProducts || 0).toLocaleString(), icon: Package, color: "text-purple-600", bg: "bg-purple-50" },
   ]
 

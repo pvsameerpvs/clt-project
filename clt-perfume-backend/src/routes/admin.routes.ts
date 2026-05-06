@@ -5,7 +5,7 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
 import { sendOrderStatusEmail, sendAdminOrderCancellationNotification } from '../services/email.service'
 import { sendOrderStatusWhatsApp } from '../services/whatsapp.service'
 import { isCashOnDeliveryPayment, isVisibleAdminOrder } from '../utils/order-visibility'
-import { calculateOrderStats } from '../utils/order-stats'
+import { calculateOrderStats, isRevenueOrder as isDashboardRevenueOrder } from '../utils/order-stats'
 
 export const adminRoutes = Router()
 
@@ -25,6 +25,7 @@ type AdminOrder = {
   id: string
   user_id: string | null
   total: number | string
+  tax?: number | string | null
   status: string
   created_at: string
   order_number?: string
@@ -239,7 +240,7 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
   try {
     const [products, orders, customers] = await Promise.all([
       supabaseAdmin.from('products').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('orders').select('id, order_number, total, status, created_at, payment_method, payment_intent_id, stripe_session_id'),
+      supabaseAdmin.from('orders').select('id, user_id, order_number, total, tax, status, created_at, payment_method, payment_intent_id, stripe_session_id'),
       supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
     ])
 
@@ -274,7 +275,7 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
     const bucketMap = new Map(monthBuckets.map((bucket) => [bucket.month, bucket]))
 
     for (const order of visibleOrders) {
-      if (!isPaidStatus(order.status)) continue
+      if (!isDashboardRevenueOrder(order)) continue
       const createdAt = new Date(order.created_at)
       if (Number.isNaN(createdAt.getTime())) continue
       const key = `${createdAt.getUTCFullYear()}-${String(createdAt.getUTCMonth() + 1).padStart(2, '0')}`
