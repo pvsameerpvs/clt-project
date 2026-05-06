@@ -2,6 +2,7 @@ import Link from "next/link"
 import { ClipboardList, PackageCheck, RotateCcw, ShieldCheck } from "lucide-react"
 import type { ReturnRequestRecord } from "@/lib/api"
 import type { OrderRecord } from "./profile-types"
+import { OrderPaymentBadge } from "./order-payment-badge"
 import { canCancelOrder, canRequestReturn, normalizeReturnRequestStatus } from "./profile-utils"
 
 type ProfileReturnsSectionProps = {
@@ -99,9 +100,12 @@ export function ProfileReturnsSection({
                 <div key={`cancel-${order.id}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-neutral-900">#{order.order_number || order.id.slice(0, 8).toUpperCase()}</p>
-                    <span className="rounded-full border border-neutral-300 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-600">
-                      {order.status || "pending"}
-                    </span>
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      <span className="rounded-full border border-neutral-300 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-600">
+                        {order.status || "pending"}
+                      </span>
+                      <OrderPaymentBadge order={order} className="px-2 py-0.5 tracking-[0.08em]" />
+                    </div>
                   </div>
                   <p className="mt-1 text-xs text-neutral-500">
                     {new Date(order.created_at).toLocaleDateString("en-GB")} • AED {Number(order.total || 0).toFixed(2)}
@@ -142,9 +146,14 @@ export function ProfileReturnsSection({
                       <p className="text-sm font-semibold text-neutral-900">
                         #{request.order?.order_number || request.order_id.slice(0, 8).toUpperCase()}
                       </p>
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${returnStatusTone(status)}`}>
-                        {status}
-                      </span>
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        {request.order ? (
+                          <OrderPaymentBadge order={request.order} className="px-2 py-0.5 tracking-[0.08em]" />
+                        ) : null}
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${returnStatusTone(status)}`}>
+                          {status}
+                        </span>
+                      </div>
                     </div>
                     <p className="mt-1 text-xs text-neutral-500">Requested on {new Date(request.created_at).toLocaleDateString("en-GB")}</p>
                     {request.reason && <p className="mt-2 text-xs text-neutral-600">Reason: {request.reason}</p>}
@@ -172,7 +181,10 @@ export function ProfileReturnsSection({
                 <div key={`return-${order.id}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-neutral-900">#{order.order_number || order.id.slice(0, 8).toUpperCase()}</p>
-                    <p className="text-xs text-neutral-500">AED {Number(order.total || 0).toFixed(2)}</p>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <OrderPaymentBadge order={order} className="px-2 py-0.5 tracking-[0.08em]" />
+                      <p className="text-xs text-neutral-500">AED {Number(order.total || 0).toFixed(2)}</p>
+                    </div>
                   </div>
                   
                   {returnStatus === 'pending' && (

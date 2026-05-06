@@ -4,10 +4,11 @@ import { useState } from "react"
 import type { ComponentType, ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { CalendarDays, ChevronRight, MapPin, PackageCheck, ReceiptText } from "lucide-react"
+import { CalendarDays, ChevronRight, CreditCard, MapPin, PackageCheck, ReceiptText } from "lucide-react"
 import type { OrderRecord } from "./profile-types"
-import { canCancelOrder, canRequestReturn, normalizeOrderStatus, toDisplayDate } from "./profile-utils"
+import { canCancelOrder, canRequestReturn, getOrderPaymentDisplay, normalizeOrderStatus, toDisplayDate } from "./profile-utils"
 import { OrderStatusStepper } from "./order-status-stepper"
+import { OrderPaymentBadge } from "./order-payment-badge"
 import { cn } from "@/lib/utils"
 
 type OrderItemRecord = NonNullable<OrderRecord["items"]>[number]
@@ -182,14 +183,17 @@ export function ProfileOrdersSection({
                       />
                     </div>
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                      <span
-                        className={cn(
-                          "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
-                          getStatusBadgeClass(order.status)
-                        )}
-                      >
-                        {toStatusLabel(order.status)}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={cn(
+                            "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
+                            getStatusBadgeClass(order.status)
+                          )}
+                        >
+                          {toStatusLabel(order.status)}
+                        </span>
+                        <OrderPaymentBadge order={order} />
+                      </div>
                       <span className="text-sm font-semibold text-neutral-900">
                         AED {toMoney(order.total)}
                       </span>
@@ -229,6 +233,7 @@ function OrderDetailCard({
   const orderItems = getOrderItems(order)
   const returnRequestStatus = getReturnRequestStatus(order.id)
   const normalizedStatus = normalizeOrderStatus(order.status)
+  const paymentDisplay = getOrderPaymentDisplay(order)
   const canCancel = canCancelOrder(order.status)
   const canReturn = canRequestReturn(order.status, order.delivered_at) && !returnRequestStatus
 
@@ -242,12 +247,15 @@ function OrderDetailCard({
             View the order journey, delivery location, products, and available order actions.
           </p>
         </div>
-        <span className={cn("rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em]", getStatusBadgeClass(order.status))}>
-          {toStatusLabel(order.status)}
-        </span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className={cn("rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em]", getStatusBadgeClass(order.status))}>
+            {toStatusLabel(order.status)}
+          </span>
+          <OrderPaymentBadge order={order} className="px-3 py-1.5 tracking-[0.16em]" />
+        </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SummaryTile icon={CalendarDays} label="Date" value={toDisplayDate(order.created_at)} />
         <SummaryTile
           icon={PackageCheck}
@@ -261,6 +269,16 @@ function OrderDetailCard({
             </span>
           }
           strong
+        />
+        <SummaryTile
+          icon={CreditCard}
+          label="Payment"
+          value={
+            <span className="flex flex-col gap-1">
+              <OrderPaymentBadge order={order} className="w-fit" />
+              <span className="text-xs font-normal leading-5 text-neutral-500">{paymentDisplay.description}</span>
+            </span>
+          }
         />
         <SummaryTile icon={MapPin} label="Delivery" value={getShippingLabel(order)} />
       </div>

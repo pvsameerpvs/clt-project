@@ -177,7 +177,7 @@ orderRoutes.get('/return-requests', authMiddleware, async (req: Request, res: Re
   try {
     const { data, error } = await supabaseAdmin
       .from('order_return_requests')
-      .select('id, order_id, reason, status, created_at, updated_at, order:orders(order_number, total, status, created_at)')
+      .select('id, order_id, reason, status, created_at, updated_at, order:orders(order_number, total, status, payment_method, created_at)')
       .eq('user_id', req.user!.id)
       .order('created_at', { ascending: false })
 

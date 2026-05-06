@@ -7,7 +7,7 @@ import { ProfileOrdersSection } from "@/components/profile/profile-orders-sectio
 import { ReturnRequestModal } from "@/components/profile/return-request-modal"
 import { OrderRecord, ReturnRequestRecord } from "@/components/profile/profile-types"
 import { getMyOrders, getMyReturnRequests, cancelMyOrder, requestOrderReturn } from "@/lib/api"
-import { normalizeReturnRequestStatus } from "@/components/profile/profile-utils"
+import { normalizeReturnRequestStatus, toReturnRequestOrderSnapshot } from "@/components/profile/profile-utils"
 import { toast } from "sonner"
 
 export default function OrdersPage() {
@@ -83,7 +83,10 @@ export default function OrdersPage() {
       setOrderActionLoadingId(orderId)
       const token = await getAccessToken()
       const created = await requestOrderReturn(token, orderId, { reason })
-      setReturnRequests((prev) => [created, ...prev])
+      setReturnRequests((prev) => [
+        { ...created, order: created.order || toReturnRequestOrderSnapshot(selectedOrderForReturn) },
+        ...prev,
+      ])
       toast.success("Return request submitted")
       setIsReturnModalOpen(false)
     } catch (error) {

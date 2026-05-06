@@ -1,4 +1,4 @@
-import type { AddressRecord, UserAddressRow } from "./profile-types"
+import type { AddressRecord, OrderRecord, UserAddressRow } from "./profile-types"
 
 export function toDisplayDate(value?: string | null) {
   if (!value) return ""
@@ -21,6 +21,66 @@ export function normalizeOrderStatus(status?: string | null) {
   if (normalized === "in_transit") return "shipped"
   if (normalized === "paid") return "confirmed"
   return normalized
+}
+
+export type OrderPaymentTone = "paid" | "unpaid" | "cod" | "refunded"
+
+export type OrderPaymentDisplay = {
+  label: string
+  description: string
+  tone: OrderPaymentTone
+}
+
+const PAID_ONLINE_STATUSES = new Set(["confirmed", "processing", "shipped", "delivered"])
+
+export function isCashOnDeliveryPayment(paymentMethod?: string | null) {
+  const method = String(paymentMethod || "").toLowerCase().trim()
+  return method === "" || method.includes("cash") || method.includes("cod")
+}
+
+export function getOrderPaymentDisplay(order: {
+  status?: string | null
+  payment_method?: string | null
+}): OrderPaymentDisplay {
+  const status = normalizeOrderStatus(order.status)
+
+  if (status === "refunded") {
+    return {
+      label: "Refunded",
+      description: "The payment for this order has been refunded.",
+      tone: "refunded",
+    }
+  }
+
+  if (isCashOnDeliveryPayment(order.payment_method)) {
+    if (status === "delivered") {
+      return {
+        label: "Paid on Delivery",
+        description: "This cash on delivery order has been delivered.",
+        tone: "paid",
+      }
+    }
+
+    return {
+      label: "Cash on Delivery",
+      description: "Pay by cash when your order arrives.",
+      tone: "cod",
+    }
+  }
+
+  if (PAID_ONLINE_STATUSES.has(status)) {
+    return {
+      label: "Paid",
+      description: "Your online payment has been confirmed.",
+      tone: "paid",
+    }
+  }
+
+  return {
+    label: "Unpaid",
+    description: "Online payment has not been completed for this order.",
+    tone: "unpaid",
+  }
 }
 
 export function canCancelOrder(status?: string | null) {
@@ -62,5 +122,15 @@ export function mapAddressRow(row: UserAddressRow): AddressRecord {
     city: row.city,
     country: row.country,
     isPrimary: Boolean(row.is_primary),
+  }
+}
+
+export function toReturnRequestOrderSnapshot(order: OrderRecord) {
+  return {
+    order_number: order.order_number,
+    total: order.total,
+    status: order.status,
+    payment_method: order.payment_method,
+    created_at: order.created_at,
   }
 }

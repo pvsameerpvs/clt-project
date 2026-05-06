@@ -74,6 +74,7 @@ export interface UserOrderRecord {
   order_number?: string | null
   total?: number | string | null
   status?: string | null
+  payment_method?: string | null
   created_at: string
   delivered_at?: string | null
   items?: UserOrderItemRecord[] | null
@@ -100,6 +101,7 @@ export interface ReturnRequestRecord {
     order_number?: string | null
     total?: number | string | null
     status?: string | null
+    payment_method?: string | null
     created_at?: string | null
   } | null
 }
