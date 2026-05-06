@@ -10,6 +10,7 @@ import {
 } from '../services/checkout.service'
 import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
 import { generateOrderNumber } from '../utils/order-number'
+import { isUnpaidOnlinePaymentAttempt } from '../utils/order-visibility'
 
 export const orderRoutes = Router()
 
@@ -44,10 +45,12 @@ orderRoutes.get('/', authMiddleware, async (req: Request, res: Response) => {
       res.status(500).json({ error: error.message })
       return
     }
-    const normalized = (data || []).map((order: any) => ({
-      ...order,
-      status: normalizeOrderStatusForResponse(order.status),
-    }))
+    const normalized = (data || [])
+      .filter((order: any) => !isUnpaidOnlinePaymentAttempt(order))
+      .map((order: any) => ({
+        ...order,
+        status: normalizeOrderStatusForResponse(order.status),
+      }))
     res.json(normalized)
   } catch (error: any) {
     res.status(500).json({ error: error.message })
@@ -351,10 +354,16 @@ orderRoutes.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       .eq('user_id', req.user!.id)
       .single()
 
-    if (error) {
+    if (error || !data) {
       res.status(404).json({ error: 'Order not found' })
       return
     }
+
+    if (isUnpaidOnlinePaymentAttempt(data)) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
     res.json({
       ...data,
       status: normalizeOrderStatusForResponse(data.status),
