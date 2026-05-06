@@ -12,12 +12,9 @@ import {
   ORDER_STATUSES,
   updateAdminOrderStatus,
 } from "@/lib/admin-api"
+import { getAdminOrderCustomer, getAdminOrderShippingAddress } from "@/lib/admin-order-contact"
 import { Ticket } from "lucide-react"
 import { parseProductMetadata, formatAED } from "@/lib/format-utils"
-
-function toText(value: unknown) {
-  return typeof value === "string" ? value.trim() : ""
-}
 
 function formatUtcDate(dateString?: string | null) {
   if (!dateString) return "—"
@@ -50,15 +47,6 @@ function statusTone(status: string) {
     default:
       return "default"
   }
-}
-
-
-
-function getProfile(order: AdminOrder) {
-  if (!order.profile) {
-    return { first_name: null, last_name: null, email: null, phone: null }
-  }
-  return Array.isArray(order.profile) ? order.profile[0] || {} : order.profile
 }
 
 export default function OrderDetailsPage() {
@@ -110,45 +98,8 @@ export default function OrderDetailsPage() {
     }
   }
 
-  const customer = useMemo(() => {
-    if (!order) return { name: "Guest", email: "", phone: "" }
-    const profile = getProfile(order)
-    const name = [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim() || "Guest"
-    return {
-      name,
-      email: toText(profile.email),
-      phone: toText(profile.phone),
-    }
-  }, [order])
-
-  const shippingAddress = useMemo(() => {
-    if (!order?.shipping_address || typeof order.shipping_address !== "object") {
-      return {
-        title: "",
-        contactName: "",
-        phone: "",
-        line1: "",
-        line2: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        country: "",
-      }
-    }
-
-    const address = order.shipping_address as Record<string, unknown>
-    return {
-      title: toText(address.title),
-      contactName: toText(address.contact_name),
-      phone: toText(address.phone),
-      line1: toText(address.line1),
-      line2: toText(address.line2),
-      city: toText(address.city),
-      state: toText(address.state),
-      postalCode: toText(address.postal_code),
-      country: toText(address.country),
-    }
-  }, [order])
+  const customer = useMemo(() => getAdminOrderCustomer(order), [order])
+  const shippingAddress = useMemo(() => getAdminOrderShippingAddress(order), [order])
 
   if (loading) {
     return (

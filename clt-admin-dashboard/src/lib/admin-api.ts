@@ -216,8 +216,9 @@ export interface AdminOrder {
   tax: number
   shipping_fee: number
   status: string
+  payment_method?: string | null
   created_at: string
-  shipping_address?: Record<string, unknown>
+  shipping_address?: Record<string, unknown> | string | null
   return_requests?: Array<{ id: string; reason?: string; status: string }>
   profile?:
     | { first_name?: string | null; last_name?: string | null; email?: string | null; phone?: string | null }

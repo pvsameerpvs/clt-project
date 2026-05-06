@@ -9,14 +9,11 @@ import {
   ORDER_STATUSES,
   updateAdminOrderStatus,
 } from "@/lib/admin-api"
+import { getAdminOrderCustomer } from "@/lib/admin-order-contact"
+import { getAdminOrderPaymentBadge } from "@/lib/admin-order-payment"
 
 function getProfileName(order: AdminOrder) {
-  if (!order.profile) return "Guest"
-  const profile = Array.isArray(order.profile) ? order.profile[0] : order.profile
-  const first = profile?.first_name || ""
-  const last = profile?.last_name || ""
-  const fullName = `${first} ${last}`.trim()
-  return fullName || "Guest"
+  return getAdminOrderCustomer(order).name
 }
 
 function formatUtcDate(dateString: string) {
@@ -255,46 +252,55 @@ export default function OrdersPage() {
                   <th>Customer</th>
                   <th>Created</th>
                   <th>Total</th>
+                  <th>Payment</th>
                   <th>Current Status</th>
                   <th>Update Status</th>
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
-                  <tr key={order.id}>
-                    <td>
-                      <div className="name">#{order.order_number || order.id.slice(0, 8)}</div>
-                      <div className="sub">{order.id}</div>
-                      <Link href={`/dashboard/orders/${encodeURIComponent(order.id)}`} className="detail-link">
-                        Open details
-                      </Link>
-                    </td>
-                    <td>
-                      <div className="name">{getProfileName(order)}</div>
-                    </td>
-                    <td className="sub">{formatUtcDate(order.created_at)}</td>
-                    <td className="name">AED {Number(order.total || 0).toLocaleString()}</td>
-                    <td>
-                      <span className={`status ${statusTone(order.status)}`}>{order.status}</span>
-                    </td>
-                    <td>
-                      <div className="action-cell">
-                        <select
-                          value={order.status}
-                          onChange={(event) => handleStatusChange(order.id, event.target.value as AdminOrderStatus)}
-                          disabled={updatingId === order.id}
-                        >
-                          {ORDER_STATUSES.map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="save-state">{updatingId === order.id ? "Saving..." : "Saved"}</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {orders.map((order) => {
+                  const paymentBadge = getAdminOrderPaymentBadge(order)
+                  return (
+                    <tr key={order.id}>
+                      <td>
+                        <div className="name">#{order.order_number || order.id.slice(0, 8)}</div>
+                        <div className="sub">{order.id}</div>
+                        <Link href={`/dashboard/orders/${encodeURIComponent(order.id)}`} className="detail-link">
+                          Open details
+                        </Link>
+                      </td>
+                      <td>
+                        <div className="name">{getProfileName(order)}</div>
+                      </td>
+                      <td className="sub">{formatUtcDate(order.created_at)}</td>
+                      <td className="name">AED {Number(order.total || 0).toLocaleString()}</td>
+                      <td>
+                        <span className={`payment-badge ${paymentBadge.tone}`} title={paymentBadge.title}>
+                          {paymentBadge.label}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`status ${statusTone(order.status)}`}>{order.status}</span>
+                      </td>
+                      <td>
+                        <div className="action-cell">
+                          <select
+                            value={order.status}
+                            onChange={(event) => handleStatusChange(order.id, event.target.value as AdminOrderStatus)}
+                            disabled={updatingId === order.id}
+                          >
+                            {ORDER_STATUSES.map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="save-state">{updatingId === order.id ? "Saving..." : "Saved"}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -420,7 +426,7 @@ export default function OrdersPage() {
         }
         table {
           width: 100%;
-          min-width: 940px;
+          min-width: 1040px;
           border-collapse: collapse;
         }
         th {
@@ -501,6 +507,33 @@ export default function OrdersPage() {
         .status.default {
           background: #f3f4f6;
           color: #111827;
+        }
+        .payment-badge {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 999px;
+          padding: 4px 8px;
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          white-space: nowrap;
+        }
+        .payment-badge.paid {
+          background: #ecfdf5;
+          color: #047857;
+        }
+        .payment-badge.unpaid {
+          background: #fff7ed;
+          color: #9a3412;
+        }
+        .payment-badge.cod {
+          background: #f5f3ff;
+          color: #6d28d9;
+        }
+        .payment-badge.refunded {
+          background: #fef2f2;
+          color: #991b1b;
         }
         .action-cell {
           display: grid;
