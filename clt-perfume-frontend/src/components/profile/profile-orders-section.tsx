@@ -4,9 +4,9 @@ import { useState } from "react"
 import type { ComponentType, ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { CalendarDays, ChevronRight, CreditCard, MapPin, PackageCheck, ReceiptText } from "lucide-react"
+import { Banknote, CalendarDays, ChevronRight, CreditCard, MapPin, PackageCheck, ReceiptText } from "lucide-react"
 import type { OrderRecord } from "./profile-types"
-import { canCancelOrder, canRequestReturn, getOrderPaymentDisplay, normalizeOrderStatus, toDisplayDate } from "./profile-utils"
+import { canCancelOrder, canRequestReturn, getOrderPaymentDisplay, isCashOnDeliveryPayment, normalizeOrderStatus, toDisplayDate } from "./profile-utils"
 import { OrderStatusStepper } from "./order-status-stepper"
 import { OrderPaymentBadge } from "./order-payment-badge"
 import { cn } from "@/lib/utils"
@@ -239,19 +239,23 @@ function OrderDetailCard({
 
   return (
     <article className="min-w-0 rounded-[28px] border border-neutral-200 bg-white p-4 shadow-sm md:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">Selected Order</p>
-          <h3 className="mt-1 font-serif text-2xl text-neutral-900 md:text-3xl">Order #{getOrderNumber(order)}</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">
-            View the order journey, delivery location, products, and available order actions.
+      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Selected Order</p>
+            <div className="h-px w-8 bg-neutral-200" />
+          </div>
+          <h3 className="font-serif text-3xl tracking-tight text-neutral-900 md:text-4xl">Order #{getOrderNumber(order)}</h3>
+          <p className="max-w-xl text-sm leading-relaxed text-neutral-500">
+            Comprehensive details for your purchase, including real-time tracking, product breakdown, and order management options.
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <span className={cn("rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em]", getStatusBadgeClass(order.status))}>
+        <div className="flex flex-wrap items-center gap-2.5 sm:justify-end">
+          <div className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-tight shadow-sm", getStatusBadgeClass(order.status))}>
+            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
             {toStatusLabel(order.status)}
-          </span>
-          <OrderPaymentBadge order={order} className="px-3 py-1.5 tracking-[0.16em]" />
+          </div>
+          <OrderPaymentBadge order={order} className="px-2.5 py-1 text-[10px] shadow-sm" />
         </div>
       </div>
 
@@ -271,13 +275,13 @@ function OrderDetailCard({
           strong
         />
         <SummaryTile
-          icon={CreditCard}
+          icon={isCashOnDeliveryPayment(order.payment_method) ? Banknote : CreditCard}
           label="Payment"
           value={
-            <span className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               <OrderPaymentBadge order={order} className="w-fit" />
-              <span className="text-xs font-normal leading-5 text-neutral-500">{paymentDisplay.description}</span>
-            </span>
+              <p className="text-[11px] font-normal leading-relaxed text-neutral-500/80">{paymentDisplay.description}</p>
+            </div>
           }
         />
         <SummaryTile icon={MapPin} label="Delivery" value={getShippingLabel(order)} />
@@ -357,12 +361,14 @@ function SummaryTile({
   strong?: boolean
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-      <div className="flex items-center gap-2 text-neutral-400">
-        <Icon className="h-4 w-4" />
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em]">{label}</p>
+    <div className="group rounded-[22px] border border-neutral-100 bg-white p-3.5 shadow-sm transition duration-300 hover:border-neutral-200 hover:shadow-md sm:p-4">
+      <div className="flex items-center gap-2">
+        <div className="flex h-5 w-5 items-center justify-center rounded-md bg-neutral-50 text-neutral-400 transition group-hover:bg-black group-hover:text-white">
+          <Icon className="h-2.5 w-2.5" />
+        </div>
+        <p className="text-[9px] font-bold uppercase tracking-tight text-neutral-400 group-hover:text-neutral-600">{label}</p>
       </div>
-      <p className={cn("mt-2 text-sm leading-6 text-neutral-700", strong ? "font-semibold text-neutral-950" : "")}>{value}</p>
+      <div className={cn("mt-4 text-[13px] leading-relaxed text-neutral-700", strong ? "font-serif text-lg text-neutral-950" : "")}>{value}</div>
     </div>
   )
 }

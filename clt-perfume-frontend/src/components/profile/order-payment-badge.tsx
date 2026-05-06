@@ -1,5 +1,6 @@
+import { Banknote, CreditCard, RefreshCcw, ShieldCheck } from "lucide-react"
 import type { OrderRecord } from "./profile-types"
-import { getOrderPaymentDisplay, type OrderPaymentTone } from "./profile-utils"
+import { getOrderPaymentDisplay, isCashOnDeliveryPayment, type OrderPaymentTone } from "./profile-utils"
 import { cn } from "@/lib/utils"
 
 const paymentToneClass: Record<OrderPaymentTone, string> = {
@@ -17,16 +18,26 @@ export function OrderPaymentBadge({
   className?: string
 }) {
   const payment = getOrderPaymentDisplay(order)
+  const isCOD = isCashOnDeliveryPayment(order.payment_method)
 
   return (
     <span
       className={cn(
-        "inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-tight",
         paymentToneClass[payment.tone],
         className
       )}
       title={payment.description}
     >
+      {payment.tone === "paid" ? (
+        <ShieldCheck className="h-3 w-3 shrink-0" />
+      ) : payment.tone === "refunded" ? (
+        <RefreshCcw className="h-3 w-3 shrink-0" />
+      ) : isCOD ? (
+        <Banknote className="h-3 w-3 shrink-0" />
+      ) : (
+        <CreditCard className="h-3 w-3 shrink-0" />
+      )}
       {payment.label}
     </span>
   )

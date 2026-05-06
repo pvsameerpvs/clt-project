@@ -53,32 +53,32 @@ export function getOrderPaymentDisplay(order: {
   }
 
   if (isCashOnDeliveryPayment(order.payment_method)) {
-    if (status === "delivered") {
+    if (status === "delivered" || status === "paid") {
       return {
         label: "Paid on Delivery",
-        description: "This cash on delivery order has been delivered.",
+        description: "Payment collected upon delivery.",
         tone: "paid",
       }
     }
 
     return {
       label: "Cash on Delivery",
-      description: "Pay by cash when your order arrives.",
+      description: "Payment will be collected by the courier.",
       tone: "cod",
     }
   }
 
   if (PAID_ONLINE_STATUSES.has(status)) {
     return {
-      label: "Paid",
-      description: "Your online payment has been confirmed.",
+      label: "Paid via Card",
+      description: "Secure online payment has been confirmed.",
       tone: "paid",
     }
   }
 
   return {
-    label: "Unpaid",
-    description: "Online payment has not been completed for this order.",
+    label: "Awaiting payment",
+    description: "Online payment session was not completed.",
     tone: "unpaid",
   }
 }
