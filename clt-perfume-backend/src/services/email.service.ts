@@ -40,6 +40,15 @@ function normalizeEmailAddress(value?: string | null) {
   return email && email.includes('@') ? email : ''
 }
 
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<EmailSendResult> {
   const recipientEmail = normalizeEmailAddress(order.contact_email)
 
@@ -52,8 +61,8 @@ export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<E
   const itemsHtml = order.items.map(item => `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #f3f4f6;">
-        <span style="font-weight: 600; color: #111827;">${item.product_name}</span><br/>
-        <span style="color: #6b7280; font-size: 12px;">Qty: ${item.quantity}</span>
+        <span style="font-weight: 600; color: #111827;">${escapeHtml(item.product_name)}</span><br/>
+        <span style="color: #6b7280; font-size: 12px;">Qty: ${escapeHtml(item.quantity)}</span>
       </td>
       <td style="padding: 12px; border-bottom: 1px solid #f3f4f6; text-align: right; color: #111827; font-weight: 500;">
         ${formatPrice(item.price * item.quantity)}
@@ -87,7 +96,7 @@ export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<E
             
             <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
               <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Order Number</p>
-              <p style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">#${order.order_number}</p>
+              <p style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">#${escapeHtml(order.order_number)}</p>
             </div>
 
             <table width="100%" style="border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
@@ -147,12 +156,14 @@ export async function sendOrderConfirmationEmail(order: OrderDetails): Promise<E
 }
 
 export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
-  if (!details.email) {
+  const recipientEmail = normalizeEmailAddress(details.email)
+
+  if (!recipientEmail) {
     console.log('[EmailService] No email provided; skipping welcome email.')
     return
   }
 
-  const customerName = details.firstName?.trim() || 'there'
+  const customerName = escapeHtml(details.firstName?.trim() || 'there')
   const sourceLabel = details.source === 'google' ? 'Google sign-in' : 'your new account'
 
   const html = `
@@ -174,7 +185,7 @@ export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
             <p style="color: #4b5563; font-size: 16px; margin-bottom: 24px;">You can now sign in, manage your profile, track orders, and continue shopping with a saved account.</p>
             <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
               <p style="margin: 0; font-size: 14px; color: #6b7280;">Account email</p>
-              <p style="margin: 4px 0 0; font-size: 16px; font-weight: 600; color: #111827;">${details.email}</p>
+              <p style="margin: 4px 0 0; font-size: 16px; font-weight: 600; color: #111827;">${escapeHtml(recipientEmail)}</p>
             </div>
             <p style="color: #4b5563; font-size: 16px; margin-bottom: 0;">If you did not create this account, please reply to this email so we can help right away.</p>
           </td>
@@ -187,7 +198,7 @@ export async function sendWelcomeEmail(details: WelcomeEmailDetails) {
   try {
     const { data, error } = await resend.emails.send({
       from: 'CLE Perfume <contact@cleparfum.com>',
-      to: details.email,
+      to: recipientEmail,
       subject: 'Welcome to CLE Perfume',
       html,
     })
@@ -215,8 +226,10 @@ export async function sendOrderStatusEmail(
     return { ok: false, skipped: true, error: 'No valid contact email provided' }
   }
 
-  const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1)
+  const formattedStatus = escapeHtml(status.charAt(0).toUpperCase() + status.slice(1))
   const formattedPaymentStatus = paymentStatus?.trim()
+  const safePaymentStatus = formattedPaymentStatus ? escapeHtml(formattedPaymentStatus) : ''
+  const safeOrderNumber = escapeHtml(orderNumber)
 
   const html = `
     <!DOCTYPE html>
@@ -233,8 +246,8 @@ export async function sendOrderStatusEmail(
           <td style="padding: 32px 24px; text-align: center;">
             <p style="color: #111827; font-size: 18px; font-weight: 600;">Order Update: ${formattedStatus}</p>
             <p style="color: #4b5563; font-size: 16px;">Hi there,</p>
-            <p style="color: #4b5563; font-size: 16px;">Your order <strong>#${orderNumber}</strong> has been updated to: <strong>${formattedStatus}</strong>.</p>
-            ${formattedPaymentStatus ? `<p style="color: #4b5563; font-size: 16px;">Payment status: <strong>${formattedPaymentStatus}</strong>.</p>` : ''}
+            <p style="color: #4b5563; font-size: 16px;">Your order <strong>#${safeOrderNumber}</strong> has been updated to: <strong>${formattedStatus}</strong>.</p>
+            ${safePaymentStatus ? `<p style="color: #4b5563; font-size: 16px;">Payment status: <strong>${safePaymentStatus}</strong>.</p>` : ''}
             <p style="color: #4b5563; font-size: 16px;">If you have any questions, simply reply to this email!</p>
           </td>
         </tr>
@@ -291,8 +304,8 @@ export async function sendAbandonedCartEmail(recipientEmail: string, items: any[
   const itemsHtml = items.map(item => `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
-        <span style="font-weight: 600; color: #111827; font-family: sans-serif;">${item.product?.name || 'Perfume'}</span><br/>
-        <span style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Qty: ${item.quantity}</span>
+        <span style="font-weight: 600; color: #111827; font-family: sans-serif;">${escapeHtml(item.product?.name || 'Perfume')}</span><br/>
+        <span style="color: #6b7280; font-size: 12px; text-transform: uppercase;">Qty: ${escapeHtml(item.quantity)}</span>
       </td>
     </tr>
   `).join('')
@@ -356,6 +369,10 @@ export async function sendReturnStatusEmail(
   if (!recipientEmail) return { ok: false, error: 'No email provided' }
 
   const isApproved = status === 'approved'
+  const safeOrderNumber = escapeHtml(orderNumber)
+  const safeStatus = escapeHtml(status)
+  const safeReason = escapeHtml(reason)
+  const safeAdminComment = adminComment ? escapeHtml(adminComment) : ''
   const subject = isApproved 
     ? `Refund Request Approved - Order #${orderNumber}`
     : `Refund Request Update - Order #${orderNumber}`
@@ -376,13 +393,13 @@ export async function sendReturnStatusEmail(
             <h2 style="color: #111827; font-size: 22px; font-weight: 600; font-family: serif;">Refund Request Update</h2>
             <p style="color: #4b5563; font-size: 16px;">Hello,</p>
             <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
-              Your request to return items from order <strong>#${orderNumber}</strong> has been <strong>${status}</strong>.
+              Your request to return items from order <strong>#${safeOrderNumber}</strong> has been <strong>${safeStatus}</strong>.
             </p>
             
             <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 24px 0; text-align: left;">
               <p style="margin: 0 0 8px; font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: bold;">Return Details</p>
-              <p style="margin: 0; font-size: 14px; color: #111827;"><strong>Reason:</strong> ${reason}</p>
-              ${adminComment ? `<p style="margin: 8px 0 0; font-size: 14px; color: #111827;"><strong>Note from Team:</strong> ${adminComment}</p>` : ''}
+              <p style="margin: 0; font-size: 14px; color: #111827;"><strong>Reason:</strong> ${safeReason}</p>
+              ${safeAdminComment ? `<p style="margin: 8px 0 0; font-size: 14px; color: #111827;"><strong>Note from Team:</strong> ${safeAdminComment}</p>` : ''}
             </div>
 
             ${isApproved 

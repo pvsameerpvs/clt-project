@@ -4,6 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Edit3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { renderLineBreaks } from "@/lib/safe-html"
 
 interface BrandFeature {
   title: string
@@ -39,10 +40,9 @@ export function BrandPreview({ story, onEditClick }: BrandPreviewProps) {
             
             <div className="space-y-6">
               <span className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">Our Core Philosophy</span>
-              <h2 
-                className="text-3xl md:text-5xl font-serif font-light leading-tight"
-                dangerouslySetInnerHTML={{ __html: story.title || "The Scent of <br/> Unspoken Tales" }}
-              />
+              <h2 className="text-3xl md:text-5xl font-serif font-light leading-tight">
+                {renderLineBreaks(story.title || "The Scent of <br/> Unspoken Tales")}
+              </h2>
               <p className="text-neutral-400 text-sm font-light leading-relaxed max-w-md">
                 {story.description}
               </p>

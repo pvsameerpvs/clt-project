@@ -27,7 +27,7 @@ export default function CouponsPage() {
     try {
       const data = await getAdminPromoCodes()
       setCoupons(data || [])
-    } catch (err) {
+    } catch {
       toast.error("Failed to load promo codes.")
     } finally {
       setLoading(false)
@@ -62,7 +62,7 @@ export default function CouponsPage() {
       setEditingCoupon(null)
       setNewCoupon({ code: "", discount_type: "percentage", discount_value: "", expires_at: "" })
       load()
-    } catch (err) {
+    } catch {
       toast.error(`Failed to ${editingCoupon ? 'update' : 'create'} coupon`)
     }
   }
@@ -84,7 +84,7 @@ export default function CouponsPage() {
       await deleteAdminPromoCode(id)
       setCoupons(coupons.filter(c => c.id !== id))
       toast.success("Coupon deleted")
-    } catch (err) {
+    } catch {
       toast.error("Failed to delete coupon")
     }
   }

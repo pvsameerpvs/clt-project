@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/carousel"
 
 import { getSiteSettings } from "@/lib/api"
+import { renderLineBreaks } from "@/lib/safe-html"
 
 interface HeroSlide {
   image: string
@@ -88,10 +89,9 @@ export function Hero({ initialSlides }: HeroProps) {
 
                   {/* Center: Main Headline */}
                   <div className="flex animate-in fade-in slide-in-from-left-4 duration-1000 delay-200">
-                    <h1 
-                      className="max-w-4xl text-5xl font-thin uppercase leading-none tracking-tight text-white md:text-7xl lg:text-8xl"
-                      dangerouslySetInnerHTML={{ __html: slide.headline }}
-                    />
+                    <h1 className="max-w-4xl text-5xl font-thin uppercase leading-none tracking-tight text-white md:text-7xl lg:text-8xl">
+                      {renderLineBreaks(slide.headline)}
+                    </h1>
                   </div>
 
                   {/* Bottom: Call to Action */}

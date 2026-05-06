@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react"
 import { ProductCard } from "@/components/product/product-card"
 import { getCategories, getCategoryBySlug, getProducts, getSiteSettings } from "@/lib/api"
 import { Product, getCategorySlug } from "@/lib/products"
+import { renderLineBreaks, stripMarkup } from "@/lib/safe-html"
 
 interface CuratedCollectionItem {
   href: string
@@ -24,10 +25,6 @@ function normalizeToken(value: string) {
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-}
-
-function stripHtml(value: string) {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
 }
 
 function parseSelectedProductSlugs(value?: string) {
@@ -185,7 +182,7 @@ export default async function CollectionPage({
         : allProducts
     const { relatedProducts, relatedTitle } = buildRelatedProducts(allProducts, visibleProducts)
     const allCategory = {
-      name: matchedCuratedCollection ? stripHtml(matchedCuratedCollection.title) : "The Collection",
+      name: matchedCuratedCollection ? stripMarkup(matchedCuratedCollection.title) : "The Collection",
       titleHtml: matchedCuratedCollection?.title || "The Collection",
       description:
         matchedCuratedCollection?.subtitle ||
@@ -210,10 +207,9 @@ export default async function CollectionPage({
            <div className="absolute inset-0 bg-black/55" />
            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
               <span className="text-white/60 uppercase tracking-[0.3em] text-[10px] mb-4">Discover</span>
-              <h1
-                className="text-white text-5xl md:text-7xl font-serif mb-4"
-                dangerouslySetInnerHTML={{ __html: allCategory.titleHtml }}
-              />
+              <h1 className="text-white text-5xl md:text-7xl font-serif mb-4">
+                {renderLineBreaks(allCategory.titleHtml)}
+              </h1>
               <p className="text-white/80 max-w-xl font-light text-sm md:text-base leading-relaxed">
                 {allCategory.description}
               </p>
@@ -317,7 +313,7 @@ export default async function CollectionPage({
     category?.image_url ||
     "/curated-pefume-banner.png"
   const heroTitleHtml = curatedCollection?.title || category?.name || slug
-  const heroTitleText = stripHtml(heroTitleHtml)
+  const heroTitleText = stripMarkup(heroTitleHtml)
   const heroSubtitle = curatedCollection?.subtitle || category?.description || ""
 
   return (
@@ -336,10 +332,9 @@ export default async function CollectionPage({
           <Badge variant="outline" className="mb-4 text-white border-white/30 tracking-widest uppercase bg-transparent hover:bg-transparent">
             Collection
           </Badge>
-          <h1
-            className="text-4xl md:text-6xl font-serif text-white mb-6 leading-tight"
-            dangerouslySetInnerHTML={{ __html: heroTitleHtml }}
-          />
+          <h1 className="text-4xl md:text-6xl font-serif text-white mb-6 leading-tight">
+            {renderLineBreaks(heroTitleHtml)}
+          </h1>
           {heroSubtitle && (
             <p className="text-white/80 font-light text-lg">
               {heroSubtitle}

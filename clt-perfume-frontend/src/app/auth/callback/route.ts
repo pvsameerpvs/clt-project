@@ -6,13 +6,10 @@ import {
   isLikelyFirstGoogleSession,
   sendWelcomeEmail,
 } from "@/lib/auth/account-service"
+import { sanitizeRelativePath } from "@/lib/redirects"
 
 function sanitizeNextPath(nextPath: string | null): string {
-  if (!nextPath || !nextPath.startsWith("/")) {
-    return "/profile"
-  }
-
-  return nextPath
+  return sanitizeRelativePath(nextPath, "/profile")
 }
 
 export async function GET(request: Request) {

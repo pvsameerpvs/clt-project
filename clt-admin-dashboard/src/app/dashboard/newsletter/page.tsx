@@ -14,7 +14,7 @@ export default function NewsletterPage() {
       try {
         const data = await getAdminSubscribers()
         setSubscribers(data || [])
-      } catch (err) {
+      } catch {
         toast.error("Failed to load subscribers.")
       } finally {
         setLoading(false)

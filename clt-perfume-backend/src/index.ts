@@ -16,11 +16,14 @@ import { productRoutes } from './routes/product.routes'
 import { promoCodeRoutes } from './routes/promo-codes.routes'
 import { authRoutes } from './routes/auth.routes'
 import { cartRoutes } from './routes/cart.routes'
+import { reviewRoutes } from './routes/reviews.routes'
 import { getAllowedOrigins } from './config/public-urls'
 
 const app = express()
 const PORT = process.env.PORT || 4000
 const allowedOrigins = getAllowedOrigins()
+
+app.set('trust proxy', 1)
 
 // Request logging
 app.use((req, res, next) => {
@@ -44,7 +47,9 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000 // Increased for development to prevent blocking refreshes
+  max: Number(process.env.RATE_LIMIT_MAX || (process.env.NODE_ENV === 'production' ? 300 : 10000)),
+  standardHeaders: true,
+  legacyHeaders: false,
 })
 app.use(limiter)
 
@@ -62,6 +67,7 @@ app.use('/api/promo-codes', promoCodeRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/settings', settingsRoutes)
 app.use('/api/products', productRoutes)
+app.use('/api/reviews', reviewRoutes)
 app.use('/api/auth', authRoutes)
 app.use('/api/cart', cartRoutes)
 

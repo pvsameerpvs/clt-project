@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 import { AdminProduct, Category, NavCategory, NavSection } from "@/lib/admin-api"
-import { Plus } from "lucide-react"
 
 // Specialized Components
 import { NoteEditor } from "./nav/note-editor"

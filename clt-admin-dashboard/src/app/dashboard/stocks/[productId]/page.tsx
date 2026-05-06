@@ -77,7 +77,7 @@ export default function StockProductPage() {
       try {
         setLoadingProduct(true)
         setProduct(await getAdminProduct(productId))
-      } catch (e) {
+      } catch {
         toast.error("Product not found or failed to load.")
       } finally {
         setLoadingProduct(false)

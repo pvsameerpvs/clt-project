@@ -107,8 +107,6 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingMenu, setSavingMenu] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [menuSuccess, setMenuSuccess] = useState(false)
   const [form, setForm] = useState<Partial<Category>>({})
   const [activeTab, setActiveTab] = useState<CategoryWorkspaceTab>("new")
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
@@ -142,7 +140,10 @@ export default function CategoriesPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name || !form.slug) return setError("Name and Slug are required")
+    if (!form.name || !form.slug) {
+      toast.error("Name and Slug are required")
+      return
+    }
 
     try {
       setSaving(true)

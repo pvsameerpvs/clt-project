@@ -32,10 +32,15 @@ interface GlobalStoreSettingsProps {
   onChange: (info: GlobalStoreInfo) => void
 }
 
+const SOCIAL_LINK_KEYS = ["instagram", "facebook", "twitter", "youtube", "linkedin"] as const
+
 export function GlobalStoreSettings({ info, onChange }: GlobalStoreSettingsProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const updateInfo = (field: keyof GlobalStoreInfo, val: any) => onChange({ ...info, [field]: val })
+  const updateInfo = <T extends keyof GlobalStoreInfo>(field: T, val: GlobalStoreInfo[T]) => {
+    onChange({ ...info, [field]: val })
+  }
+
   const updateSocial = (field: keyof GlobalStoreInfo['social_links'], val: string) => {
     onChange({ ...info, social_links: { ...info.social_links, [field]: val } })
   }
@@ -113,13 +118,13 @@ export function GlobalStoreSettings({ info, onChange }: GlobalStoreSettingsProps
               <div className="pt-4 space-y-4">
                  <h3 className="text-xs font-bold text-neutral-900 border-b pb-2 uppercase tracking-widest px-1">Social Media Links</h3>
                  <div className="grid sm:grid-cols-2 gap-4">
-                    {Object.entries(info.social_links).map(([platform, link]) => (
+                    {SOCIAL_LINK_KEYS.map((platform) => (
                       <div key={platform} className="space-y-1">
                         <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest px-1">{platform}</label>
                         <input 
                           className="w-full border border-neutral-200 bg-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-black outline-none transition-all"
-                          value={link}
-                          onChange={(e) => updateSocial(platform as any, e.target.value)}
+                          value={info.social_links[platform]}
+                          onChange={(e) => updateSocial(platform, e.target.value)}
                         />
                       </div>
                     ))}

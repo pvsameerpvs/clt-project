@@ -36,7 +36,7 @@ export function EditPromotionModal({
       setIsSaving(true)
       await onSave(promotion.id, discount)
       onClose()
-    } catch (err) {
+    } catch {
       alert("Failed to save changes")
     } finally {
       setIsSaving(false)

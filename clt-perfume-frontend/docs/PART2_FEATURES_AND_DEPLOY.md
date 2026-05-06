@@ -581,12 +581,12 @@ NODE_ENV=development
 
 # Supabase (use SERVICE ROLE key for backend — full access)
 SUPABASE_URL=https://isiykgwvwggdqemguhhz.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzaXlrZ3d2d2dnZHFlbWd1aGh6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzQ4NDE5OSwiZXhwIjoyMDg5MDYwMTk5fQ.WFg6V8gGSwFBlKgYy20K8S7OwjNwYwxeFNOfTkSVCqU
+SUPABASE_SERVICE_ROLE_KEY=replace_with_your_service_role_key
 
 # Stripe
-STRIPE_SECRET_KEY=sk_test_YOUR_STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET=whsec_YOUR_WEBHOOK_SECRET
-STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_STRIPE_PUBLISHABLE_KEY
+STRIPE_SECRET_KEY=replace_with_your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=replace_with_your_stripe_webhook_secret
+STRIPE_PUBLISHABLE_KEY=replace_with_your_stripe_publishable_key
 
 # Frontend URL (for CORS)
 FRONTEND_URL=http://localhost:3000
@@ -1312,11 +1312,11 @@ NODE_ENV=development
 
 # Supabase (SERVICE ROLE — full access, never expose to frontend!)
 SUPABASE_URL=https://isiykgwvwggdqemguhhz.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
+SUPABASE_SERVICE_ROLE_KEY=replace_with_your_service_role_key
 
 # Stripe (secret key — never expose to frontend!)
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_SECRET_KEY=replace_with_your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=replace_with_your_stripe_webhook_secret
 
 # Frontend URL
 FRONTEND_URL=http://localhost:3000

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { getProducts, getSiteSettings } from "@/lib/api"
 import { isOfferActive } from "@/lib/offers"
 import { Product } from "@/lib/products"
+import { renderLineBreaks, stripMarkup } from "@/lib/safe-html"
 
 interface PromoOffer {
   title: string
@@ -37,10 +38,6 @@ function normalizeToken(value: string) {
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-}
-
-function stripHtml(value: string) {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
 }
 
 function normalizeProductSlugs(input: unknown) {
@@ -152,7 +149,7 @@ export default async function DealsCollectionPage() {
 
   const heroImage = dealsCollection?.cover_image || dealsCollection?.image || "/curated-pefume-banner.png"
   const heroTitleHtml = dealsCollection?.title || "Deals Collection"
-  const heroTitle = stripHtml(heroTitleHtml) || "Deals Collection"
+  const heroTitle = stripMarkup(heroTitleHtml) || "Deals Collection"
   const heroSubtitle =
     dealsCollection?.subtitle || "Discover curated bundle offers and promo-selected products with exclusive pricing."
 
@@ -178,10 +175,9 @@ export default async function DealsCollectionPage() {
             Limited Time Deals
           </Badge>
 
-          <h1
-            className="text-4xl md:text-6xl font-serif text-white"
-            dangerouslySetInnerHTML={{ __html: heroTitleHtml }}
-          />
+          <h1 className="text-4xl md:text-6xl font-serif text-white">
+            {renderLineBreaks(heroTitleHtml)}
+          </h1>
           <p className="mt-3 max-w-2xl text-white/85 font-light md:text-lg">{heroSubtitle}</p>
 
           <div className="mt-6 flex flex-wrap gap-3">

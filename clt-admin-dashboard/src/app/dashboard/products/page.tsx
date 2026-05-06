@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useEffect, useMemo, useState } from "react"
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react"
 import {
   AdminProduct,
   createAdminProduct,
@@ -171,7 +171,7 @@ export default function ProductsPage() {
     return null
   }, [form, selectedProduct, selectedProductId, shouldPreviewForm, sortedProducts])
 
-  async function loadProducts(preferredProductId?: string | null, mlValue?: string) {
+  const loadProducts = useCallback(async (preferredProductId?: string | null, mlValue?: string) => {
     try {
       setLoading(true)
  
@@ -195,11 +195,11 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [serverMlFilter])
 
   useEffect(() => {
     void loadProducts(null, serverMlFilter)
-  }, [serverMlFilter])
+  }, [loadProducts, serverMlFilter])
 
   function handleVariantAutofill() {
     const normalizedGroupId = form.variant_group_id.trim().toLowerCase()

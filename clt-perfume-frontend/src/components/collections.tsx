@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { CollectionCard } from "@/components/collections/collection-card"
 import { getSiteSettings } from "@/lib/api"
+import { renderLineBreaks } from "@/lib/safe-html"
 
 interface CuratedCollectionItem {
   href: string
@@ -84,7 +85,7 @@ export function Collections({ initialCollections }: CollectionsProps) {
               imageSrc={col.image}
               imageAlt={col.subtitle}
               subtitle={col.subtitle}
-              title={<span dangerouslySetInnerHTML={{ __html: col.title }} />}
+              title={<span>{renderLineBreaks(col.title)}</span>}
               actionText={col.action}
             />
           ))}

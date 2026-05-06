@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft } from "lucide-react"
 import { login, signInWithGoogle } from "@/app/auth/actions"
+import { sanitizeRelativePath } from "@/lib/redirects"
 
 export default function LoginPage({
   searchParams,
@@ -16,7 +17,7 @@ export default function LoginPage({
   searchParams: Promise<{ error?: string; message?: string; next?: string }>
 }) {
   const { error, message, next } = use(searchParams)
-  const nextPath = next && next.startsWith("/") ? next : "/"
+  const nextPath = sanitizeRelativePath(next, "/")
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<{ email: string; password: string }>()
 

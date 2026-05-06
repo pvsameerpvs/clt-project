@@ -3,8 +3,17 @@
 import { Facebook, Instagram, Twitter, Youtube, Linkedin, Edit3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+interface StoreInfo {
+  slogan?: string
+  description?: string
+  email?: string
+  phone?: string
+  address?: string
+  social_links?: Partial<Record<"instagram" | "facebook" | "twitter" | "youtube" | "linkedin", string>>
+}
+
 interface StorePreviewProps {
-  info: any
+  info: StoreInfo
   onEditClick: () => void
 }
 

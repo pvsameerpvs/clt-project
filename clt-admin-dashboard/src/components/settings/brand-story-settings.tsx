@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { SingleImageUpload } from "@/components/single-image-upload"
 import { BrandPreview } from "@/components/preview/brand-preview"
+import type { SiteSettings } from "@/lib/admin-api"
 import {
   Dialog,
   DialogContent,
@@ -12,9 +13,12 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
+type BrandStory = SiteSettings["brand_story"]
+type BrandStoryFeature = BrandStory["features"][number]
+
 interface BrandStorySettingsProps {
-  story: any
-  onChange: (story: any) => void
+  story: BrandStory
+  onChange: (story: BrandStory) => void
 }
 
 export function BrandStorySettings({ story, onChange }: BrandStorySettingsProps) {
@@ -80,7 +84,7 @@ export function BrandStorySettings({ story, onChange }: BrandStorySettingsProps)
             <div className="space-y-4">
               <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest px-1">Core Features</label>
               <div className="grid gap-4">
-                {story.features?.map((feat: any, idx: number) => (
+                {story.features?.map((feat: BrandStoryFeature, idx: number) => (
                   <div key={idx} className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-3">
                     <div className="flex items-center gap-2">
                        <span className="bg-black text-white w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold">{idx + 1}</span>

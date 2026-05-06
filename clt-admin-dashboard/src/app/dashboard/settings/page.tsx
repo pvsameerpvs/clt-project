@@ -22,8 +22,7 @@ import { CollectionsSettings } from "@/components/settings/collections-settings"
 import { PocketFriendlySettings } from "@/components/settings/pocket-friendly-settings"
 import { GlobalStoreSettings } from "@/components/settings/global-store-settings"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 
 function slugify(value: string) {

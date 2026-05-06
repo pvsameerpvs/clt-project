@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { getSiteSettings } from "@/lib/api"
+import { renderLineBreaks } from "@/lib/safe-html"
 
 interface BrandStoryFeature {
   title: string
@@ -54,10 +55,9 @@ export function BrandStory({ initialData }: BrandStoryProps) {
           
           <div className="space-y-8">
             <span className="text-xs uppercase tracking-[0.2em] text-neutral-400">Our Core Philosophy</span>
-            <h2 
-              className="text-4xl md:text-6xl font-serif font-light leading-tight"
-              dangerouslySetInnerHTML={{ __html: data.title }}
-            />
+            <h2 className="text-4xl md:text-6xl font-serif font-light leading-tight">
+              {renderLineBreaks(data.title)}
+            </h2>
             <p className="text-neutral-300 text-lg font-light leading-relaxed max-w-md">
               {data.description}
             </p>

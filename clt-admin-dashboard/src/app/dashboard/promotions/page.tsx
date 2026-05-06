@@ -55,7 +55,7 @@ export default function PromotionsPage() {
       ))
       toast.success(`${gifts.length} promotions created successfully`)
       await loadData()
-    } catch (err) {
+    } catch {
       toast.error("Some promotions failed to save. Check for duplicates.")
     } finally {
       setIsCreating(false)
@@ -78,7 +78,7 @@ export default function PromotionsPage() {
       await deleteAdminPromotion(id)
       setPromotions(promotions.filter(p => p.id !== id))
       toast.success("Promotion removed")
-    } catch (err) {
+    } catch {
       toast.error("Failed to delete.")
     }
   }

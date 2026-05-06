@@ -1,8 +1,46 @@
 import { Router, Request, Response } from 'express'
+import rateLimit from 'express-rate-limit'
+import { type User } from '@supabase/supabase-js'
 import { sendWelcomeEmail } from '../services/email.service'
 import { supabaseAdmin } from '../config/supabase'
 
 export const authRoutes = Router()
+
+const authWriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX || (process.env.NODE_ENV === 'production' ? 20 : 100)),
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+function isDuplicateEmailError(error: { message?: string } | null | undefined) {
+  const message = (error?.message || '').toLowerCase()
+  return (
+    message.includes('already') ||
+    message.includes('registered') ||
+    message.includes('duplicate')
+  )
+}
+
+function getUserProviders(user: Pick<User, 'app_metadata' | 'identities'>) {
+  return Array.from(
+    new Set(
+      [
+        ...(user.app_metadata?.providers || []),
+        user.app_metadata?.provider,
+        ...(user.identities?.map((identity) => identity.provider) || []),
+      ].filter((provider): provider is string => Boolean(provider))
+    )
+  )
+}
+
+function serializeAuthUser(user: Pick<User, 'id' | 'email' | 'user_metadata'>) {
+  return {
+    id: user.id,
+    email: user.email,
+    user_metadata: user.user_metadata || {},
+  }
+}
 
 async function findAuthUserByEmail(email: string) {
   let page = 1
@@ -65,7 +103,7 @@ async function ensureProfileRow(user: {
   }
 }
 
-authRoutes.post('/signup', async (req: Request, res: Response) => {
+authRoutes.post('/signup', authWriteLimiter, async (req: Request, res: Response) => {
   try {
     const firstName =
       typeof req.body?.firstName === 'string' ? req.body.firstName.trim() : ''
@@ -81,18 +119,37 @@ authRoutes.post('/signup', async (req: Request, res: Response) => {
       return
     }
 
+    const createdUser = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        first_name: firstName,
+        last_name: lastName,
+      },
+    })
+
+    if (!createdUser.error && createdUser.data.user) {
+      await ensureProfileRow(createdUser.data.user)
+
+      res.json({
+        success: true,
+        user: serializeAuthUser(createdUser.data.user),
+      })
+      return
+    }
+
+    if (!isDuplicateEmailError(createdUser.error)) {
+      res.status(500).json({
+        error: createdUser.error?.message || 'We could not create your account right now.',
+      })
+      return
+    }
+
     const existingUser = await findAuthUserByEmail(email)
 
     if (existingUser) {
-      const providers = Array.from(
-        new Set(
-          [
-            ...(existingUser.app_metadata?.providers || []),
-            existingUser.app_metadata?.provider,
-            ...(existingUser.identities?.map((identity) => identity.provider) || []),
-          ].filter((provider): provider is string => Boolean(provider))
-        )
-      )
+      const providers = getUserProviders(existingUser)
 
       if (providers.includes('google') && !providers.includes('email')) {
         res.status(409).json({
@@ -136,48 +193,20 @@ authRoutes.post('/signup', async (req: Request, res: Response) => {
 
       res.json({
         success: true,
-        user: {
-          id: data.user.id,
-          email: data.user.email,
-          user_metadata: data.user.user_metadata || {},
-        },
+        user: serializeAuthUser(data.user),
       })
       return
     }
 
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        first_name: firstName,
-        last_name: lastName,
-      },
-    })
-
-    if (error || !data.user) {
-      res.status(500).json({
-        error: error?.message || 'We could not create your account right now.',
-      })
-      return
-    }
-
-    await ensureProfileRow(data.user)
-
-    res.json({
-      success: true,
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-        user_metadata: data.user.user_metadata || {},
-      },
+    res.status(409).json({
+      error: 'This email is already registered. Please log in instead.',
     })
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Signup failed' })
   }
 })
 
-authRoutes.post('/welcome-email', async (req: Request, res: Response) => {
+authRoutes.post('/welcome-email', authWriteLimiter, async (req: Request, res: Response) => {
   try {
     const { email, firstName, source } = req.body || {}
 

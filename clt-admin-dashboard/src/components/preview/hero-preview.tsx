@@ -7,6 +7,7 @@ import { ArrowRight, Edit3 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { getStorefrontUrl } from "@/lib/public-config"
+import { renderLineBreaks } from "@/lib/safe-html"
 import {
   Carousel,
   CarouselContent,
@@ -74,10 +75,9 @@ export function HeroPreview({ slides, onEditClick }: { slides: HeroSlide[], onEd
                       </div>
 
                       <div className="flex animate-in fade-in slide-in-from-left-4 duration-700 delay-200">
-                        <h1
-                          className="max-w-4xl text-4xl font-thin uppercase leading-none tracking-tight text-white md:text-5xl lg:text-6xl"
-                          dangerouslySetInnerHTML={{ __html: slide.headline || "" }}
-                        />
+                        <h1 className="max-w-4xl text-4xl font-thin uppercase leading-none tracking-tight text-white md:text-5xl lg:text-6xl">
+                          {renderLineBreaks(slide.headline)}
+                        </h1>
                       </div>
 
                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">

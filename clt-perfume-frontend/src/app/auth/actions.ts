@@ -8,13 +8,10 @@ import {
   sendWelcomeEmail,
 } from "@/lib/auth/account-service"
 import { getApiUrl, getSiteUrl } from "@/lib/public-config"
+import { sanitizeRelativePath } from "@/lib/redirects"
 
 function sanitizeNextPath(nextPath: string | null): string {
-  if (!nextPath || !nextPath.startsWith("/")) {
-    return "/"
-  }
-
-  return nextPath
+  return sanitizeRelativePath(nextPath, "/")
 }
 
 async function getBaseUrl() {

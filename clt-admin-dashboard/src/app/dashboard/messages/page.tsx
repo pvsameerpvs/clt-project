@@ -13,7 +13,7 @@ export default function MessagesPage() {
     try {
       const data = await getAdminMessages()
       setMessages(data || [])
-    } catch (err) {
+    } catch {
       toast.error("Failed to load messages.")
     } finally {
       setLoading(false)
@@ -29,7 +29,7 @@ export default function MessagesPage() {
       await markMessageAsRead(id)
       setMessages(messages.map(m => m.id === id ? { ...m, is_read: true } : m))
       toast.success("Message marked as read")
-    } catch (err) {
+    } catch {
       toast.error("Failed to update message status")
     }
   }
