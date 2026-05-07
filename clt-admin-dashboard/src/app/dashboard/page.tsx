@@ -197,7 +197,10 @@ export default function DashboardOverviewPage() {
               {data.recentOrders.slice(0, 5).map((order) => (
                 <div key={order.id} className="group/order relative flex items-center justify-between p-3 rounded-2xl border border-neutral-100 hover:border-black hover:bg-white transition-all duration-200">
                   <div className="space-y-1">
-                    <p className="text-xs font-bold tracking-widest group-hover/order:underline">#{order.orderNumber}</p>
+                    <p className="text-xs font-bold tracking-widest group-hover/order:underline flex items-center gap-2">
+                      #{order.orderNumber}
+                      {!order.user_id && <span className="bg-neutral-100 text-neutral-500 text-[8px] px-1.5 py-0.5 rounded-md">Guest</span>}
+                    </p>
                     <p className="text-[10px] text-neutral-500 italic">
                       {new Date(order.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>

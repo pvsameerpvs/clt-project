@@ -12,6 +12,7 @@ export interface RevenueBucket {
 
 export interface RecentOrder {
   id: string
+  user_id: string | null
   orderNumber: string
   total: number
   status: string
@@ -208,6 +209,7 @@ export interface NavCategory {
 
 export interface AdminOrder {
   id: string
+  user_id: string | null
   order_number?: string
   total: number
   subtotal: number

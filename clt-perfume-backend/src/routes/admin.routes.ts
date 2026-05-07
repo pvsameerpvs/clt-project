@@ -291,6 +291,7 @@ adminRoutes.get('/dashboard', async (req: Request, res: Response) => {
       .slice(0, 8)
       .map((order) => ({
         id: order.id,
+        user_id: order.user_id,
         orderNumber: order.order_number || order.id.slice(0, 8),
         total: Number(order.total || 0),
         status: normalizeOrderStatusForResponse(order.status),

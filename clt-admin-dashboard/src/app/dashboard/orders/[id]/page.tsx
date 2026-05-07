@@ -158,7 +158,10 @@ export default function OrderDetailsPage() {
           <Link href="/dashboard/orders" className="back-link">
             Back to Orders
           </Link>
-          <h1>Order #{order.order_number || order.id.slice(0, 8)}</h1>
+          <h1>
+            Order #{order.order_number || order.id.slice(0, 8)}
+            {!order.user_id && <span className="guest-tag">Guest</span>}
+          </h1>
           <p>Slug: {order.id}</p>
         </div>
         <div className="status-panel">
@@ -209,7 +212,10 @@ export default function OrderDetailsPage() {
           <div className="meta-list">
             <div>
               <label>Name</label>
-              <p>{customer.name}</p>
+              <p>
+                {customer.name}
+                {!order.user_id && <span className="guest-tag">Guest Account</span>}
+              </p>
             </div>
             <div>
               <label>Email</label>
@@ -686,6 +692,19 @@ export default function OrderDetailsPage() {
         .status.default {
           background: #f3f4f6;
           color: #111827;
+        }
+        .guest-tag {
+          display: inline-block;
+          margin-left: 10px;
+          background: #f3f4f6;
+          color: #6b7280;
+          border-radius: 6px;
+          padding: 2px 8px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+          vertical-align: middle;
         }
         .empty {
           border: 1px dashed #e5e7eb;

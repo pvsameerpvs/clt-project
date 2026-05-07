@@ -292,7 +292,10 @@ export default function OrdersPage() {
                         </Link>
                       </td>
                       <td>
-                        <div className="name">{getProfileName(order)}</div>
+                        <div className="name">
+                          {getProfileName(order)}
+                          {!order.user_id && <span className="guest-tag">Guest</span>}
+                        </div>
                       </td>
                       <td className="sub">{formatUtcDate(order.created_at)}</td>
                       <td className="name">AED {Number(order.total || 0).toLocaleString()}</td>
@@ -529,6 +532,19 @@ export default function OrdersPage() {
         .status.default {
           background: #f3f4f6;
           color: #111827;
+        }
+        .guest-tag {
+          display: inline-block;
+          margin-left: 8px;
+          background: #f3f4f6;
+          color: #6b7280;
+          border-radius: 4px;
+          padding: 2px 6px;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+          vertical-align: middle;
         }
         .payment-badge {
           display: inline-flex;
