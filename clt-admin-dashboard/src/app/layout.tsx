@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import { Providers } from "@/components/providers"
 import "./globals.css"
@@ -18,6 +18,20 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "CLE Perfume Dashboard",
   description: "Advanced management interface for CLE Perfume operations.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "CLE Admin",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [{ url: "/admin-icon.png", sizes: "146x142", type: "image/png" }],
+    apple: [{ url: "/admin-icon.png", sizes: "146x142", type: "image/png" }],
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#111827",
 }
 
 export default function RootLayout({

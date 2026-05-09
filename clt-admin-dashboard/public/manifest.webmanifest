@@ -1,0 +1,57 @@
+{
+  "id": "/dashboard/mobile-order-app",
+  "name": "CLE Perfume Admin",
+  "short_name": "CLE Admin",
+  "description": "Order management for CLE Perfume operations.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/dashboard/mobile-order-app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#111827",
+  "orientation": "portrait",
+  "categories": ["business", "productivity", "shopping"],
+  "icons": [
+    {
+      "src": "/admin-icon.png",
+      "sizes": "146x142",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/admin-maskable-icon.png",
+      "sizes": "146x142",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mobile Order App",
+      "short_name": "Order App",
+      "description": "Open mobile order app controls.",
+      "url": "/dashboard/mobile-order-app",
+      "icons": [
+        {
+          "src": "/admin-icon.png",
+          "sizes": "146x142",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "short_name": "Orders",
+      "description": "Open the admin order queue.",
+      "url": "/dashboard/orders",
+      "icons": [
+        {
+          "src": "/admin-icon.png",
+          "sizes": "146x142",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

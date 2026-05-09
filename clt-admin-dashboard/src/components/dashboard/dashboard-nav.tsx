@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   LayoutDashboard,
   Package,
@@ -17,10 +17,22 @@ import {
   Ticket,
   RefreshCcw,
   Gift,
+  Smartphone,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { getAdminOrders } from "@/lib/admin-api"
+import { getAdminOrders, getAdminReturnRequests } from "@/lib/admin-api"
+import type { AdminOrder, AdminReturnRequest } from "@/lib/admin-api"
+
+const INCOMING_ORDER_STATUSES = new Set(["pending", "confirmed", "processing"])
+
+function countIncomingOrders(orders: AdminOrder[]) {
+  return orders.filter((order) => INCOMING_ORDER_STATUSES.has(String(order.status || "").toLowerCase())).length
+}
+
+function countPendingReturns(returns: AdminReturnRequest[]) {
+  return returns.filter((returnRequest) => String(returnRequest.status || "").toLowerCase() === "pending").length
+}
 
 export const menuItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -28,6 +40,7 @@ export const menuItems = [
   { label: "Stocks", href: "/dashboard/stocks", icon: Boxes },
   { label: "Collections", href: "/dashboard/categories", icon: LayoutGrid },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingBag },
+  { label: "Mobile Order App", href: "/dashboard/mobile-order-app", icon: Smartphone },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
   { label: "Newsletter", href: "/dashboard/newsletter", icon: Mail },
   { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
@@ -48,8 +61,6 @@ export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavP
   const [newOrderCount, setNewOrderCount] = useState(0)
   const [newReturnCount, setNewReturnCount] = useState(0)
 
-  const incomingStatuses = useMemo(() => new Set(["pending", "confirmed", "processing"]), [])
-
   useEffect(() => {
     let mounted = true
 
@@ -57,18 +68,13 @@ export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavP
       try {
         const [todayOrders, allReturns] = await Promise.all([
           getAdminOrders({ scope: "today" }),
-          import("@/lib/admin-api").then(api => api.getAdminReturnRequests())
+          getAdminReturnRequests(),
         ])
-        
-        if (!mounted) return
-        
-        // 1. Calculate new orders
-        const incoming = todayOrders.filter((order) => incomingStatuses.has(String(order.status || "").toLowerCase()))
-        setNewOrderCount(incoming.length)
 
-        // 2. Calculate pending returns
-        const pendingReturns = allReturns.filter(r => String(r.status || "").toLowerCase() === "pending")
-        setNewReturnCount(pendingReturns.length)
+        if (!mounted) return
+
+        setNewOrderCount(countIncomingOrders(todayOrders))
+        setNewReturnCount(countPendingReturns(allReturns))
       } catch {
         if (!mounted) return
         setNewOrderCount(0)
@@ -83,7 +89,7 @@ export function DashboardNav({ userEmail, onLogout, onItemClick }: DashboardNavP
       mounted = false
       clearInterval(timer)
     }
-  }, [incomingStatuses])
+  }, [])
 
   return (
     <div className="flex h-full flex-col">

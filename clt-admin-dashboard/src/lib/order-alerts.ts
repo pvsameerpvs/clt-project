@@ -1,0 +1,148 @@
+"use client"
+
+export type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>
+}
+
+export type NotificationState = NotificationPermission | "unsupported"
+type ActionNotificationOptions = NotificationOptions & {
+  actions?: Array<{ action: string; title: string }>
+  vibrate?: VibratePattern
+}
+
+export const ORDER_SOUND_STORAGE_KEY = "cle-admin-order-sound"
+export const ORDER_ALERT_DURATION_MS = 10000
+export const ORDER_VIBRATION_PATTERN: VibratePattern = [
+  800, 250, 800, 250, 800, 250, 800, 250, 800, 250,
+  800, 250, 800, 250, 800, 250, 800, 250, 550,
+]
+
+export function isStandaloneDisplay() {
+  if (typeof window === "undefined") return false
+  const standaloneNavigator = window.navigator as Navigator & { standalone?: boolean }
+  return window.matchMedia?.("(display-mode: standalone)").matches || standaloneNavigator.standalone === true
+}
+
+export function getNotificationState(): NotificationState {
+  if (typeof window === "undefined" || !("Notification" in window)) return "unsupported"
+  return Notification.permission
+}
+
+export function isOrderSoundReady() {
+  if (typeof window === "undefined") return false
+  try {
+    return window.localStorage.getItem(ORDER_SOUND_STORAGE_KEY) === "ready"
+  } catch {
+    return false
+  }
+}
+
+export function markOrderSoundReady() {
+  try {
+    window.localStorage.setItem(ORDER_SOUND_STORAGE_KEY, "ready")
+  } catch {
+    // Storage can be unavailable in private browsing or locked-down admin devices.
+  }
+}
+
+export async function registerOrderWorker() {
+  if (
+    typeof window === "undefined" ||
+    typeof navigator === "undefined" ||
+    !window.isSecureContext ||
+    !("serviceWorker" in navigator)
+  ) {
+    return null
+  }
+
+  return navigator.serviceWorker.register("/sw.js", { scope: "/" })
+}
+
+export async function requestNotificationPermission(): Promise<NotificationState> {
+  const state = getNotificationState()
+  if (state !== "default") return state
+
+  return Notification.requestPermission()
+}
+
+export function vibrateOrderAlert() {
+  if (typeof navigator === "undefined" || !("vibrate" in navigator)) return false
+  return navigator.vibrate(ORDER_VIBRATION_PATTERN)
+}
+
+export async function playOrderChime(durationMs = ORDER_ALERT_DURATION_MS) {
+  const AudioContextCtor =
+    window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+
+  if (!AudioContextCtor) {
+    throw new Error("Audio is not supported in this browser.")
+  }
+
+  const audioContext = new AudioContextCtor()
+  await audioContext.resume()
+
+  const now = audioContext.currentTime
+  const tones = [
+    { frequency: 740, startsAt: 0 },
+    { frequency: 932, startsAt: 0.16 },
+    { frequency: 1175, startsAt: 0.32 },
+  ]
+  const repeatEverySeconds = 1.2
+  const durationSeconds = Math.max(durationMs, ORDER_ALERT_DURATION_MS) / 1000
+
+  for (let loopStartsAt = 0; loopStartsAt < durationSeconds; loopStartsAt += repeatEverySeconds) {
+    const gain = audioContext.createGain()
+    gain.gain.setValueAtTime(0.0001, now + loopStartsAt)
+    gain.gain.exponentialRampToValueAtTime(0.22, now + loopStartsAt + 0.03)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + loopStartsAt + 0.9)
+    gain.connect(audioContext.destination)
+
+    tones.forEach(({ frequency, startsAt }) => {
+      const toneStartsAt = loopStartsAt + startsAt
+      if (toneStartsAt >= durationSeconds) return
+
+      const oscillator = audioContext.createOscillator()
+      oscillator.type = "sine"
+      oscillator.frequency.setValueAtTime(frequency, now + toneStartsAt)
+      oscillator.connect(gain)
+      oscillator.start(now + toneStartsAt)
+      oscillator.stop(now + Math.min(toneStartsAt + 0.32, durationSeconds))
+    })
+  }
+
+  window.setTimeout(() => {
+    void audioContext.close()
+  }, durationSeconds * 1000 + 500)
+}
+
+export async function showOrderNotification({
+  body,
+  tag,
+  title,
+  url,
+}: {
+  body: string
+  tag: string
+  title: string
+  url: string
+}) {
+  if (getNotificationState() !== "granted") return
+
+  const registration = await registerOrderWorker()
+  const options: ActionNotificationOptions = {
+    body,
+    icon: "/admin-icon.png",
+    badge: "/admin-maskable-icon.png",
+    tag,
+    data: { url },
+    requireInteraction: true,
+    vibrate: ORDER_VIBRATION_PATTERN,
+    actions: [
+      { action: "see-order", title: "See Order" },
+      { action: "open-app", title: "Open App" },
+    ],
+  }
+
+  await registration?.showNotification(title, options)
+}
