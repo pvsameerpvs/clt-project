@@ -37,7 +37,10 @@ self.addEventListener("push", (event) => {
         url: payload.url || fallback.url,
         appUrl: "/dashboard/mobile-order-app",
       },
+      renotify: true,
       requireInteraction: true,
+      silent: false,
+      timestamp: Date.now(),
       vibrate: ORDER_VIBRATION_PATTERN,
       actions: [
         { action: "see-order", title: "See Order" },

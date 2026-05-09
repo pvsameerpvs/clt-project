@@ -7,6 +7,7 @@ import {
   getNotificationState,
   isOrderSoundReady,
   isStandaloneDisplay,
+  isWebPushSupported,
   markOrderSoundReady,
   NotificationState,
   playOrderChime,
@@ -66,6 +67,7 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
   const [notificationState, setNotificationState] = useState<NotificationState>("default")
   const [soundReady, setSoundReady] = useState(false)
   const [workerReady, setWorkerReady] = useState(false)
+  const [pushReady, setPushReady] = useState(false)
   const [message, setMessage] = useState("Install on mobile, then enable alerts for the order desk.")
 
   useEffect(() => {
@@ -144,15 +146,23 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
       const permission = await requestNotificationPermission()
       setNotificationState(permission)
 
+      let pushSubscribed = false
+      let pushErrorMessage = ""
+
       if (permission === "granted") {
         const publicKey = process.env.NEXT_PUBLIC_VAPID_KEY
-        if (publicKey) {
+        if (!isWebPushSupported()) {
+          pushErrorMessage = "This browser does not support Web Push."
+        } else if (publicKey) {
           try {
             await subscribeToWebPush(publicKey)
+            pushSubscribed = true
           } catch (pushError) {
             console.error("Web Push Error:", pushError)
-            // We intentionally don't throw here so that local sound/vibration still enables!
+            pushErrorMessage = pushError instanceof Error ? pushError.message : "Failed to save push subscription."
           }
+        } else {
+          pushErrorMessage = "NEXT_PUBLIC_VAPID_KEY is missing."
         }
       }
 
@@ -160,9 +170,18 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
       await playOrderChime()
       markOrderSoundReady()
       setSoundReady(true)
+      setPushReady(pushSubscribed)
 
-      if (permission === "granted") {
+      if (permission === "granted" && pushSubscribed) {
+        await showOrderNotification({
+          title: "Order alerts ready",
+          body: "Background order notifications are enabled on this device.",
+          tag: "cle-admin-alert-enabled",
+          url: "/dashboard/mobile-order-app",
+        })
         setMessage("Order alerts are ready with background push notifications, sound, and vibration.")
+      } else if (permission === "granted") {
+        setMessage(`Notification permission is on, but background push is not saved: ${pushErrorMessage}`)
       } else if (permission === "denied") {
         setMessage("Browser notifications are blocked. Sound and vibration are ready while this page is open.")
       } else {
@@ -180,14 +199,20 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
       markOrderSoundReady()
       setSoundReady(true)
 
-      await showOrderNotification({
-        title: "Order alerts ready",
-        body: "New order notifications will open the order desk.",
-        tag: "cle-admin-alert-test",
-        url: "/dashboard/mobile-order-app",
-      })
+      const permission = await requestNotificationPermission()
+      setNotificationState(permission)
 
-      setMessage("10-second test alert played.")
+      if (permission === "granted") {
+        await showOrderNotification({
+          title: "Order alerts ready",
+          body: "New order notifications will open the order desk.",
+          tag: "cle-admin-alert-test",
+          url: "/dashboard/mobile-order-app",
+        })
+        setMessage("10-second test alert played and a notification was shown.")
+      } else {
+        setMessage("10-second sound test played, but browser notifications are not allowed.")
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to play test sound.")
     }
@@ -230,8 +255,8 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
           <strong className={soundReady ? "ready" : "idle"}>{soundReady ? "Ready" : "Off"}</strong>
         </div>
         <div>
-          <span>Worker</span>
-          <strong className={workerReady ? "ready" : "idle"}>{workerReady ? "Ready" : "Off"}</strong>
+          <span>Push</span>
+          <strong className={pushReady || workerReady ? "ready" : "idle"}>{pushReady ? "Saved" : workerReady ? "Ready" : "Off"}</strong>
         </div>
       </div>
 

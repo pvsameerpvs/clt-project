@@ -8,6 +8,9 @@ export type BeforeInstallPromptEvent = Event & {
 export type NotificationState = NotificationPermission | "unsupported"
 type ActionNotificationOptions = NotificationOptions & {
   actions?: Array<{ action: string; title: string }>
+  renotify?: boolean
+  silent?: boolean
+  timestamp?: number
   vibrate?: VibratePattern
 }
 
@@ -46,6 +49,17 @@ export function markOrderSoundReady() {
   }
 }
 
+export function isWebPushSupported() {
+  return (
+    typeof window !== "undefined" &&
+    typeof navigator !== "undefined" &&
+    window.isSecureContext &&
+    "Notification" in window &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window
+  )
+}
+
 export async function registerOrderWorker() {
   if (
     typeof window === "undefined" ||
@@ -56,7 +70,8 @@ export async function registerOrderWorker() {
     return null
   }
 
-  return navigator.serviceWorker.register("/sw.js", { scope: "/" })
+  await navigator.serviceWorker.register("/sw.js", { scope: "/" })
+  return navigator.serviceWorker.ready
 }
 
 export async function requestNotificationPermission(): Promise<NotificationState> {
@@ -136,7 +151,10 @@ export async function showOrderNotification({
     badge: "/admin-maskable-icon.png",
     tag,
     data: { url },
+    renotify: true,
     requireInteraction: true,
+    silent: false,
+    timestamp: Date.now(),
     vibrate: ORDER_VIBRATION_PATTERN,
     actions: [
       { action: "see-order", title: "See Order" },
@@ -148,7 +166,7 @@ export async function showOrderNotification({
 }
 
 export async function subscribeToWebPush(vapidPublicKey: string) {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+  if (!isWebPushSupported()) {
     throw new Error("Push notifications are not supported in this browser.")
   }
 
@@ -156,6 +174,7 @@ export async function subscribeToWebPush(vapidPublicKey: string) {
   const existingSubscription = await registration.pushManager.getSubscription()
 
   if (existingSubscription) {
+    await savePushSubscription(existingSubscription)
     return existingSubscription
   }
 
@@ -173,7 +192,11 @@ export async function subscribeToWebPush(vapidPublicKey: string) {
     applicationServerKey: outputArray,
   })
 
-  // Save the subscription to the backend
+  await savePushSubscription(subscription)
+  return subscription
+}
+
+async function savePushSubscription(subscription: PushSubscription) {
   const res = await fetch("/api/admin/push/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -181,9 +204,7 @@ export async function subscribeToWebPush(vapidPublicKey: string) {
   })
 
   if (!res.ok) {
-    const data = await res.json()
-    throw new Error(data.error || "Failed to save push subscription.")
+    const data = (await res.json().catch(() => null)) as { error?: string; details?: string } | null
+    throw new Error(data?.details || data?.error || "Failed to save push subscription.")
   }
-
-  return subscription
 }

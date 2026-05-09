@@ -2,40 +2,94 @@ import { NextResponse } from "next/server"
 import webpush from "web-push"
 import { createClient } from "@supabase/supabase-js"
 
-// We use the service role key here because this is a webhook called by Supabase, 
-// and we need to read from the subscriptions table.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY! || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // fallback for local testing if needed
+export const runtime = "nodejs"
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY!
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY!
-const VAPID_SUBJECT = "mailto:admin@example.com"
+type NotifyPayload = {
+  type?: string
+  record?: {
+    id?: string
+    order_number?: string | null
+    total?: number | string | null
+  }
+}
 
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+type PushSubscriptionRow = {
+  id: string
+  endpoint: string | null
+  subscription_json: webpush.PushSubscription
+}
+
+let supabaseAdmin: ReturnType<typeof createClient> | null = null
+let configuredVapidKey: string | null = null
+
+function getRequiredEnv(name: string) {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Missing ${name}`)
+  }
+  return value
+}
+
+function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    supabaseAdmin = createClient(
+      getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+      getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    )
+  }
+
+  return supabaseAdmin
+}
+
+function configureWebPush() {
+  const publicKey = getRequiredEnv("NEXT_PUBLIC_VAPID_KEY")
+  const privateKey = getRequiredEnv("VAPID_PRIVATE_KEY")
+  const subject = process.env.VAPID_SUBJECT || "mailto:admin@cleparfum.com"
+  const cacheKey = `${subject}:${publicKey}:${privateKey}`
+
+  if (configuredVapidKey !== cacheKey) {
+    webpush.setVapidDetails(subject, publicKey, privateKey)
+    configuredVapidKey = cacheKey
+  }
+}
+
+function formatOrderTotal(total: number | string | null | undefined) {
+  const value = Number(total || 0)
+  return Number.isFinite(value) ? `AED ${value.toLocaleString("en-AE")}` : "AED 0"
 }
 
 export async function POST(request: Request) {
   try {
-    // Basic webhook secret verification
+    const expectedWebhookSecret = process.env.WEBHOOK_SECRET
     const webhookSecret = request.headers.get("x-webhook-secret")
-    if (process.env.WEBHOOK_SECRET && webhookSecret !== process.env.WEBHOOK_SECRET) {
+    if (expectedWebhookSecret && webhookSecret !== expectedWebhookSecret) {
       return NextResponse.json({ error: "Unauthorized webhook" }, { status: 401 })
     }
 
-    const payload = await request.json()
-    const { record, type } = payload // 'record' is the new order
+    configureWebPush()
 
-    // We only want to notify on INSERT
-    if (type !== "INSERT" && type !== "UPDATE") {
-      return NextResponse.json({ success: true, message: "Ignored non-insert/update" })
+    const payload = (await request.json()) as NotifyPayload
+    const { record, type } = payload
+
+    if (type !== "INSERT") {
+      return NextResponse.json({ success: true, message: "Ignored non-insert" })
     }
 
-    // Connect to supabase with service role to bypass RLS and get all admin subscriptions
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+    if (!record?.id) {
+      return NextResponse.json({ error: "Missing order record" }, { status: 400 })
+    }
+
+    const supabaseAdmin = getSupabaseAdmin()
     const { data: subscriptions, error } = await supabaseAdmin
       .from("admin_push_subscriptions")
-      .select("subscription_json, id")
+      .select("id, endpoint, subscription_json")
+      .returns<PushSubscriptionRow[]>()
 
     if (error || !subscriptions) {
       console.error("[push-notify] Failed to fetch subscriptions:", error)
@@ -48,30 +102,41 @@ export async function POST(request: Request) {
 
     const notificationPayload = JSON.stringify({
       title: `New Order #${record.order_number || record.id.slice(0, 8)}`,
-      body: `A new order for AED ${record.total || 0} has been placed.`,
+      body: `A new order for ${formatOrderTotal(record.total)} has been placed.`,
       tag: `cle-admin-order-${record.id}`,
-      url: `/dashboard/orders/${record.id}`,
+      url: `/dashboard/orders/${encodeURIComponent(record.id)}`,
     })
 
-    const pushPromises = subscriptions.map(async (sub) => {
+    let delivered = 0
+    let deleted = 0
+    let failed = 0
+
+    await Promise.all(subscriptions.map(async (sub) => {
       try {
         await webpush.sendNotification(sub.subscription_json, notificationPayload)
+        delivered += 1
       } catch (err: unknown) {
         const error = err as { statusCode?: number }
         if (error.statusCode === 410 || error.statusCode === 404) {
-          // Subscription has expired or is no longer valid, delete it
           await supabaseAdmin.from("admin_push_subscriptions").delete().eq("id", sub.id)
+          deleted += 1
         } else {
+          failed += 1
           console.error("[push-notify] Push error:", err)
         }
       }
+    }))
+
+    return NextResponse.json({
+      success: true,
+      subscriptions: subscriptions.length,
+      delivered,
+      deleted,
+      failed,
     })
-
-    await Promise.all(pushPromises)
-
-    return NextResponse.json({ success: true, notified: subscriptions.length })
   } catch (error) {
     console.error("[push-notify] Webhook error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Internal server error"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
