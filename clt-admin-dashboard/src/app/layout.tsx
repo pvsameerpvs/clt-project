@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    icon: [{ url: "/admin-icon.png", sizes: "146x142", type: "image/png" }],
-    apple: [{ url: "/admin-icon.png", sizes: "146x142", type: "image/png" }],
+    icon: [{ url: "/admin-icon.png", sizes: "512x512", type: "image/png" }],
+    apple: [{ url: "/admin-icon.png", sizes: "512x512", type: "image/png" }],
   },
 }
 

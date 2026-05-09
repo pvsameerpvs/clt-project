@@ -21,6 +21,8 @@ interface OrderMobileAppPanelProps {
   totalOrders: number
 }
 
+type InstallGuide = "ios" | "android" | "browser"
+
 function getNotificationLabel(state: NotificationState) {
   if (state === "granted") return "On"
   if (state === "denied") return "Blocked"
@@ -34,8 +36,31 @@ function getNotificationTone(state: NotificationState) {
   return "idle"
 }
 
+function getInstallGuide(): InstallGuide {
+  const userAgent = window.navigator.userAgent.toLowerCase()
+  const isIos = /iphone|ipad|ipod/.test(userAgent)
+  const isAndroid = userAgent.includes("android")
+
+  if (isIos) return "ios"
+  if (isAndroid) return "android"
+  return "browser"
+}
+
+function getInstallSteps(guide: InstallGuide) {
+  if (guide === "ios") {
+    return ["Open this page in Safari.", "Tap Share.", "Choose Add to Home Screen."]
+  }
+
+  if (guide === "android") {
+    return ["Open this page in Chrome.", "Tap the browser menu.", "Choose Install app or Add to Home screen."]
+  }
+
+  return ["Open this page in Chrome or Edge.", "Use the browser menu.", "Choose Install app when available."]
+}
+
 export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppPanelProps) {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [installGuide, setInstallGuide] = useState<InstallGuide | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
   const [notificationState, setNotificationState] = useState<NotificationState>("default")
   const [soundReady, setSoundReady] = useState(false)
@@ -56,6 +81,7 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
     function handleBeforeInstallPrompt(event: Event) {
       event.preventDefault()
       setInstallPrompt(event as BeforeInstallPromptEvent)
+      setInstallGuide(null)
       setMessage("Install is ready on this browser.")
     }
 
@@ -78,8 +104,10 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
   const installLabel = useMemo(() => {
     if (isInstalled) return "Installed"
     if (installPrompt) return "Ready"
-    return "Mobile"
+    return "Manual"
   }, [installPrompt, isInstalled])
+
+  const installButtonLabel = installPrompt ? "Install Admin App" : "Show Install Steps"
 
   async function handleInstallClick() {
     if (isInstalled) {
@@ -88,7 +116,9 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
     }
 
     if (!installPrompt) {
-      setMessage("iPhone: Share, Add to Home Screen. Android: browser menu, Install app.")
+      const guide = getInstallGuide()
+      setInstallGuide(guide)
+      setMessage("This browser needs manual install from its menu.")
       return
     }
 
@@ -194,8 +224,18 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
       <div className="action-stack">
         <button type="button" className="primary-action" onClick={handleInstallClick}>
           <Download size={16} strokeWidth={2.4} />
-          <span>Install Admin App</span>
+          <span>{installButtonLabel}</span>
         </button>
+        {installGuide && (
+          <div className="install-guide" role="status" aria-live="polite">
+            <strong>{installGuide === "ios" ? "Install on iPhone" : "Manual install"}</strong>
+            <ol>
+              {getInstallSteps(installGuide).map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </div>
+        )}
         <button type="button" className="secondary-action" onClick={handleEnableAlerts}>
           <Bell size={16} strokeWidth={2.4} />
           <span>Enable Order Alerts</span>
@@ -297,6 +337,25 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
         .action-stack {
           display: grid;
           gap: 8px;
+        }
+        .install-guide {
+          border: 1px solid #d1d5db;
+          border-radius: 12px;
+          background: #f9fafb;
+          padding: 12px;
+          color: #111827;
+        }
+        .install-guide strong {
+          display: block;
+          font-size: 13px;
+          font-weight: 900;
+        }
+        .install-guide ol {
+          margin: 8px 0 0;
+          padding-left: 18px;
+          color: #4b5563;
+          font-size: 12px;
+          line-height: 1.55;
         }
         .primary-action,
         .secondary-action {
