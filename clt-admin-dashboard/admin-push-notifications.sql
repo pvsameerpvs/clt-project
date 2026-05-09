@@ -96,7 +96,8 @@ BEGIN
   payload := jsonb_build_object(
     'type', TG_OP,
     'table', TG_TABLE_NAME,
-    'record', to_jsonb(NEW)
+    'record', to_jsonb(NEW),
+    'old_record', CASE WHEN TG_OP = 'UPDATE' THEN to_jsonb(OLD) ELSE NULL END
   );
 
   PERFORM net.http_post(
@@ -113,8 +114,18 @@ END;
 $$;
 
 DROP TRIGGER IF EXISTS on_order_created_push_notify ON public.orders;
+DROP TRIGGER IF EXISTS on_order_cancelled_push_notify ON public.orders;
 
 CREATE TRIGGER on_order_created_push_notify
 AFTER INSERT ON public.orders
 FOR EACH ROW
+EXECUTE FUNCTION public.notify_admin_push();
+
+CREATE TRIGGER on_order_cancelled_push_notify
+AFTER UPDATE OF status ON public.orders
+FOR EACH ROW
+WHEN (
+  OLD.status IS DISTINCT FROM NEW.status
+  AND lower(coalesce(NEW.status::text, '')) IN ('cancelled', 'canceled', 'refunded')
+)
 EXECUTE FUNCTION public.notify_admin_push();

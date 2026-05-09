@@ -8,13 +8,40 @@ type NotifyPayload = {
   record?: {
     id?: string
     order_number?: string | null
+    status?: string | null
     total?: number | string | null
   }
+  old_record?: {
+    status?: string | null
+  } | null
 }
 
 function formatOrderTotal(total: number | string | null | undefined) {
   const value = Number(total || 0)
   return Number.isFinite(value) ? `AED ${value.toLocaleString("en-AE")}` : "AED 0"
+}
+
+function normalizeStatus(status: string | null | undefined) {
+  return String(status || "").toLowerCase().trim()
+}
+
+function getOrderEvent(type: string | undefined, status: string | null | undefined, previousStatus: string | null | undefined) {
+  const normalizedStatus = normalizeStatus(status)
+  const normalizedPreviousStatus = normalizeStatus(previousStatus)
+  const isCancellation = ["cancelled", "canceled", "refunded"].includes(normalizedStatus)
+
+  if (type === "INSERT") {
+    return { kind: "new", label: "New Order" }
+  }
+
+  if (type === "UPDATE" && isCancellation && normalizedStatus !== normalizedPreviousStatus) {
+    return {
+      kind: normalizedStatus === "refunded" ? "refunded" : "cancelled",
+      label: normalizedStatus === "refunded" ? "Order Refunded" : "Order Cancelled",
+    }
+  }
+
+  return null
 }
 
 export async function POST(request: Request) {
@@ -26,10 +53,12 @@ export async function POST(request: Request) {
     }
 
     const payload = (await request.json()) as NotifyPayload
-    const { record, type } = payload
+    const { old_record, record, type } = payload
 
-    if (type !== "INSERT") {
-      return NextResponse.json({ success: true, message: "Ignored non-insert" })
+    const orderEvent = getOrderEvent(type, record?.status, old_record?.status)
+
+    if (!orderEvent) {
+      return NextResponse.json({ success: true, message: "Ignored non-actionable order event" })
     }
 
     if (!record?.id) {
@@ -42,12 +71,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: "No active subscriptions" })
     }
 
-    const notificationPayload = {
-      title: `New Order #${record.order_number || record.id.slice(0, 8)}`,
-      body: `A new order for ${formatOrderTotal(record.total)} has been placed.`,
-      tag: `cle-admin-order-${record.id}`,
-      url: `/dashboard/orders/${encodeURIComponent(record.id)}`,
-    }
+    const orderReference = record.order_number || record.id.slice(0, 8)
+    const orderUrl = `/dashboard/orders/${encodeURIComponent(record.id)}`
+    const notificationPayload = orderEvent.kind === "new"
+      ? {
+          title: `New Order #${orderReference}`,
+          body: `A new order for ${formatOrderTotal(record.total)} has been placed.`,
+          tag: `cle-admin-order-new-${record.id}`,
+          url: orderUrl,
+        }
+      : {
+          title: `${orderEvent.label} #${orderReference}`,
+          body: `Order #${orderReference} for ${formatOrderTotal(record.total)} was ${orderEvent.kind}.`,
+          tag: `cle-admin-order-${orderEvent.kind}-${record.id}`,
+          url: orderUrl,
+        }
 
     const result = await sendAdminPushNotifications(subscriptions, notificationPayload)
 
