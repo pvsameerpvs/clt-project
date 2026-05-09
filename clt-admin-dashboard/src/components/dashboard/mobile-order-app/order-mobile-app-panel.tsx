@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Bell, Download, Smartphone, Volume2 } from "lucide-react"
+import { Bell, BellRing, Download, Smartphone, Volume2 } from "lucide-react"
 import {
   BeforeInstallPromptEvent,
   getNotificationState,
@@ -13,6 +13,7 @@ import {
   playOrderChime,
   registerOrderWorker,
   requestNotificationPermission,
+  sendTestWebPush,
   showOrderNotification,
   subscribeToWebPush,
   vibrateOrderAlert,
@@ -218,6 +219,39 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
     }
   }
 
+  async function handleTestPush() {
+    try {
+      const registration = await registerOrderWorker()
+      setWorkerReady(Boolean(registration))
+
+      const permission = await requestNotificationPermission()
+      setNotificationState(permission)
+
+      if (permission !== "granted") {
+        setMessage("Browser notifications must be allowed before testing background push.")
+        return
+      }
+
+      const publicKey = process.env.NEXT_PUBLIC_VAPID_KEY
+      if (!publicKey) {
+        setMessage("NEXT_PUBLIC_VAPID_KEY is missing.")
+        return
+      }
+
+      await subscribeToWebPush(publicKey)
+      setPushReady(true)
+
+      const result = await sendTestWebPush()
+      if (result.delivered > 0) {
+        setMessage(`Real push sent to ${result.delivered} saved device${result.delivered === 1 ? "" : "s"}.`)
+      } else {
+        setMessage(`Push test reached the server, but no device accepted it. Failed: ${result.failed}.`)
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to send test push.")
+    }
+  }
+
   return (
     <aside className="order-app-panel" aria-label="Mobile order app controls">
       <div className="panel-heading">
@@ -282,6 +316,10 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
         <button type="button" className="secondary-action" onClick={handleTestSound}>
           <Volume2 size={16} strokeWidth={2.4} />
           <span>Test Sound</span>
+        </button>
+        <button type="button" className="secondary-action" onClick={handleTestPush}>
+          <BellRing size={16} strokeWidth={2.4} />
+          <span>Test Push</span>
         </button>
       </div>
 

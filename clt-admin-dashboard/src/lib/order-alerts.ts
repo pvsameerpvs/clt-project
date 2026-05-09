@@ -208,3 +208,23 @@ async function savePushSubscription(subscription: PushSubscription) {
     throw new Error(data?.details || data?.error || "Failed to save push subscription.")
   }
 }
+
+export async function sendTestWebPush() {
+  const res = await fetch("/api/admin/push/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  })
+  const data = (await res.json().catch(() => null)) as
+    | { error?: string; delivered?: number; subscriptions?: number; failed?: number }
+    | null
+
+  if (!res.ok) {
+    throw new Error(data?.error || "Unable to send test push.")
+  }
+
+  return {
+    delivered: data?.delivered || 0,
+    subscriptions: data?.subscriptions || 0,
+    failed: data?.failed || 0,
+  }
+}

@@ -25,6 +25,7 @@ Production dashboard runs on `https://admin.cleparfum.com`.
 1. Set `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_VAPID_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, and `WEBHOOK_SECRET` in the dashboard environment.
 2. In Supabase SQL editor, run `admin-push-notifications.sql` after replacing the webhook secret placeholder with the same `WEBHOOK_SECRET`.
 3. Open the live HTTPS dashboard on each device and click `Enable Order Alerts` once per browser/PWA install.
+4. Use `Test Push` from the mobile order app panel to verify real background push delivery.
 
 ## Routes
 
