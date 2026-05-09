@@ -13,6 +13,7 @@ import {
   registerOrderWorker,
   requestNotificationPermission,
   showOrderNotification,
+  subscribeToWebPush,
   vibrateOrderAlert,
 } from "@/lib/order-alerts"
 
@@ -142,13 +143,26 @@ export function OrderMobileAppPanel({ openOrders, totalOrders }: OrderMobileAppP
 
       const permission = await requestNotificationPermission()
       setNotificationState(permission)
+
+      if (permission === "granted") {
+        const publicKey = process.env.NEXT_PUBLIC_VAPID_KEY
+        if (publicKey) {
+          try {
+            await subscribeToWebPush(publicKey)
+          } catch (pushError) {
+            console.error("Web Push Error:", pushError)
+            // We intentionally don't throw here so that local sound/vibration still enables!
+          }
+        }
+      }
+
       vibrateOrderAlert()
       await playOrderChime()
       markOrderSoundReady()
       setSoundReady(true)
 
       if (permission === "granted") {
-        setMessage("Order alerts are ready with 10-second sound and vibration where supported.")
+        setMessage("Order alerts are ready with background push notifications, sound, and vibration.")
       } else if (permission === "denied") {
         setMessage("Browser notifications are blocked. Sound and vibration are ready while this page is open.")
       } else {

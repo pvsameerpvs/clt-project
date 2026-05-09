@@ -6,6 +6,7 @@ import { LayoutGrid, LogOut } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
+import { GlobalOrderAlerts } from "@/components/dashboard/global-order-alerts"
 
 export function DashboardShell({
   children,
@@ -72,6 +73,8 @@ export function DashboardShell({
           </div>
         </main>
       </div>
+
+      <GlobalOrderAlerts />
     </div>
   )
 }
