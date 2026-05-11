@@ -12,6 +12,7 @@ import { verifyEmailAbstract } from "@/app/auth/actions"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { CheckoutLoadingOverlay } from "@/components/checkout-loading-overlay"
 import { CheckoutContactInfo } from "./parts/checkout-contact-info"
 import { CheckoutAddressSection } from "./parts/checkout-address-section"
 import { CheckoutPaymentMethods } from "./parts/checkout-payment-methods"
@@ -401,8 +402,11 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50/30 py-8 md:py-14">
-      <div className="mx-auto max-w-6xl px-4 md:px-6">
+    <div className="relative min-h-screen bg-neutral-50/30 py-8 md:py-14">
+      {/* Loading overlay — locks entire checkout while placing order */}
+      {isPlacingOrder && <CheckoutLoadingOverlay />}
+
+      <div className={`mx-auto max-w-6xl px-4 md:px-6 ${isPlacingOrder ? 'pointer-events-none' : ''}`}>
         <div className="mb-8 flex items-start justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 font-medium">Secure Checkout</p>
