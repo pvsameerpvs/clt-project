@@ -13,7 +13,6 @@ import {
   type CheckoutPayload,
 } from '../services/checkout.service'
 import { sendOrderWhatsAppConfirmation } from '../services/whatsapp.service'
-import { notifyAdminPush } from '../services/push-notification.service'
 import { generateOrderNumber } from '../utils/order-number'
 import { isCashOnDeliveryPayment, isUnpaidOnlinePaymentAttempt } from '../utils/order-visibility'
 
@@ -168,18 +167,6 @@ orderRoutes.post('/cod-checkout', optionalAuthMiddleware, async (req: Request, r
       shipping_address: payload.shipping_address
     })
 
-    // Notify admin via push alongside email
-    notifyAdminPush({
-      type: 'INSERT',
-      table: 'orders',
-      record: {
-        id: order.id,
-        order_number: order.order_number,
-        status: order.status,
-        total: order.total,
-      },
-    }).catch((err) => console.error('[Orders] Direct push failed for new order:', err))
-
     console.log('[Orders] Triggering WhatsApp confirmation for:', contactWhatsapp)
     sendOrderWhatsAppConfirmation({
       order_number: order.order_number,
@@ -297,19 +284,6 @@ orderRoutes.post('/:id/cancel', authMiddleware, async (req: Request, res: Respon
       reason: 'Cancelled by customer'
     })
 
-    // Notify admin via push alongside email
-    notifyAdminPush({
-      type: 'UPDATE',
-      table: 'orders',
-      record: {
-        id: order.id,
-        order_number: order.order_number,
-        status: 'cancelled',
-        total: order.total,
-      },
-      old_record: { status: order.status },
-    }).catch((err) => console.error('[Orders] Direct push failed for cancellation:', err))
-
     res.json({
       id: updated.id,
       status: normalizeOrderStatusForResponse(updated.status),
@@ -398,18 +372,6 @@ orderRoutes.post('/:id/return-request', authMiddleware, async (req: Request, res
       res.status(500).json({ error: createError?.message || 'Failed to create return request' })
       return
     }
-
-    // Notify admin via push for new return request
-    notifyAdminPush({
-      type: 'INSERT',
-      table: 'order_return_requests',
-      record: {
-        id: created.id,
-        order_id: orderId,
-        reason: reason || null,
-        status: created.status,
-      },
-    }).catch((err) => console.error('[Orders] Direct push failed for return request:', err))
 
     res.status(201).json(created)
   } catch (error: any) {

@@ -1,7 +1,6 @@
 
 import { supabaseAdmin } from '../config/supabase';
 import { sendReturnStatusEmail } from './email.service';
-import { notifyAdminPush } from './push-notification.service';
 
 export interface ReturnStatusUpdateResult {
   success: boolean;
@@ -61,18 +60,6 @@ export class ReturnService {
           message // Pass the admin comment/message here
         ).catch(err => console.error('[ReturnService] Email notification failed:', err.message));
       }
-
-      // 4. Admin Push Notification (alongside email)
-      notifyAdminPush({
-        type: 'UPDATE',
-        table: 'order_return_requests',
-        record: {
-          id: updatedRequest.id,
-          order_id: updatedRequest.order_id,
-          reason: updatedRequest.reason,
-          status: newStatus,
-        },
-      }).catch((err) => console.error('[ReturnService] Direct push failed for return update:', err));
 
       return { success: true, data: updatedRequest };
     } catch (err: any) {

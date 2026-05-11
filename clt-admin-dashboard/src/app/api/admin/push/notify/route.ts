@@ -8,6 +8,7 @@ type OrderRecord = {
   order_number?: string | null
   status?: string | null
   total?: number | string | null
+  payment_method?: string | null
 }
 
 type ReturnRequestRecord = {
@@ -35,10 +36,24 @@ function normalizeStatus(status: string | null | undefined) {
   return String(status || "").toLowerCase().trim()
 }
 
-function getOrderEvent(type: string | undefined, status: string | null | undefined) {
+function isOnlinePaymentMethod(paymentMethod: string | null | undefined) {
+  const method = String(paymentMethod || "").toLowerCase()
+  return method.includes("card") || method.includes("bank") || method.includes("ziina")
+}
+
+function getOrderEvent(
+  type: string | undefined,
+  status: string | null | undefined,
+  paymentMethod: string | null | undefined
+) {
   const normalizedStatus = normalizeStatus(status)
 
   if (type === "INSERT") {
+    // For card/bank payments, the order is only "placed" after payment is confirmed.
+    // Skip INSERT notification for pending online payments — notify on UPDATE to "paid" instead.
+    if (isOnlinePaymentMethod(paymentMethod) && normalizedStatus === "pending") {
+      return null
+    }
     return { kind: "new", label: "New Order", verb: "placed" }
   }
 
@@ -167,12 +182,13 @@ export async function POST(request: Request) {
     let notificationPayload: Record<string, unknown> | null = null
 
     if (table === "orders" || !table) {
-      const orderEvent = getOrderEvent(type, (record as OrderRecord).status)
+      const orderRecord = record as OrderRecord
+      const orderEvent = getOrderEvent(type, orderRecord.status, orderRecord.payment_method)
 
       if (orderEvent) {
         notificationPayload = await buildOrderNotificationPayload(
           orderEvent,
-          record as OrderRecord
+          orderRecord
         )
       }
     }
