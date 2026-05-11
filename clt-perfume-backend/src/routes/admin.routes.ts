@@ -4,6 +4,7 @@ import { ReturnService } from '../services/return.service'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
 import { sendOrderStatusEmail, sendAdminOrderCancellationNotification } from '../services/email.service'
 import { sendOrderStatusWhatsApp } from '../services/whatsapp.service'
+import { notifyAdminPush } from '../services/push-notification.service'
 import { isCashOnDeliveryPayment, isVisibleAdminOrder } from '../utils/order-visibility'
 import { calculateOrderStats, isRevenueOrder as isDashboardRevenueOrder } from '../utils/order-stats'
 
@@ -980,6 +981,19 @@ adminRoutes.put('/orders/:id/status', async (req: Request, res: Response) => {
     }
 
     sendOrderStatusWhatsApp(data.order_number, notificationStatus, contactWhatsapp, paymentStatus)
+
+    // Notify admin via push alongside email
+    notifyAdminPush({
+      type: 'UPDATE',
+      table: 'orders',
+      record: {
+        id: data.id,
+        order_number: data.order_number,
+        status: data.status,
+        total: data.total,
+      },
+      old_record: { status: oldStatus },
+    }).catch((err) => console.error('[Admin] Direct push failed for status update:', err))
 
     res.json({
       ...data,

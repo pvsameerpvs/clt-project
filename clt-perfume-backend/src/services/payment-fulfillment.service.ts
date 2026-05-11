@@ -6,6 +6,7 @@ import {
   sendAdminOrderCancellationNotification 
 } from './email.service'
 import { sendOrderWhatsAppConfirmation } from './whatsapp.service'
+import { notifyAdminPush } from './push-notification.service'
 
 type PaidOrderPaymentInput = {
   orderId?: string | null
@@ -279,6 +280,19 @@ export async function fulfillPaidOrderPayment(input: PaidOrderPaymentInput) {
     })),
   })
 
+  // Notify admin via push alongside email
+  notifyAdminPush({
+    type: 'UPDATE',
+    table: 'orders',
+    record: {
+      id: order.id,
+      order_number: order.order_number,
+      status: 'paid',
+      total: order.total,
+    },
+    old_record: { status: 'pending' },
+  }).catch((err) => console.error('[PaymentFulfillment] Direct push failed for paid order:', err))
+
   console.log(`Paid order ${order.id} fulfilled`)
   return true
 }
@@ -332,6 +346,19 @@ export async function markOrderPaymentUnsuccessful(input: UnsuccessfulOrderPayme
     total: Number(order.total || 0),
     reason: `Payment failed/cancelled via Ziina (Status: ${input.status})`
   })
+
+  // Notify admin via push alongside email
+  notifyAdminPush({
+    type: 'UPDATE',
+    table: 'orders',
+    record: {
+      id: order.id,
+      order_number: order.order_number,
+      status: 'cancelled',
+      total: order.total,
+    },
+    old_record: { status: 'pending' },
+  }).catch((err) => console.error('[PaymentFulfillment] Direct push failed for cancelled order:', err))
 
   await releasePromoCodeReservation(order.id)
   console.log(`Order ${order.id} cancelled after Ziina payment status ${input.status}`)

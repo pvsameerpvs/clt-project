@@ -22,10 +22,23 @@ Production dashboard runs on `https://admin.cleparfum.com`.
 
 ## Admin Push Notifications
 
+Push notifications are sent to the admin PWA for every important order and return event.
+
+**Covered Events:**
+- New orders (INSERT)
+- Order status changes: `paid`, `processing`, `shipped`, `delivered`, `cancelled`, `refunded`
+- New return requests (INSERT)
+- Return request status changes: `approved`, `rejected`, `completed`
+
+**Setup:**
 1. Set `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_VAPID_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, and `WEBHOOK_SECRET` in the dashboard environment.
 2. In Supabase SQL editor, run `admin-push-notifications.sql` after replacing the webhook secret placeholder with the same `WEBHOOK_SECRET`.
 3. Open the live HTTPS dashboard on each device and click `Enable Order Alerts` once per browser/PWA install.
 4. Use `Test Push` from the mobile order app panel to verify real background push delivery.
+
+**Backend Direct Push (optional):**
+- The backend API also sends direct push calls alongside emails for extra reliability.
+- Set `ADMIN_PUSH_WEBHOOK_URL` and `ADMIN_PUSH_WEBHOOK_SECRET` in the backend `.env`.
 
 ## Routes
 
