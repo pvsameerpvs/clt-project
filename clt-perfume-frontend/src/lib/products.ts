@@ -59,6 +59,7 @@ export interface Product {
   is_new?: boolean
   is_best_seller?: boolean
   is_exclusive?: boolean
+  requires_gift_selection?: boolean
 }
 
 export function getCategoryLabel(category: ProductCategory): string {

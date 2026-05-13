@@ -50,8 +50,12 @@ export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart()
   const { toggleWishlist, isInWishlist } = useWishlist()
   const badges = getProductBadges(product)
+  const requiresGiftSelection = Boolean(product.requires_gift_selection)
+  const cartActionLabel = requiresGiftSelection ? "Choose Gift" : "Add to Bag"
 
   const handleAddToCart = (e: React.MouseEvent) => {
+    if (requiresGiftSelection) return
+
     e.preventDefault()
     addToCart(product, 1)
     toast.success(`${product.name} added to bag`, {
@@ -127,7 +131,7 @@ export function ProductCard({ product }: { product: Product }) {
                 onClick={handleAddToCart}
                 className="w-full bg-white text-black hover:bg-neutral-100 backdrop-blur-sm shadow-lg rounded-full h-11 text-xs uppercase tracking-widest font-medium group-hover:delay-75 transition-all"
              >
-               Add to Bag 
+               {cartActionLabel}
                {/* — AED {product.price} */}
              </Button>
           </div>
@@ -152,7 +156,7 @@ export function ProductCard({ product }: { product: Product }) {
             onClick={handleAddToCart}
             className="mt-2 h-9 w-full rounded-full bg-black text-[10px] font-medium uppercase tracking-widest text-white transition-all hover:bg-neutral-800 md:hidden"
           >
-            Add to Bag
+            {cartActionLabel}
           </Button>
         </CardFooter>
       </Card>

@@ -54,6 +54,30 @@ async function resolveCategoryBranchIds(rootCategoryId: string) {
   return ordered.length ? ordered : [rootCategoryId]
 }
 
+async function markProductsRequiringGiftSelection<T extends { id: string }>(products: T[]) {
+  if (!products.length) return products
+
+  const productIds = products.map((product) => product.id).filter(Boolean)
+  if (!productIds.length) return products
+
+  const { data, error } = await supabaseAdmin
+    .from('product_promotions')
+    .select('parent_id')
+    .in('parent_id', productIds)
+    .eq('is_active', true)
+
+  if (error) {
+    console.warn('[products] unable to resolve active gift promotions:', error.message)
+    return products
+  }
+
+  const parentIds = new Set((data || []).map((promotion) => promotion.parent_id).filter(Boolean))
+  return products.map((product) => ({
+    ...product,
+    requires_gift_selection: parentIds.has(product.id),
+  }))
+}
+
 // GET /api/products/categories - List all categories
 productRoutes.get('/categories', async (req, res) => {
   try {
@@ -168,7 +192,7 @@ productRoutes.get('/', async (req, res) => {
       return { ...rest, stock: stock_quantity }
     })
 
-    res.json(mapped)
+    res.json(await markProductsRequiringGiftSelection(mapped))
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
@@ -196,7 +220,8 @@ productRoutes.get('/:slug', async (req, res) => {
     if (error) throw error
 
     const { stock_quantity, ...rest } = data
-    res.json({ ...rest, stock: stock_quantity })
+    const [product] = await markProductsRequiringGiftSelection([{ ...rest, stock: stock_quantity }])
+    res.json(product)
   } catch (error: any) {
     res.status(404).json({ error: 'Product not found' })
   }
