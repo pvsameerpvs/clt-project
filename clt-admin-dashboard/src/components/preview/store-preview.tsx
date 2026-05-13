@@ -3,13 +3,34 @@
 import { Facebook, Instagram, Twitter, Youtube, Linkedin, Edit3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+const SOCIAL_LINK_KEYS = ["instagram", "facebook", "twitter", "youtube", "linkedin", "tiktok"] as const
+const socialIconClassName = "h-3 w-3"
+
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
+      <path d="M16.6 3c.3 2.1 1.5 3.4 3.6 3.6v3.1c-1.2.1-2.4-.3-3.6-1v5.7c0 3.1-2.1 5.6-5.3 5.6-3 0-5.5-2.1-5.5-5.1 0-3.4 3.2-5.7 6.5-4.9v3.2c-1.4-.4-3.2.2-3.2 1.8 0 1.1.9 1.9 2 1.9 1.4 0 2.2-.8 2.2-2.5V3h3.3Z" />
+    </svg>
+  )
+}
+
+function renderSocialIcon(platform: (typeof SOCIAL_LINK_KEYS)[number]) {
+  if (platform === "instagram") return <Instagram className={socialIconClassName} />
+  if (platform === "facebook") return <Facebook className={socialIconClassName} />
+  if (platform === "twitter") return <Twitter className={socialIconClassName} />
+  if (platform === "youtube") return <Youtube className={socialIconClassName} />
+  if (platform === "linkedin") return <Linkedin className={socialIconClassName} />
+  return <TikTokIcon className={socialIconClassName} />
+}
+
 interface StoreInfo {
   slogan?: string
   description?: string
   email?: string
   phone?: string
   address?: string
-  social_links?: Partial<Record<"instagram" | "facebook" | "twitter" | "youtube" | "linkedin", string>>
+  social_links?: Partial<Record<(typeof SOCIAL_LINK_KEYS)[number], string>>
+  social_links_enabled?: Partial<Record<(typeof SOCIAL_LINK_KEYS)[number], boolean>>
 }
 
 interface StorePreviewProps {
@@ -34,17 +55,16 @@ export function StorePreview({ info, onEditClick }: StorePreviewProps) {
               </p>
               
               <div className="flex gap-3 pt-2">
-                {Object.entries(socialLinks).map(([platform, link]) => (
-                   link ? (
+                {SOCIAL_LINK_KEYS.map((platform) => {
+                  const link = socialLinks[platform]
+                  const isEnabled = info?.social_links_enabled?.[platform] !== false
+
+                  return link && isEnabled ? (
                      <div key={platform} className="w-8 h-8 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white text-[10px]">
-                        {platform === 'instagram' && <Instagram className="h-3 w-3" />}
-                        {platform === 'facebook' && <Facebook className="h-3 w-3" />}
-                        {platform === 'twitter' && <Twitter className="h-3 w-3" />}
-                        {platform === 'youtube' && <Youtube className="h-3 w-3" />}
-                        {platform === 'linkedin' && <Linkedin className="h-3 w-3" />}
+                        {renderSocialIcon(platform)}
                      </div>
                    ) : null
-                ))}
+                })}
               </div>
             </div>
 

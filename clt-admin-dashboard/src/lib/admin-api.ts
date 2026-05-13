@@ -187,6 +187,15 @@ export interface SiteSettings {
       twitter: string
       youtube: string
       linkedin: string
+      tiktok?: string
+    }
+    social_links_enabled?: {
+      instagram?: boolean
+      facebook?: boolean
+      twitter?: boolean
+      youtube?: boolean
+      linkedin?: boolean
+      tiktok?: boolean
     }
   }
 }

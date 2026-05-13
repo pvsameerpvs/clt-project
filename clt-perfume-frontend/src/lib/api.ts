@@ -165,6 +165,15 @@ interface SiteSettingsData {
       twitter: string
       youtube: string
       linkedin: string
+      tiktok?: string
+    }
+    social_links_enabled?: {
+      instagram?: boolean
+      facebook?: boolean
+      twitter?: boolean
+      youtube?: boolean
+      linkedin?: boolean
+      tiktok?: boolean
     }
   }
 }
@@ -240,6 +249,15 @@ const DEFAULT_SITE_SETTINGS: SiteSettingsData = {
       twitter: "",
       youtube: "",
       linkedin: "",
+      tiktok: "",
+    },
+    social_links_enabled: {
+      instagram: true,
+      facebook: true,
+      twitter: true,
+      youtube: true,
+      linkedin: true,
+      tiktok: true,
     },
   },
 }
@@ -306,6 +324,10 @@ function mergeSettings(data: unknown): SiteSettingsData {
       social_links: {
         ...DEFAULT_SITE_SETTINGS.global_store_info.social_links,
         ...(source.global_store_info?.social_links || {}),
+      },
+      social_links_enabled: {
+        ...DEFAULT_SITE_SETTINGS.global_store_info.social_links_enabled,
+        ...(source.global_store_info?.social_links_enabled || {}),
       },
     },
   }

@@ -30,6 +30,15 @@ const EMPTY_SETTINGS = {
       twitter: "",
       youtube: "",
       linkedin: "",
+      tiktok: "",
+    },
+    social_links_enabled: {
+      instagram: true,
+      facebook: true,
+      twitter: true,
+      youtube: true,
+      linkedin: true,
+      tiktok: true,
     },
   },
 }

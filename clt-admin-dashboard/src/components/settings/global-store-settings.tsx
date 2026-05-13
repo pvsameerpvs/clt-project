@@ -24,6 +24,15 @@ interface GlobalStoreInfo {
     twitter: string
     youtube: string
     linkedin: string
+    tiktok?: string
+  }
+  social_links_enabled?: {
+    instagram?: boolean
+    facebook?: boolean
+    twitter?: boolean
+    youtube?: boolean
+    linkedin?: boolean
+    tiktok?: boolean
   }
 }
 
@@ -32,17 +41,44 @@ interface GlobalStoreSettingsProps {
   onChange: (info: GlobalStoreInfo) => void
 }
 
-const SOCIAL_LINK_KEYS = ["instagram", "facebook", "twitter", "youtube", "linkedin"] as const
+const SOCIAL_LINK_KEYS = ["instagram", "facebook", "twitter", "youtube", "linkedin", "tiktok"] as const
+const SOCIAL_LINK_LABELS: Record<(typeof SOCIAL_LINK_KEYS)[number], string> = {
+  instagram: "Instagram",
+  facebook: "Facebook",
+  twitter: "Twitter",
+  youtube: "YouTube",
+  linkedin: "LinkedIn",
+  tiktok: "TikTok",
+}
+const DEFAULT_SOCIAL_LINKS: GlobalStoreInfo["social_links"] = {
+  instagram: "",
+  facebook: "",
+  twitter: "",
+  youtube: "",
+  linkedin: "",
+  tiktok: "",
+}
 
 export function GlobalStoreSettings({ info, onChange }: GlobalStoreSettingsProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const socialLinks = { ...DEFAULT_SOCIAL_LINKS, ...info.social_links }
 
   const updateInfo = <T extends keyof GlobalStoreInfo>(field: T, val: GlobalStoreInfo[T]) => {
     onChange({ ...info, [field]: val })
   }
 
   const updateSocial = (field: keyof GlobalStoreInfo['social_links'], val: string) => {
-    onChange({ ...info, social_links: { ...info.social_links, [field]: val } })
+    onChange({ ...info, social_links: { ...socialLinks, [field]: val } })
+  }
+
+  const updateSocialEnabled = (field: keyof NonNullable<GlobalStoreInfo['social_links_enabled']>, enabled: boolean) => {
+    onChange({
+      ...info,
+      social_links_enabled: {
+        ...info.social_links_enabled,
+        [field]: enabled,
+      },
+    })
   }
 
   return (
@@ -119,11 +155,23 @@ export function GlobalStoreSettings({ info, onChange }: GlobalStoreSettingsProps
                  <h3 className="text-xs font-bold text-neutral-900 border-b pb-2 uppercase tracking-widest px-1">Social Media Links</h3>
                  <div className="grid sm:grid-cols-2 gap-4">
                     {SOCIAL_LINK_KEYS.map((platform) => (
-                      <div key={platform} className="space-y-1">
-                        <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest px-1">{platform}</label>
+                      <div key={platform} className="space-y-2 rounded-xl border border-neutral-100 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">{SOCIAL_LINK_LABELS[platform]}</label>
+                          <label className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-neutral-500">
+                            <input
+                              type="checkbox"
+                              className="h-3.5 w-3.5 rounded border-neutral-300 accent-black"
+                              checked={info.social_links_enabled?.[platform] !== false}
+                              onChange={(e) => updateSocialEnabled(platform, e.target.checked)}
+                            />
+                            Enabled
+                          </label>
+                        </div>
                         <input 
                           className="w-full border border-neutral-200 bg-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-black outline-none transition-all"
-                          value={info.social_links[platform]}
+                          value={socialLinks[platform] || ""}
+                          placeholder={`https://${platform === "tiktok" ? "www.tiktok.com/@yourbrand" : `${platform}.com/yourbrand`}`}
                           onChange={(e) => updateSocial(platform, e.target.value)}
                         />
                       </div>

@@ -27,7 +27,7 @@ export default function OurStoryPage() {
         <ContentCard
           title="Our Launch Direction"
           paragraphs={[
-            "The first collection focuses on five fragrances selected for personality range and wearability. The 50 ml and 100 ml format options are chosen to match both discovery and long-term use.",
+            "The first collection focuses on six fragrances selected for personality range and wearability. The 50 ml and 100 ml format options are chosen to match both discovery and long-term use.",
             "Our objective is not just product variety, but disciplined curation with strong quality control.",
           ]}
         />

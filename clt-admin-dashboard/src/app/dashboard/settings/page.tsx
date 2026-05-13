@@ -307,7 +307,8 @@ export default function SettingsPage() {
                     email: "",
                     phone: "",
                     address: "",
-                    social_links: { instagram: "", facebook: "", twitter: "", youtube: "", linkedin: "" }
+                    social_links: { instagram: "", facebook: "", twitter: "", youtube: "", linkedin: "", tiktok: "" },
+                    social_links_enabled: { instagram: true, facebook: true, twitter: true, youtube: true, linkedin: true, tiktok: true }
                   }}
                   onChange={(info) => setSettings(prev => prev ? ({ ...prev, global_store_info: info }) : null)}
                 />

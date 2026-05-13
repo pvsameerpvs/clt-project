@@ -5,6 +5,34 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getSiteSettings } from "@/lib/api"
 
+const SOCIAL_LINK_KEYS = ["instagram", "facebook", "twitter", "youtube", "linkedin", "tiktok"] as const
+const SOCIAL_LINK_LABELS: Record<(typeof SOCIAL_LINK_KEYS)[number], string> = {
+  instagram: "Instagram",
+  facebook: "Facebook",
+  twitter: "Twitter",
+  youtube: "YouTube",
+  linkedin: "LinkedIn",
+  tiktok: "TikTok",
+}
+const socialIconClassName = "h-4 w-4"
+
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor">
+      <path d="M16.6 3c.3 2.1 1.5 3.4 3.6 3.6v3.1c-1.2.1-2.4-.3-3.6-1v5.7c0 3.1-2.1 5.6-5.3 5.6-3 0-5.5-2.1-5.5-5.1 0-3.4 3.2-5.7 6.5-4.9v3.2c-1.4-.4-3.2.2-3.2 1.8 0 1.1.9 1.9 2 1.9 1.4 0 2.2-.8 2.2-2.5V3h3.3Z" />
+    </svg>
+  )
+}
+
+function renderSocialIcon(platform: (typeof SOCIAL_LINK_KEYS)[number]) {
+  if (platform === "instagram") return <Instagram className={socialIconClassName} />
+  if (platform === "facebook") return <Facebook className={socialIconClassName} />
+  if (platform === "twitter") return <Twitter className={socialIconClassName} />
+  if (platform === "youtube") return <Youtube className={socialIconClassName} />
+  if (platform === "linkedin") return <Linkedin className={socialIconClassName} />
+  return <TikTokIcon className={socialIconClassName} />
+}
+
 interface StoreInfo {
   name: string
   slogan: string
@@ -18,6 +46,15 @@ interface StoreInfo {
     twitter: string
     youtube: string
     linkedin: string
+    tiktok?: string
+  }
+  social_links_enabled?: {
+    instagram?: boolean
+    facebook?: boolean
+    twitter?: boolean
+    youtube?: boolean
+    linkedin?: boolean
+    tiktok?: boolean
   }
 }
 
@@ -40,7 +77,9 @@ export function Footer() {
     twitter: "",
     youtube: "",
     linkedin: "",
+    tiktok: "",
   }
+  const socialLinksEnabled = info?.social_links_enabled || {}
 
   return (
     <footer className="bg-black text-white border-t border-neutral-900">
@@ -58,36 +97,17 @@ export function Footer() {
             
             {/* Social Media */}
             <div className="flex gap-4 pt-4">
-              {socialLinks.instagram && (
-                <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                  <Instagram className="h-4 w-4" />
-                  <span className="sr-only">Instagram</span>
-                </a>
-              )}
-              {socialLinks.facebook && (
-                <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                  <Facebook className="h-4 w-4" />
-                  <span className="sr-only">Facebook</span>
-                </a>
-              )}
-              {socialLinks.twitter && (
-                <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                  <Twitter className="h-4 w-4" />
-                  <span className="sr-only">Twitter</span>
-                </a>
-              )}
-              {socialLinks.youtube && (
-                <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                  <Youtube className="h-4 w-4" />
-                  <span className="sr-only">YouTube</span>
-                </a>
-              )}
-              {socialLinks.linkedin && (
-                <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
-                  <Linkedin className="h-4 w-4" />
-                  <span className="sr-only">LinkedIn</span>
-                </a>
-              )}
+              {SOCIAL_LINK_KEYS.map((platform) => {
+                const link = socialLinks[platform]
+                if (!link || socialLinksEnabled[platform] === false) return null
+
+                return (
+                  <a key={platform} href={link} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all">
+                    {renderSocialIcon(platform)}
+                    <span className="sr-only">{SOCIAL_LINK_LABELS[platform]}</span>
+                  </a>
+                )
+              })}
             </div>
           </div>
           
