@@ -176,11 +176,11 @@ export default async function OfferPage({ params }: { params: Promise<{ slug: st
             <p className="text-xl md:text-2xl font-light text-neutral-600 leading-relaxed max-w-xl">
               {offer.description}
             </p>
-            <ul className="mt-6 space-y-1 text-sm text-neutral-700 max-w-2xl">
+            {/* <ul className="mt-6 space-y-1 text-sm text-neutral-700 max-w-2xl">
               {details.map((detail, detailIndex) => (
                 <li key={`offer-detail-${detailIndex}`}>• {detail}</li>
               ))}
-            </ul>
+            </ul> */}
           </div>
         </div>
       </div>
