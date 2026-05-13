@@ -435,10 +435,13 @@ export async function getProductPromotions(productId: string) {
 export async function getCategories() {
   try {
     const res = await fetch(`${API_BASE_URL}/api/products/categories`, { cache: 'no-store' })
-    if (!res.ok) throw new Error("Failed to fetch categories")
+    if (!res.ok) {
+      console.warn(`[categories] failed to fetch from backend (status ${res.status})`)
+      return [] as ProductCategory[]
+    }
     return res.json() as Promise<ProductCategory[]>
   } catch (error) {
-    console.error(error)
+    console.warn("[categories] network error while fetching categories", error)
     return [] as ProductCategory[]
   }
 }
